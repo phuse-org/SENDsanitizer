@@ -1,0 +1,758 @@
+#App to allow for user to Generate Fake SEND Data for BW, DM, DS, EX, LB, MI,
+#TA, TS, and TX Domains
+#Requires a SEND nonclinical dataset as a base
+
+#Load Libraries
+library(dplyr)
+library(haven)
+library(Hmisc)
+library(shiny)
+library(shinyFiles)
+library(shinyWidgets)
+library(stringr)
+library(this.path)
+library(tidyr)
+library(tools)
+
+#Set Home Directory
+homePath <- dirname(this.path())
+setwd(homePath)
+#Source Needed Functions
+source(paste0(homePath, "/fct_Functions.R"))
+
+ui <- fluidPage(
+
+    # Sidebar with user controls for data generation
+    sidebarLayout(
+        sidebarPanel(
+            tags$head(tags$style(type = "text/css", "
+              #loadmessage {
+                position: relative;
+                top: 0px;
+                left: 0px;
+                width: 100%;
+                padding: 5px 0px 5px 0px;
+                text-align: center;
+                font-weight: bold;
+                font-size: 100%;
+                color: #000000;
+                background-color: #eef66c;
+                z-index: 1000;
+              }
+                ")),
+            h2("SEND Sanitizer"),
+            tags$hr(),
+            h4("1) Choose Example SEND study"),
+            #User Inputs SEND study Example
+            shinyDirButton("directory", "SEND Example Folder select",
+                           "Please select a folder containing SEND .xpt Files"),
+            actionButton("submitbutton","Add SEND Folder", class = "btn btn-primary"),
+            checkboxGroupInput('chosenfolders','Chosen Folders:'),
+            verbatimTextOutput("selected"),
+            tags$hr(),
+            h4("2) Pick Number of Studies to Generate"),
+            #User Inputs number of SEND studies to be generated
+            Createme <- sliderInput("Createme", label = "Number of Studies to Generate",
+                                    min = 0, max = 50, value = 1, step = 1),
+            tags$hr(),
+            h4("3) Select from Options"),
+            #User has toggle to print generated SEND studies to Folder (T/F)
+            tags$p('Print Folder of Generated .XPT File(s) in App Folder'),
+            switchInput("PRINT", label = "Print",
+                        onLabel = "YES", offLabel = "NO", value = FALSE),
+
+            tags$hr(),
+            #User has toggle to include or remove recovery animals (T/F)
+            tags$p('Remove Recovery Animals'),
+            switchInput("Recovery", label = "Recovery",
+                        onLabel = "No", offLabel = "Yes", value = FALSE),
+            tags$hr(),
+            h4("4) Start Generation Process"),
+            #Button to Activate Generation of New SEND Dataset
+            actionButton("Start", label = "Generate Datasets")
+        ),
+
+        # Blank Main Panel
+        mainPanel(
+            h3("Generated Data"),
+            conditionalPanel(condition = "$('html').hasClass('shiny-busy')",
+                             tags$div("Loading...", id="loadmessage")
+            ),
+            #Display Generated .xpt files as tabsetPanel with each of the generated Domains
+            tabsetPanel(
+                tabPanel("Body Weight(BW)", dataTableOutput("BW")),
+                tabPanel("Demographics (DM)", dataTableOutput("DM")),
+                tabPanel("Disposition (DS)", dataTableOutput("DS")),
+                tabPanel("Exposure (EX)", dataTableOutput("EX")),
+                tabPanel("Laboratory Tests (LB)", dataTableOutput("LB")),
+                tabPanel("Microscopic Findings (MI)", dataTableOutput("MI")),
+                tabPanel("Trial Arms (TA)", dataTableOutput("TA")),
+                tabPanel("Trial Summary (TS)", dataTableOutput("TS")),
+                tabPanel("Trial Sets (TX)", dataTableOutput("TX"))
+            )
+        )
+    )
+)
+
+
+server <- function(input, output, session) {
+
+    #Allow for Folder Base Selection of SEND Example Study
+    volumes <- c(Home = homePath, "R Installation" = R.home(), getVolumes()())
+    shinyDirChoose(input, "directory", roots = volumes, session = session,
+                   restrictions = system.file(package = "base"), allowDirCreate = FALSE)
+    #Reactive Value to Save FilePaths from shinyDirChoose
+    datasetInput <- reactive({
+        inputfolders <- c(input$chosenfolders,
+                          parseDirPath(volumes, input$directory))
+        updateCheckboxGroupInput(session, 'chosenfolders',
+                                 choices = unique(inputfolders),
+                                 selected = unique(inputfolders))
+        print(list('Input folders' = inputfolders))
+    })
+
+    #update Checkbox with new Selected Folder
+    observeEvent(input$submitbutton,{
+        isolate(datasetInput())
+    })
+
+
+    #Server Logic to Generate Fake SEND Data once button is pressed
+    observeEvent(input$Start, {
+
+        #Take Options from user inputs
+        Createme <- input$Createme
+        PRINT <- input$PRINT
+        Recovery <- input$Recovery
+        ExampleStudies <- datasetInput()
+        ExampleStudies$'Input folders' <- unique(ExampleStudies$'Input folders')#Remove Duplicated last Selection
+        NumData <- length(ExampleStudies$'Input folders')
+
+        #Make Loop for Loading in the SEND Data per Example Study
+        for (i in 1:NumData){
+            Name <- paste0('ExampleStudy',as.character(i))
+            assign(Name,load.xpt.files(ExampleStudies$`Input folders`[i]))
+        }
+        Domains <- c("bw","dm","ds","ex","lb","mi","ta","ts","tx")
+
+        #Check that Example Studies are Similar and Consolidate
+        if (NumData>1){
+            #Generate Names of number of Example Study and concatenate
+            Example <- ExampleStudy
+            for (j in 2:NumData){
+                Name <- paste0('ExampleStudy',as.character(j))
+                #Combine BW, DM, DS, EX, LB, MI, TA, TS, and TX
+                Example$bw <- rbind(Example$bw, get(Name)$bw)
+                Example$dm <- rbind(Example$dm, get(Name)$dm)
+                Example$ds <- rbind(Example$ds, get(Name)$ds)
+                Example$ex <- rbind(Example$ex, get(Name)$ex)
+                Example$lb <- rbind(Example$lb, get(Name)$lb)
+                Example$mi <- rbind(Example$mi, get(Name)$mi)
+                Example$ta <- rbind(Example$ta, get(Name)$ta)
+                Example$ts <- rbind(Example$ts, get(Name)$ts)
+                Example$tx <- rbind(Example$tx, get(Name)$tx)
+            }
+            #remove unused domains
+            Example <- Example[Domains]
+            #Check Species are the same
+            Species <- getFieldValue(Example$ts, "TSVAL", "TSPARMCD", "SPECIES")
+            if (length(unique(Species)) >1){
+                stop("ERROR:Species are not the same between SEND Example Studies. Pick one Species.")
+            }
+            #CHeck Study Type is the same
+            SSTYP <- getFieldValue(Example$ts, "TSVAL", "TSPARMCD", "SSTYP")
+            if (length(unique(SSTYP)) >1){
+                stop("ERROR:Study Types are not the same between SEND Example Studies. Pick one SSTYP.")
+            }
+            #Check Dose Levels are equivalent
+            if (Recovery == FALSE){
+                #Remove Recovery Dose ARMCDs
+                doses <- Example$ta[which(grepl("R",Example$ta$ARMCD) == FALSE),c("STUDYID","ARMCD")]
+                doses$ARMCD <- as.character(doses$ARMCD)
+            }else {
+                doses <- Example$ta[,c("STUDYID","ARMCD")]
+                doses$ARMCD <- as.character(doses$ARMCD)
+            }
+            DoseTable <- table(doses)
+            if (any(DoseTable == 0)){
+                stop("ERROR:ARMCD for Dosing is not equavalent between SEND Example Studies. Try removing Recovery Animals.")
+            }
+
+            ##Create ARMCD and DOSE Correlation
+            Doses <-Example$ta[,c("ARMCD","ARM")]
+            Doses <- Doses[!duplicated(Doses$ARM),]
+            Doses$Dose <- NA
+
+        } else {
+            #remove unused domains
+            Example <- ExampleStudy
+            Example <- Example[Domains]
+
+            #Create ARMCD and DOSE Correlation
+            Doses <-data.frame("ARMCD" = as.character(unique(Example$ta$ARMCD)),
+                               "Dose" = as.character(unique(Example$ta$ARM)))
+
+        }
+
+        #Get SEND Species, LB TESTCDs and MI Tests from Example Study
+        Species <- unique(getFieldValue(Example$ts, "TSVAL", "TSPARMCD", "SPECIES"))
+        LBTestCDs <- unique(Example$lb$LBTESTCD)
+        MITests <- unique(Example$mi$MISPEC)
+
+        #Find out Animal USUBJIDs for Control and Treated Animals
+        if (Recovery == FALSE){
+            #Remove Recovery Dose ARMCDs/Doses
+            Doses <- Doses[which(grepl("R",Doses$ARMCD) == FALSE),]
+        }
+        #Replace Dose Levels with Control, LD, MD and HD
+        ARMS <- unique(Doses$ARMCD) #Find ARMS levels
+        if (Recovery == FALSE){
+            #Make MaxDose and Account for "R" doses
+            NonrecovArm <- ARMS[which(grepl("R",ARMS) == FALSE)]
+            Maxdose <- max(as.numeric(as.character(NonrecovArm)))
+            Doses$Dose[which(Doses$ARMCD=="1R")] <- "Control R"
+            Doses$Dose[which(Doses$ARMCD=="2R")] <- "LD R"
+            Doses$Dose[which(Doses$ARMCD== paste0(Maxdose,"R"))] <- "HD R"
+        } else {
+            Maxdose <- max(as.numeric(as.character(ARMS)))
+        }
+        Doses$Dose[which(Doses$ARMCD=="1")] <- "Control"
+        Doses$Dose[which(Doses$ARMCD==Maxdose)] <- "HD"
+        Doses$Dose[which(Doses$ARMCD=="2")] <- "LD"
+        if (length(ARMS) > 3){
+            for (i in  3:(max(as.numeric(ARMS)) - 3)){
+                j <- i-2
+                if (j == 1){
+                    Doses$Dose[Doses$ARM== as.character(i)] <- "MD"
+                } else {
+                    Doses$Dose[Doses$ARM== as.character(i)] <- paste0("MD", j)
+                }
+            }
+        }
+        #Correlate USUBJID with Dose Group
+        Subjects <- merge(Example$dm[,c("USUBJID","ARMCD","SEX")], Doses, by = "ARMCD")
+
+        #Set number of subjects to create based on Example(s)
+        SubjectDet <- Subjects %>%
+            group_by(Dose) %>%
+            count(USUBJID) %>%
+            mutate(sum = sum(n)) %>%
+            select(-n)
+        SubjectDet <- SubjectDet[!duplicated(SubjectDet$Dose),]
+        GeneratedSEND <- list()
+
+        ###############################Generation of Data #############################
+        for (j in 1:Createme){
+            #Make SENDstudy length of one example study
+            onestudy <- as.character(Example$dm$STUDYID[1])
+            #Generate base for study to fill with proper SEND format
+            SENDstudy <- list( 'dm' = data.frame(Example$dm[which(Example$dm$STUDYID == onestudy),]),
+                               'bw' = data.frame(Example$bw[which(Example$bw$STUDYID == onestudy),]),
+                               'ds' = data.frame(Example$ds[which(Example$ds$STUDYID == onestudy),]),
+                               'ex' = data.frame(Example$ex[which(Example$ex$STUDYID == onestudy),]),
+                               'lb' = data.frame(Example$lb[which(Example$lb$STUDYID == onestudy),]),
+                               'mi' = data.frame(Example$mi[which(Example$mi$STUDYID == onestudy),]),
+                               'ta' = data.frame(Example$ta[which(Example$ta$STUDYID == onestudy),]),
+                               'ts' = data.frame(Example$ts[which(Example$ts$STUDYID == onestudy),]),
+                               'tx' = data.frame(Example$tx[which(Example$tx$STUDYID == onestudy),]))
+
+            #Create StudyID and Compound Name for generated study
+            studyID <- floor(runif(1, min = 10000, max = 100000))
+            Compound <- paste0("Fake-Drug ", floor(runif(1, min = 1, max = 100000)))
+
+            #Generate TS Data
+            #Keeps: Study design, GLP flag and type, duration, species, age, vehicle, dosing duration
+            #Replaces: dates, study title, study facility, study compound, primary treatment
+            #Removes: Study Director, Animal Purchasing Location, and Test Facility Country
+
+            #Replace StudyID
+            SENDstudy$ts$STUDYID <- rep(studyID, nrow(SENDstudy$ts))
+
+            #Find Date TSPARMCDs and replace
+            daterows <- grep("DTC", SENDstudy$ts$TSPARMCD)
+            SENDstudy$ts[daterows, "TSVAL"] <- rep("XXXX-XX-XX",length(daterows))
+
+            #Replace Study Facility Name and Location
+            rows <- grep("TSTF", SENDstudy$ts$TSPARMCD)
+            SENDstudy$ts[rows, "TSVAL"] <- rep("FAKE FACILITY", length(rows))
+
+            #Replace Study Compound/Primary Treatment CAS number, name, and unique ingredient ID
+            rows <- grep("TRT",SENDstudy$ts$TSPARMCD)
+            SENDstudy$ts[rows, "TSVAL"] <- rep(Compound, length(rows))
+            if (NumData > 1){
+                Vehicles <- Example$ts[grep("TRTV",Example$ts$TSPARMCD),"TSVAL"]
+                #Remove any N/A or "NOT AVAILABLE"
+                Vehicles <- Vehicles[which(str_detect(Vehicles,"NOT AVAILABLE") == FALSE)]
+                Vehicles <- Vehicles[which(str_detect(Vehicles,"NA") == FALSE)]
+                #Check if values are the same for vehicle and concatinate if not
+                if (length(unique(Vehicles)) == 1){
+                    SENDstudy$ts[grep("TRTV",SENDstudy$ts$TSPARMCD),"TSVAL"] <- Vehicles
+                } else {
+                    Vehicles <- paste(Vehicles, collapse = " / ")
+                    SENDstudy$ts[grep("TRTV",SENDstudy$ts$TSPARMCD),"TSVAL"] <- Vehicles
+                }
+            } else {
+                SENDstudy$ts[grep("TRTV",SENDstudy$ts$TSPARMCD),"TSVAL"] <- Example$ts[grep("TRTV",Example$ts$TSPARMCD),"TSVAL"]
+            }
+
+            #Replace Study Title
+            rows <- grep("STITLE", SENDstudy$ts$TSPARMCD)
+            duration <- getFieldValue(SENDstudy$ts, "TSVAL", "TSPARMCD", "DOSDUR")
+            SENDstudy$ts[rows, "TSVAL"] <- paste0(Compound, ": A ",  duration," Fake Study in ",
+                                                  Species)
+            #Remove Identifying Information
+            RemoveTerms <- c("TFCNTRY","STDIR","SPLRNAM","TFCNTRY","TRMSAC","SSPONSOR","SPREFID")
+            for (term in RemoveTerms){
+                #Check index for Term
+                idx <- which(SENDstudy$ts$TSPARMCD == term)
+                #Remove Term
+                SENDstudy$ts$TSVAL[idx] <- ""
+            }
+
+
+            #Generate TA Data
+            #Keeps: EPOCH, ELEMEND, ETCD, TAETORD, DOMAIN
+            #Replaces: StudyID, ARM
+
+            #Replace StudyID
+            SENDstudy$ta$STUDYID <- rep(studyID, nrow(SENDstudy$ta))
+
+            #Replace ARM
+            SENDstudy$ta$ARM <- as.character(SENDstudy$ta$ARM)
+            if (Recovery == FALSE){
+                SENDstudy$ta <- SENDstudy$ta[which(grepl("R",SENDstudy$ta$ARMCD) == FALSE),]
+            }
+            for (arms in unique(as.character(SENDstudy$ta$ARMCD))){
+                row <- which(arms == Doses$ARMCD)
+                Dosein <- unique(Doses$Dose[row])
+                rows <- which(arms == SENDstudy$ta$ARMCD)
+                SENDstudy$ta[rows,"ARM"] <- rep(Dosein, length(rows))
+            }
+
+            #Generate DM Data
+            #Keeps: Number of each gender animals in each treatment group
+            #Replaces: StudyID, USUBJID, Dates
+
+            #Find number of subjects in each group of each gender
+            ControlAnimals <- SENDstudy$dm[which(SENDstudy$dm$ARMCD == 1),]
+            Gendersplit <- table(ControlAnimals$SEX)
+
+            #Replace StudyID
+            SENDstudy$dm$STUDYID <- rep(studyID, nrow(SENDstudy$dm))
+
+            #Generate new USUBJIDs using SBJID
+            SENDstudy$dm$USUBJID <- paste0(studyID, "-" ,SENDstudy$dm$SUBJID)
+
+            #Replace Dates
+            cols <- grep("DTC", colnames(SENDstudy$dm))
+            SENDstudy$dm[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$dm$STUDYID))
+
+            #Replace ARM
+            SENDstudy$dm$ARM <- as.character(SENDstudy$dm$ARM)
+            if (Recovery == FALSE){
+                SENDstudy$dm <- SENDstudy$dm[which(grepl("R",SENDstudy$dm$ARMCD) == FALSE),]
+            }
+            for (arms in unique(SENDstudy$dm$ARMCD)){
+                row <- which(arms == Doses$ARMCD)
+                Dosein <- unique(Doses$Dose[row])
+                rows <- which(arms == SENDstudy$dm$ARMCD)
+                SENDstudy$dm[rows,"ARM"] <- rep(Dosein, length(rows))
+            }
+            ExampleSubjects <- SENDstudy$dm[,c("USUBJID", "ARM","SUBJID","SEX")]
+
+            #Make Factors Characters for Correct .xpt creation
+            SENDstudy$dm$SEX <- as.character(SENDstudy$dm$SEX)
+            SENDstudy$dm$AGEU <- as.character(SENDstudy$dm$AGEU)
+
+            #Generate DS Data
+            #Keeps: VISITDY
+            #Replaces: StudyID, USUBJID, USUBJID, Dates
+
+            #Account for VISITDY for Recovery Animals
+            if (Recovery == FALSE){
+                SENDstudy$ds <- SENDstudy$ds[which(grepl("Recovery",SENDstudy$ds$DSTERM) == FALSE),]
+            }
+
+            #ADD Generated USUJIDs and terminal VISITDY to new DS
+            SENDstudy$ds$USUBJID <- SENDstudy$dm$USUBJID
+
+            #Calculate percentage of Terminal Sacrifice in each ARM
+            TerminalSac <- merge(Example$ds, Subjects, by = "USUBJID")
+            TerminalSac <- TerminalSac %>%
+                group_by(Dose) %>%
+                count(DSDECOD) %>%
+                mutate(percent = n/sum(n)) %>%
+                select(-n)
+
+            #Replace StudyID
+            SENDstudy$ds$STUDYID <- rep(studyID, nrow(SENDstudy$ds))
+
+            #Replace Dates
+            cols <- grep("DTC", colnames(SENDstudy$ds))
+            SENDstudy$ds[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$ds$STUDYID))
+
+            #Make Generated DS Terminal Sacrifice percentage match expectation
+            for(Dose in unique(Doses$Dose)){
+                Percen <- TerminalSac[which(TerminalSac$Dose == Dose & TerminalSac$DSDECOD == 'TERMINAL SACRIFICE'), 'percent']
+                Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose)]
+                Gendata <- sample(c("TERMINAL SACRIFICE", "FOUND DEAD"),length(Subjs), replace = TRUE, prob = c(Percen, (1-Percen)))
+                #Add in Randomized Data to Subjects in Each Group
+                SENDstudy$ds[which(SENDstudy$ds$USUBJID %in% Subjs), "DSDECOD"] <- Gendata
+                #Make VISITDY Appropriate
+                VISTDY <- max(SENDstudy$ds[which(SENDstudy$ds$USUBJID %in% Subjs), "VISITDY"], na.rm = TRUE)
+                SENDstudy$ds[which(SENDstudy$ds$USUBJID %in% Subjs), "VISITDY"] <- VISTDY
+            }
+            #Ensure DSTERM/VISITDY is APPROPRIATE
+            SENDstudy$ds <-SENDstudy$ds %>%
+                mutate(DSTERM = ifelse(DSDECOD == 'FOUND DEAD','Found Dead','Terminal necropsy')) %>%
+                mutate(VISITDY = ifelse(DSDECOD == 'FOUND DEAD',NA,VISITDY))
+
+            #Generate TX data
+            #Keeps: SETCD
+            #Replaces: SET
+
+            #Replace StudyID
+            SENDstudy$tx$STUDYID <- rep(studyID, nrow(SENDstudy$tx))
+
+            #Account for Recovery Animals
+            if (Recovery == FALSE){
+                SENDstudy$tx <- SENDstudy$tx[which(grepl("R",SENDstudy$tx$SETCD) == FALSE),]
+            }
+
+            #Replace SET with Blinded Notation
+            ARMS <- getFieldValue(SENDstudy$tx,'TXVAL','TXPARM', 'Arm Code')
+            SETS <- SENDstudy$tx$SET[which(SENDstudy$tx$TXPARM == 'Arm Code')]
+            ARMtoset <- data.frame('Arm' = ARMS, 'Set' = SETS)
+            SENDstudy$tx$TXVAL <- as.character(SENDstudy$tx$TXVAL)
+            SENDstudy$tx$SET <- as.character(SENDstudy$tx$SET)
+            for (i in 1:nrow(ARMtoset)){
+                ARMCD <- as.character(ARMtoset$Arm[i])
+                SETCD <- as.character(ARMtoset$Set[i])
+                DoseCover <- Doses$Dose[which(Doses$ARMCD == ARMCD)]
+                SENDstudy$tx$TXVAL[which(grepl(SETCD,SENDstudy$tx$TXVAL)== TRUE)] <- DoseCover
+                SENDstudy$tx$SET[which(SENDstudy$tx$SET == SETCD)] <- DoseCover
+            }
+            #Replace Factors with Characters
+            SENDstudy$tx$SETCD <- as.character(SENDstudy$tx$SETCD)
+            SENDstudy$tx$TXPARM <- as.character(SENDstudy$tx$TXPARM)
+            SENDstudy$tx$TXPARMCD <- as.character(SENDstudy$tx$TXPARMCD)
+
+            #Generate EX data
+            #Keeps: ESDOSFRM, EXDOSFRQ, EXROUTE, EXTRTV, EXSTDY, EXDOSEU, EXVATMU, EXSTDY
+            #Replaces: EXTRT, EXLOT, EXSTDTC, EXVAMT, EXDOSE, USUBJID, STUDYID
+
+            #ADD Generated USUBJID, EXTRT name, and STUDYID
+            SENDstudy$ex$STUDYID <- rep(studyID, nrow(SENDstudy$ex))
+            SENDstudy$ex$EXTRT <- rep(Compound, length(SENDstudy$ex$EXTRT))
+            #Remove Recovery if Needed
+            if (Recovery == FALSE){
+                NonRecovSub <- Example$dm$USUBJID[which(grepl("R",Example$dm$ARMCD) == FALSE)]
+                SENDstudy$ex <- SENDstudy$ex[which(SENDstudy$ex$USUBJID %in% NonRecovSub),]
+            }
+            SENDstudy$ex$USUBJID <- as.character(SENDstudy$ex$USUBJID)
+            SUB <- matrix(unlist(strsplit(SENDstudy$ex$USUBJID,"-", fixed = TRUE)),ncol=2, byrow = T)
+            SENDstudy$ex$USUBJID <- paste0(studyID, "-" ,SUB[,2])
+
+            #Generate Fake EXLOT
+            Lotnum <- length(levels(SENDstudy$ex$EXLOT))
+            Lot <- paste0("Fake", floor(runif(Lotnum, min = 1, max = 100000)))
+            for (i in 1:Lotnum){
+                levels(SENDstudy$ex$EXLOT)[i] <-Lot[i]
+            }
+
+            #Remove Dates
+            cols <- grep("DTC", colnames(SENDstudy$ex))
+            SENDstudy$ex[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$ex$STUDYID))
+
+            #Find Distribution of Dose to Vehicle (EXDOSE) to (EXVAMT)
+            Dist <- SENDstudy$ex$EXDOSE/SENDstudy$ex$EXVAMT
+            #Generate EXDOSE and EXVAMT Numbers based on expectation
+            Gen <- round(runif(length(Dist),min=min(SENDstudy$ex$EXVAMT), max = max(SENDstudy$ex$EXVAMT)),2)
+            SENDstudy$ex$EXVAMT <- Gen
+            SENDstudy$ex$EXDOSE <- Gen*Dist
+
+            #Make Factors as Characters
+            SENDstudy$ex$EXDOSU <- as.character(SENDstudy$ex$EXDOSU)
+            SENDstudy$ex$EXROUTE <- as.character(SENDstudy$ex$EXROUTE)
+            SENDstudy$ex$EXVAMTU <- as.character(SENDstudy$ex$EXVAMTU)
+            SENDstudy$ex$EXTRTV <- as.character(SENDstudy$ex$EXTRTV)
+            SENDstudy$ex$EXDOSFRQ <- as.character(SENDstudy$ex$EXDOSFRQ)
+            SENDstudy$ex$EXDOSFRM <- as.character(SENDstudy$ex$EXDOSFRM)
+
+            #Generates BW Data
+            #Keeps: BWORRESU, BWTESTCD, BWSTRESU
+            #Replaces: STUDYID, USUBJID, BWORRES, BWSTRESC, BWSTRESN, and BWDTC
+            #Removes: BWBLFL
+
+            #Add Generated StudyID and USUBJID
+            SENDstudy$bw$STUDYID <- rep(studyID, nrow(SENDstudy$bw))
+            SENDstudy$bw$USUBJID <- as.character(SENDstudy$bw$USUBJID)
+            colcount <- str_count(SENDstudy$bw$USUBJID,"-")[1]+1
+            SUB <- matrix(unlist(strsplit(SENDstudy$bw$USUBJID,"-", fixed = TRUE)),ncol=colcount, byrow = T)
+            SENDstudy$bw$USUBJID <- paste0(studyID, "-" ,SUB[,colcount])
+
+            #Remove Dates
+            cols <- grep("DTC", colnames(SENDstudy$bw))
+            SENDstudy$bw[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$bw$STUDYID))
+
+            #Remove BWBLFL
+            SENDstudy$bw$BWBLFL <- NA
+
+            #Find average weight behavior by dose and gender in Example
+            BWFindings <- merge(Subjects, Example$bw[,c("USUBJID", "BWTESTCD", "BWSTRESN","BWDY")], by = "USUBJID")
+            BWSummary <- BWFindings %>%
+                group_by(Dose, BWTESTCD,BWDY,SEX) %>%
+                mutate(ARMavg = mean(BWSTRESN, na.rm = TRUE)) %>%
+                mutate(ARMstdev = sd(BWSTRESN,na.rm = TRUE))
+
+            #Generate New Data Based on Example
+            for (Dose in unique(Doses$Dose)){
+                for (gender in unique(ExampleSubjects$SEX)){
+                    Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose & ExampleSubjects$SEX == gender)]
+                    Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose & Subjects$SEX == gender)]
+                    GroupTests <- SENDstudy$bw$BWTESTCD[which(SENDstudy$bw$USUBJID %in% Subjs)]
+                    for (Test in unique(GroupTests)){
+                        #creating integer(0) for some reason
+                        Days <- unique(BWSummary$BWDY[which(BWSummary$USUBJID %in% Sub & BWSummary$BWTESTCD %in% Test)])
+                        for (day in Days){
+                            #make indexs
+                            idx <-which(SENDstudy$bw$USUBJID %in% Subjs & SENDstudy$bw$BWTESTCD %in% Test &
+                                            SENDstudy$bw$BWDY %in% day)
+                            idxs <-which(BWSummary$USUBJID %in% Sub & BWSummary$BWTESTCD %in% Test &
+                                             BWSummary$BWDY %in% day)
+                            #Filter Group mean and stdev
+                            Testavg <- unique(BWSummary$ARMavg[idxs])
+                            Teststdev <- unique(BWSummary$ARMstdev[idxs])
+                            #use rnorm() to generate data
+                            GenerData <- suppressWarnings(round(rnorm(n=length(idx), mean = Testavg, sd = Teststdev),2))
+                            #Fill tests properly with created values
+                            SENDstudy$bw$BWSTRESN[idx] <- GenerData
+                        }
+                    }
+                }
+            }
+            #Make BWSTRESC and BWORRES match
+            SENDstudy$bw$BWSTRESC <- as.character(SENDstudy$bw$BWSTRESN)
+            SENDstudy$bw$BWORRES <- SENDstudy$bw$BWSTRESN
+            SENDstudy$bw$BWORRESU <- SENDstudy$bw$BWSTRESU
+
+            #Make Factors as Characters
+            SENDstudy$bw$BWORRESU <- as.character(SENDstudy$bw$BWORRESU)
+            SENDstudy$bw$BWSTRESU <- as.character(SENDstudy$bw$BWSTRESU)
+            SENDstudy$bw$BWTESTCD <- as.character(SENDstudy$bw$BWTESTCD)
+            SENDstudy$bw$BWTEST <- as.character(SENDstudy$bw$BWTEST)
+            SENDstudy$bw$BWDY <- as.character(SENDstudy$bw$BWDY)
+            SENDstudy$bw$VISITDY <- as.character(SENDstudy$bw$VISITDY)
+
+            #Generates NUMERICAL LB Data
+            #Keeps: DOMAIN, LBTESTs, LBTESTCD, LBDY, LBDY, LBCAT
+            #Replaces: STUDYID, USUBJID, LBORRES, LBSTRESC, LBSTRESN, and LBDTC
+            #Removes: LBBLFL
+
+            #Replace StudyID and USUBJID
+            SENDstudy$lb$STUDYID <- rep(studyID, nrow(SENDstudy$lb))
+            SENDstudy$lb$USUBJID <- as.character(SENDstudy$lb$USUBJID)
+            colcount <- str_count(SENDstudy$lb$USUBJID,"-")[1]+1
+            SUB <- matrix(unlist(strsplit(SENDstudy$lb$USUBJID,"-", fixed = TRUE)),ncol=colcount, byrow = T)
+            SENDstudy$lb$USUBJID <- paste0(studyID, "-" ,SUB[,colcount])
+            #Remove Dates
+            cols <- grep("DTC", colnames(SENDstudy$lb))
+            SENDstudy$lb[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$lb$STUDYID))
+            #Find out value range per treatment group
+            LBFindings <- merge(Subjects, Example$lb[,c("USUBJID", "LBTESTCD", "LBSTRESN","LBDY")], by = "USUBJID")
+            LBSummary <- LBFindings %>%
+                group_by(Dose, LBTESTCD,LBDY,SEX) %>%
+                mutate(ARMavg = mean(LBSTRESN, na.rm = TRUE)) %>%
+                mutate(ARMstdev = sd(LBSTRESN,na.rm = TRUE))
+
+            #Create distributions of values for LBSTRESN
+            for (Dose in unique(Doses$Dose)){
+                for (gender in unique(ExampleSubjects$SEX)){
+                    Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose & ExampleSubjects$SEX == gender)]
+                    Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose & Subjects$SEX == gender)]
+                    GroupTests <- SENDstudy$lb$LBTESTCD[which(SENDstudy$lb$USUBJID %in% Subjs)]
+                    for (lbtest in unique(GroupTests)){
+                        Days <- unique(LBSummary$LBDY[which(LBSummary$USUBJID %in% Sub & LBSummary$LBTESTCD %in% lbtest)])
+                        for (day in Days){
+                            idx <-which(SENDstudy$lb$USUBJID %in% Subjs & SENDstudy$lb$LBTESTCD %in% lbtest &
+                                            SENDstudy$lb$LBDY %in% day)
+                            idxs <-which(LBSummary$USUBJID %in% Sub & LBSummary$LBTESTCD %in% lbtest &
+                                             LBSummary$LBDY %in% day)
+                            #Filter Group mean and stdev
+                            Testavg <- unique(LBSummary$ARMavg[idxs])
+                            Teststdev <- unique(LBSummary$ARMstdev[idxs])
+                            #use rnorm to generate new test values based around normal distribution
+                            GenerData <- suppressWarnings(round(rnorm(n=length(idx), mean = Testavg, sd = Teststdev),2))
+                            #Fill tests properly with created values
+                            SENDstudy$lb$LBSTRESN[idx] <- GenerData
+                        }
+                    }
+                }
+            }
+
+            #Coordinate LBORRES and LBSTRESC
+            SENDstudy$lb$LBSTRESC <- as.character(SENDstudy$lb$LBSTRESN)
+            SENDstudy$lb$LBORRESU <- SENDstudy$lb$LBSTRESU
+            SENDstudy$lb$LBORRES <- SENDstudy$lb$LBSTRESN
+
+            #Remove LBBLFL
+            SENDstudy$lb$LBBLFL <- NA
+
+            #Make Factors as Characters
+            SENDstudy$lb$LBTESTCD <- as.character(SENDstudy$lb$LBTESTCD)
+            SENDstudy$lb$LBTEST <- as.character(SENDstudy$lb$LBTEST)
+            SENDstudy$lb$LBCAT <- as.character(SENDstudy$lb$LBCAT)
+            SENDstudy$lb$LBMETHOD <- as.character(SENDstudy$lb$LBMETHOD)
+            SENDstudy$lb$LBSPEC <- as.character(SENDstudy$lb$LBSPEC)
+            SENDstudy$lb$LBSCAT <- as.character(SENDstudy$lb$LBSCAT)
+            SENDstudy$lb$LBSTRESU <- as.character(SENDstudy$lb$LBSTRESU)
+
+            #Generate MI Data
+            #Keeps: MISPEC, MIDY, MISTESTCD, MITEST,
+            #Replaces: STUDYID, USUBJID, MIDTC, MISTRESC, MIORRES, MISEV
+            #Removes: MIREASND, MISPCCND,MISPCUFL, MIDTHREL and MIREASND
+
+
+            #Replace StudyID and USUBJID
+            SENDstudy$mi$STUDYID <- rep(studyID, nrow(SENDstudy$mi))
+            SENDstudy$mi$USUBJID <- as.character(SENDstudy$mi$USUBJID)
+            SENDstudy$mi$MIORRES <- as.character(SENDstudy$mi$MIORRES)
+            colcount <- str_count(SENDstudy$mi$USUBJID,"-")[1]+1
+            SUB <- matrix(unlist(strsplit(SENDstudy$mi$USUBJID,"-", fixed = TRUE)),ncol=colcount, byrow = T)
+            SENDstudy$mi$USUBJID <- paste0(studyID, "-" ,SUB[,colcount])
+            #Remove Dates
+            cols <- grep("DTC", colnames(SENDstudy$mi))
+            SENDstudy$mi[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$mi$STUDYID))
+            #Find out investigated MISPECS and Frequency of Findings/Severity Range of Findings
+            #Calculate percentage of Findings per MISPEC in each ARM
+            MIFindings <- merge(Subjects, Example$mi[,c("USUBJID", "MISPEC", "MISTRESC","MISEV")], by = "USUBJID")
+            FindingsPercen <- MIFindings %>%
+                group_by(Dose, MISPEC,SEX) %>%
+                count(MISTRESC) %>%
+                mutate(percent = n/sum(n)) %>%
+                select(-n)
+            SevPercen <- MIFindings %>%
+                group_by(Dose, MISPEC,SEX) %>%
+                count(MISEV) %>%
+                mutate(percent = n/sum(n)) %>%
+                select(-n)
+            #Simulate MISPEC Results to create representative distributions of values
+            for(Dose in unique(Doses$Dose)){
+                for (gender in unique(ExampleSubjects$SEX)){
+                    Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose  & ExampleSubjects$SEX == gender)]
+                    GroupTests <- SENDstudy$mi$MISPEC[which(SENDstudy$mi$USUBJID %in% Subjs)]
+                    for (Organ in unique(GroupTests)){
+                        SevPerc <- SevPercen[which(SevPercen$Dose == Dose & SevPercen$MISPEC == Organ), c('MISEV','percent')]
+                        FindPercen <- FindingsPercen[which(FindingsPercen$Dose == Dose & FindingsPercen$MISPEC == Organ), c('MISTRESC','percent')]
+                        idx <- which(SENDstudy$mi$USUBJID %in% Subjs & SENDstudy$mi$MISPEC %in% Organ )
+                        #Create Appropriate Findings Per MISPEC
+                        FindGendata <- sample(FindPercen$MISTRESC,length(idx), replace = TRUE, prob = FindPercen$percent)
+                        #Create Appropriate Severity per MISPEC
+                        GenData <- data.frame('MISTRESC' = FindGendata,
+                                              'MISEV'  = rep(NA, length(FindGendata)),
+                                              'MIORRES' = rep(NA, length(FindGendata)))
+                        lvls <- levels(SENDstudy$mi$MISEV)
+                        GenData$MISEV <- factor(GenData$MISEV, levels = lvls)
+                        for (i in 1:nrow(GenData)){
+                            GenData$MIORRES[i] <- paste0(Organ, ": ", GenData$MISTRESC[i])
+                            if (GenData$MISTRESC[i] %in% c("UNREMARKABLE",NA)){
+                                GenData$MISEV[i] <- NA
+                            } else {
+                                Sevs <- as.data.frame(SevPerc)[which(is.na(SevPerc$MISEV) == FALSE),]
+                                if (length(Sevs$MISEV)==0){
+                                    #Check if all of the Findings have NA Severity
+                                    GenData$MISEV[i] <- NA
+                                }else{
+                                    GenData$MISEV[i] <- sample(Sevs$MISEV,1,replace = TRUE, prob = Sevs$percent)
+                                }
+                            }
+                        }
+                        #Store Generated Values
+                        SENDstudy$mi[idx,c("MISTRESC","MISEV","MIORRES")] <-GenData
+                    }
+                    #Make MIDY Appropriate
+                    MIDY <- max(SENDstudy$mi[which(SENDstudy$mi$USUBJID %in% Subjs), "MIDY"], na.rm = TRUE)
+                    SENDstudy$mi[which(SENDstudy$mi$USUBJID %in% Subjs), "MIDY"] <- MIDY
+                }
+            }
+            #Make MIRESCAT for Non-Normal Findings
+            SENDstudy$mi$MIRESCAT <- NA
+            SENDstudy$mi$MIRESCAT[which(grepl("UNREMARKABLE",SENDstudy$mi$MISTRESC) == FALSE)] <- "NON-NEOPLASTIC"
+
+            #Remove MISTAT, MIRESCAT, MIDTHREL, and MISPCCND
+            SENDstudy$mi$MISTAT <- NA
+            SENDstudy$mi$MIREASND <- NA
+            SENDstudy$mi$MISPCCND <- NA
+            SENDstudy$mi$MISPCUFL <- NA
+            SENDstudy$mi$MIDTHREL <- NA
+
+            #Make Factors as Characters
+            SENDstudy$mi$MITESTCD <- as.character(SENDstudy$mi$MITESTCD)
+            SENDstudy$mi$MITEST <- as.character(SENDstudy$mi$MITEST)
+            SENDstudy$mi$MISPEC <- as.character(SENDstudy$mi$MISPEC)
+            SENDstudy$mi$MISTRESC <- as.character(SENDstudy$mi$MISTRESC)
+            SENDstudy$mi$MISEV <- as.character(SENDstudy$mi$MISEV)
+
+            ##### Save Generated Study for Tables ####
+            GeneratedSEND[[j]] <- SENDstudy
+
+            ############# Export Folder of Generated Data #################
+
+            if (PRINT == TRUE){
+                #Create .xpt files if you can
+                dir.create(paste0('FAKE',studyID)) #Create Folder to Hold Study
+
+                #Loop through domains created to print them in created folder
+                Domains <- names(SENDstudy)
+                for (domain in Domains){
+                    printpath <- paste0(homePath,"/FAKE",studyID,"/",domain,".xpt")
+                    write_xpt(SENDstudy[[domain]],path = printpath, version = 5)
+                }
+            }
+
+
+        }
+
+        #Create Fused DataFrame from GeneratedSEND
+        GeneratedALL <- list()
+        GeneratedALL$bw <- as.data.frame(GeneratedSEND[[1]]$bw)
+        GeneratedALL$dm <- as.data.frame(GeneratedSEND[[1]]$dm)
+        GeneratedALL$ds <- as.data.frame(GeneratedSEND[[1]]$ds)
+        GeneratedALL$ex <- as.data.frame(GeneratedSEND[[1]]$ex)
+        GeneratedALL$lb <- as.data.frame(GeneratedSEND[[1]]$lb)
+        GeneratedALL$mi <- as.data.frame(GeneratedSEND[[1]]$mi)
+        GeneratedALL$ta <- as.data.frame(GeneratedSEND[[1]]$ta)
+        GeneratedALL$ts <- as.data.frame(GeneratedSEND[[1]]$ts)
+        GeneratedALL$tx <- as.data.frame(GeneratedSEND[[1]]$tx)
+        if (Createme >1){
+            for (t in 2:Createme){
+                GeneratedALL$bw <- rbind(GeneratedALL$bw, GeneratedSEND[[t]]$bw)
+                GeneratedALL$dm <- rbind(GeneratedALL$dm, GeneratedSEND[[t]]$dm)
+                GeneratedALL$ds <- rbind(GeneratedALL$ds, GeneratedSEND[[t]]$ds)
+                GeneratedALL$ex <- rbind(GeneratedALL$ex, GeneratedSEND[[t]]$ex)
+                GeneratedALL$lb <- rbind(GeneratedALL$lb, GeneratedSEND[[t]]$lb)
+                GeneratedALL$mi <- rbind(GeneratedALL$mi, GeneratedSEND[[t]]$mi)
+                GeneratedALL$ta <- rbind(GeneratedALL$ta, GeneratedSEND[[t]]$ta)
+                GeneratedALL$ts <- rbind(GeneratedALL$ts, GeneratedSEND[[t]]$ts)
+                GeneratedALL$tx <- rbind(GeneratedALL$tx, GeneratedSEND[[t]]$tx)
+            }
+        }
+
+        #Display generated .xpt files as datatables
+        output$BW <- renderDataTable(GeneratedALL$bw, options = list(pageLength = 15))
+        output$DM <- renderDataTable(GeneratedALL$dm, options = list(pageLength = 15))
+        output$DS <- renderDataTable(GeneratedALL$ds, options = list(pageLength = 15))
+        output$EX <- renderDataTable(GeneratedALL$ex, options = list(pageLength = 15))
+        output$LB <- renderDataTable(GeneratedALL$lb, options = list(pageLength = 15))
+        output$MI <- renderDataTable(GeneratedALL$mi, options = list(pageLength = 15))
+        output$TA <- renderDataTable(GeneratedALL$ta, options = list(pageLength = 15))
+        output$TS <- renderDataTable(GeneratedALL$ts, options = list(pageLength = 15))
+        output$TX <- renderDataTable(GeneratedALL$tx, options = list(pageLength = 15))
+
+    })
+
+
+}
+
+# Run the application
+shinyApp(ui = ui, server = server)
