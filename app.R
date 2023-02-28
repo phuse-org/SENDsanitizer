@@ -185,7 +185,7 @@ server <- function(input, output, session) {
 
         } else {
             #remove unused domains
-            Example <- ExampleStudy
+            Example <- ExampleStudy1 #First study loaded will always be ExampleStudy1
             Example <- Example[Domains]
 
             #Create ARMCD and DOSE Correlation
@@ -220,7 +220,7 @@ server <- function(input, output, session) {
         Doses$Dose[which(Doses$ARMCD==Maxdose)] <- "HD"
         Doses$Dose[which(Doses$ARMCD=="2")] <- "LD"
         if (length(ARMS) > 3){
-            for (i in  3:(max(as.numeric(ARMS)) - 3)){
+            for (i in  3:(max(as.numeric(ARMS)) - 1)){
                 j <- i-2
                 if (j == 1){
                     Doses$Dose[Doses$ARM== as.character(i)] <- "MD"
@@ -301,7 +301,7 @@ server <- function(input, output, session) {
             SENDstudy$ts[rows, "TSVAL"] <- paste0(Compound, ": A ",  duration," Fake Study in ",
                                                   Species)
             #Remove Identifying Information
-            RemoveTerms <- c("TFCNTRY","STDIR","SPLRNAM","TFCNTRY","TRMSAC","SSPONSOR","SPREFID")
+            RemoveTerms <- c("TFCNTRY","STDIR","SPLRNAM","TFCNTRY","TRMSAC","SSPONSOR","SPREFID", "SPLRLOC")
             for (term in RemoveTerms){
                 #Check index for Term
                 idx <- which(SENDstudy$ts$TSPARMCD == term)
@@ -341,7 +341,10 @@ server <- function(input, output, session) {
             SENDstudy$dm$STUDYID <- rep(studyID, nrow(SENDstudy$dm))
 
             #Generate new USUBJIDs using SBJID
-            SENDstudy$dm$USUBJID <- paste0(studyID, "-" ,SENDstudy$dm$SUBJID)
+            NEWUSUBJID <- paste0(studyID, "-" ,SENDstudy$dm$SUBJID)
+            USUBJIDTable <- data.frame(USUBJID = SENDstudy$dm$USUBJID,
+                                       NEWUSUBJID = NEWUSUBJID)
+            SENDstudy$dm$USUBJID <- NEWUSUBJID
 
             #Replace Dates
             cols <- grep("DTC", colnames(SENDstudy$dm))
@@ -367,6 +370,9 @@ server <- function(input, output, session) {
             #Generate DS Data
             #Keeps: VISITDY
             #Replaces: StudyID, USUBJID, USUBJID, Dates
+
+            #Account for discrepancies possible in ds
+            SENDstudy$ds <- SENDstudy$ds[which(SENDstudy$ds$USUBJID %in% Subjects$USUBJID),]
 
             #Account for VISITDY for Recovery Animals
             if (Recovery == FALSE){
@@ -429,6 +435,9 @@ server <- function(input, output, session) {
                 ARMCD <- as.character(ARMtoset$Arm[i])
                 SETCD <- as.character(ARMtoset$Set[i])
                 DoseCover <- Doses$Dose[which(Doses$ARMCD == ARMCD)]
+                if(identical(DoseCover, character(0)) == TRUE){
+                DoseCover <- ""
+                }
                 SENDstudy$tx$TXVAL[which(grepl(SETCD,SENDstudy$tx$TXVAL)== TRUE)] <- DoseCover
                 SENDstudy$tx$SET[which(SENDstudy$tx$SET == SETCD)] <- DoseCover
             }
@@ -450,8 +459,9 @@ server <- function(input, output, session) {
                 SENDstudy$ex <- SENDstudy$ex[which(SENDstudy$ex$USUBJID %in% NonRecovSub),]
             }
             SENDstudy$ex$USUBJID <- as.character(SENDstudy$ex$USUBJID)
-            SUB <- matrix(unlist(strsplit(SENDstudy$ex$USUBJID,"-", fixed = TRUE)),ncol=2, byrow = T)
-            SENDstudy$ex$USUBJID <- paste0(studyID, "-" ,SUB[,2])
+            SENDstudy$ex <- merge( USUBJIDTable,SENDstudy$ex, by = "USUBJID")
+            SENDstudy$ex <- SENDstudy$ex[,!(names(SENDstudy$ex) %in% "USUBJID")]
+            names(SENDstudy$ex)[names(SENDstudy$ex) == "NEWUSUBJID"] <- "USUBJID"
 
             #Generate Fake EXLOT
             Lotnum <- length(levels(SENDstudy$ex$EXLOT))
@@ -479,17 +489,30 @@ server <- function(input, output, session) {
             SENDstudy$ex$EXDOSFRQ <- as.character(SENDstudy$ex$EXDOSFRQ)
             SENDstudy$ex$EXDOSFRM <- as.character(SENDstudy$ex$EXDOSFRM)
 
+            #Remove Identifying Terms
+            RemoveTerms <- c("SPLRNAM","SSPONSOR","SPREFID", "SPLRLOC")
+            for (term in RemoveTerms){
+                #Check index for Term
+                idx <- which(SENDstudy$tx$TXPARMCD == term)
+                #Remove Term
+                SENDstudy$tx$TXVAL[idx] <- ""
+            }
+
+
             #Generates BW Data
             #Keeps: BWORRESU, BWTESTCD, BWSTRESU
             #Replaces: STUDYID, USUBJID, BWORRES, BWSTRESC, BWSTRESN, and BWDTC
             #Removes: BWBLFL
 
+            #Account for TK discrepancies possible in BW
+            SENDstudy$bw <- SENDstudy$bw[which(SENDstudy$bw$USUBJID %in% Subjects$USUBJID),]
+
             #Add Generated StudyID and USUBJID
             SENDstudy$bw$STUDYID <- rep(studyID, nrow(SENDstudy$bw))
             SENDstudy$bw$USUBJID <- as.character(SENDstudy$bw$USUBJID)
-            colcount <- str_count(SENDstudy$bw$USUBJID,"-")[1]+1
-            SUB <- matrix(unlist(strsplit(SENDstudy$bw$USUBJID,"-", fixed = TRUE)),ncol=colcount, byrow = T)
-            SENDstudy$bw$USUBJID <- paste0(studyID, "-" ,SUB[,colcount])
+            SENDstudy$bw <- merge( USUBJIDTable,SENDstudy$bw, by = "USUBJID")
+            SENDstudy$bw <- SENDstudy$bw[,!(names(SENDstudy$bw) %in% "USUBJID")]
+            names(SENDstudy$bw)[names(SENDstudy$bw) == "NEWUSUBJID"] <- "USUBJID"
 
             #Remove Dates
             cols <- grep("DTC", colnames(SENDstudy$bw))
@@ -549,12 +572,15 @@ server <- function(input, output, session) {
             #Replaces: STUDYID, USUBJID, LBORRES, LBSTRESC, LBSTRESN, and LBDTC
             #Removes: LBBLFL
 
+            #Account for TK discrepancies possible in LB
+            SENDstudy$lb <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjects$USUBJID),]
+
             #Replace StudyID and USUBJID
             SENDstudy$lb$STUDYID <- rep(studyID, nrow(SENDstudy$lb))
-            SENDstudy$lb$USUBJID <- as.character(SENDstudy$lb$USUBJID)
-            colcount <- str_count(SENDstudy$lb$USUBJID,"-")[1]+1
-            SUB <- matrix(unlist(strsplit(SENDstudy$lb$USUBJID,"-", fixed = TRUE)),ncol=colcount, byrow = T)
-            SENDstudy$lb$USUBJID <- paste0(studyID, "-" ,SUB[,colcount])
+            SENDstudy$lb <- merge( USUBJIDTable,SENDstudy$lb, by = "USUBJID")
+            SENDstudy$lb <- SENDstudy$lb[,!(names(SENDstudy$lb) %in% "USUBJID")]
+            names(SENDstudy$lb)[names(SENDstudy$lb) == "NEWUSUBJID"] <- "USUBJID"
+
             #Remove Dates
             cols <- grep("DTC", colnames(SENDstudy$lb))
             SENDstudy$lb[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$lb$STUDYID))
@@ -617,9 +643,9 @@ server <- function(input, output, session) {
             SENDstudy$mi$STUDYID <- rep(studyID, nrow(SENDstudy$mi))
             SENDstudy$mi$USUBJID <- as.character(SENDstudy$mi$USUBJID)
             SENDstudy$mi$MIORRES <- as.character(SENDstudy$mi$MIORRES)
-            colcount <- str_count(SENDstudy$mi$USUBJID,"-")[1]+1
-            SUB <- matrix(unlist(strsplit(SENDstudy$mi$USUBJID,"-", fixed = TRUE)),ncol=colcount, byrow = T)
-            SENDstudy$mi$USUBJID <- paste0(studyID, "-" ,SUB[,colcount])
+            SENDstudy$mi <- merge( USUBJIDTable,SENDstudy$mi, by = "USUBJID")
+            SENDstudy$mi <- SENDstudy$mi[,!(names(SENDstudy$mi) %in% "USUBJID")]
+            names(SENDstudy$mi)[names(SENDstudy$mi) == "NEWUSUBJID"] <- "USUBJID"
             #Remove Dates
             cols <- grep("DTC", colnames(SENDstudy$mi))
             SENDstudy$mi[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$mi$STUDYID))
