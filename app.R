@@ -138,7 +138,7 @@ server <- function(input, output, session) {
         #Check that Example Studies are Similar and Consolidate
         if (NumData>1){
             #Generate Names of number of Example Study and concatenate
-            Example <- ExampleStudy
+            Example <- ExampleStudy1
             for (j in 2:NumData){
                 Name <- paste0('ExampleStudy',as.character(j))
                 #Combine BW, DM, DS, EX, LB, MI, TA, TS, and TX
@@ -164,6 +164,20 @@ server <- function(input, output, session) {
             if (length(unique(SSTYP)) >1){
                 stop("ERROR:Study Types are not the same between SEND Example Studies. Pick one SSTYP.")
             }
+            #Check if SEND version is the same
+            SNDIGVER <- getFieldValue(Example$ts,"TSVAL", "TSPARMCD", "SNDIGVER")
+            if (length(unique(SNDIGVER)) >1){
+                stop("ERROR:SEND versions are not the same between SEND Example Studies. Pick one SNDIGVER.")
+            }
+            #Remove TK SETCDs
+            Example$dm <- Example$dm[which(grepl("TK",Example$dm$SETCD) ==FALSE),]
+            Example$tx <- Example$tx[which(Example$tx$SETCD %in% Example$dm$SETCD),]
+            Example$lb <- Example$lb[which(Example$lb$USUBJID %in% Example$dm$USUBJID),]
+            Example$mi <- Example$mi[which(Example$mi$USUBJID %in% Example$dm$USUBJID),]
+            Example$bw <- Example$bw[which(Example$bw$USUBJID %in% Example$dm$USUBJID),]
+            Example$ex <- Example$ex[which(Example$ex$USUBJID %in% Example$dm$USUBJID),]
+            Example$ta <- Example$ta[which(Example$ta$ARMCD %in% Example$dm$ARMCD),]
+
             #Check Dose Levels are equivalent
             if (Recovery == FALSE){
                 #Remove Recovery Dose ARMCDs
@@ -206,7 +220,7 @@ server <- function(input, output, session) {
         }
         #Replace Dose Levels with Control, LD, MD and HD
         ARMS <- unique(Doses$ARMCD) #Find ARMS levels
-        if (Recovery == FALSE){
+        if (Recovery == TRUE){
             #Make MaxDose and Account for "R" doses
             NonrecovArm <- ARMS[which(grepl("R",ARMS) == FALSE)]
             Maxdose <- max(as.numeric(as.character(NonrecovArm)))
@@ -223,14 +237,47 @@ server <- function(input, output, session) {
             for (i in  3:(max(as.numeric(ARMS)) - 1)){
                 j <- i-2
                 if (j == 1){
-                    Doses$Dose[Doses$ARM== as.character(i)] <- "MD"
+                    Doses$Dose[Doses$ARMCD== as.character(i)] <- "MD"
                 } else {
-                    Doses$Dose[Doses$ARM== as.character(i)] <- paste0("MD", j)
+                    Doses$Dose[Doses$ARMCD== as.character(i)] <- paste0("MD", j)
                 }
             }
         }
         #Correlate USUBJID with Dose Group
         Subjects <- merge(Example$dm[,c("USUBJID","ARMCD","SEX")], Doses, by = "ARMCD")
+
+        #Double Check Recovery Coding
+        RecoveryAnimals <- Example$ds$USUBJID[which(grepl("Recovery",Example$ds$DSTERM) == TRUE)]
+        if (Recovery == FALSE){
+         if (length(RecoveryAnimals)==0){
+
+         } else if (identical(integer(0),which(Subjects$USUBJID %in% RecoveryAnimals)) == TRUE) {
+
+         }
+             else {
+             Subjects <- Subjects[-which(Subjects$USUBJID %in% RecoveryAnimals),]
+         }
+        }
+        #Consolidate Severity Methods
+        Example$mi$MISEV <- as.character(Example$mi$MISEV)
+        Example$mi$MISEV <- str_replace_all(Example$mi$MISEV, "1 OF 5", "1")
+        Example$mi$MISEV <- str_replace_all(Example$mi$MISEV, "1 OF 4", "1")
+        Example$mi$MISEV <- str_replace_all(Example$mi$MISEV, "PRESENT", "1")
+        Example$mi$MISEV <- str_replace_all(Example$mi$MISEV, "MINIMAL", "1")
+        Example$mi$MISEV <-  str_replace_all(Example$mi$MISEV, "2 OF 5", "2")
+        Example$mi$MISEV <-  str_replace_all(Example$mi$MISEV, "MILD", "2")
+        Example$mi$MISEV <-  str_replace_all(Example$mi$MISEV, "3 OF 5", "3")
+        Example$mi$MISEV <-  str_replace_all(Example$mi$MISEV, "2 OF 4", "3")
+        Example$mi$MISEV <-  str_replace_all(Example$mi$MISEV, "MODERATE", "3")
+        Example$mi$MISEV <-  str_replace_all(Example$mi$MISEV, "4 OF 5", "4")
+        Example$mi$MISEV <-  str_replace_all(Example$mi$MISEV, "3 OF 4", "4")
+        Example$mi$MISEV <-  str_replace_all(Example$mi$MISEV, "MARKED", "4")
+        Example$mi$MISEV <-  str_replace_all(Example$mi$MISEV, "5 OF 5", "5")
+        Example$mi$MISEV <-  str_replace_all(Example$mi$MISEV, "4 OF 4", "5")
+        Example$mi$MISEV <-  str_replace_all(Example$mi$MISEV, "SEVERE", "5")
+        Example$mi$MISEV <- replace_na(Example$mi$MISEV, "0")
+        Example$mi$MISEV <- ordered(Example$mi$MISEV, levels= c("0","1", "2", "3", "4","5"))
+
 
         #Set number of subjects to create based on Example(s)
         SubjectDet <- Subjects %>%
@@ -332,6 +379,9 @@ server <- function(input, output, session) {
             #Generate DM Data
             #Keeps: Number of each gender animals in each treatment group
             #Replaces: StudyID, USUBJID, Dates
+
+            #Account for discrepancies possible in dm with recovery
+            SENDstudy$dm <- SENDstudy$dm[which(SENDstudy$dm$USUBJID %in% Subjects$USUBJID),] ## MAY BE CAUSING PROBLEMS WITH ZYT-779
 
             #Find number of subjects in each group of each gender
             ControlAnimals <- SENDstudy$dm[which(SENDstudy$dm$ARMCD == 1),]
@@ -438,8 +488,8 @@ server <- function(input, output, session) {
                 if(identical(DoseCover, character(0)) == TRUE){
                 DoseCover <- ""
                 }
-                SENDstudy$tx$TXVAL[which(grepl(SETCD,SENDstudy$tx$TXVAL)== TRUE)] <- DoseCover
-                SENDstudy$tx$SET[which(SENDstudy$tx$SET == SETCD)] <- DoseCover
+                SENDstudy$tx$TXVAL[which(grepl(SETCD,SENDstudy$tx$TXVAL)== TRUE)] <- unique(DoseCover)
+                SENDstudy$tx$SET[which(SENDstudy$tx$SET == SETCD)] <- unique(DoseCover)
             }
             #Replace Factors with Characters
             SENDstudy$tx$SETCD <- as.character(SENDstudy$tx$SETCD)
@@ -565,7 +615,9 @@ server <- function(input, output, session) {
             SENDstudy$bw$BWTESTCD <- as.character(SENDstudy$bw$BWTESTCD)
             SENDstudy$bw$BWTEST <- as.character(SENDstudy$bw$BWTEST)
             SENDstudy$bw$BWDY <- as.character(SENDstudy$bw$BWDY)
-            SENDstudy$bw$VISITDY <- as.character(SENDstudy$bw$VISITDY)
+            if (any(grepl('VISITDY',colnames(SENDstudy$bw)) == TRUE)){
+                SENDstudy$bw$VISITDY <- as.character(SENDstudy$bw$VISITDY)
+            }
 
             #Generates NUMERICAL LB Data
             #Keeps: DOMAIN, LBTESTs, LBTESTCD, LBDY, LBDY, LBCAT
@@ -627,10 +679,14 @@ server <- function(input, output, session) {
             #Make Factors as Characters
             SENDstudy$lb$LBTESTCD <- as.character(SENDstudy$lb$LBTESTCD)
             SENDstudy$lb$LBTEST <- as.character(SENDstudy$lb$LBTEST)
-            SENDstudy$lb$LBCAT <- as.character(SENDstudy$lb$LBCAT)
+            if (any(grepl('LBCAT',colnames(SENDstudy$lb)) == TRUE)){
+                SENDstudy$lb$LBCAT <- as.character(SENDstudy$lb$LBCAT)
+            }
+            if (any(grepl('LBSCAT',colnames(SENDstudy$lb)) == TRUE)){
+                  SENDstudy$lb$LBSCAT <- as.character(SENDstudy$lb$LBSCAT)
+            }
             SENDstudy$lb$LBMETHOD <- as.character(SENDstudy$lb$LBMETHOD)
             SENDstudy$lb$LBSPEC <- as.character(SENDstudy$lb$LBSPEC)
-            SENDstudy$lb$LBSCAT <- as.character(SENDstudy$lb$LBSCAT)
             SENDstudy$lb$LBSTRESU <- as.character(SENDstudy$lb$LBSTRESU)
 
             #Generate MI Data
@@ -649,6 +705,14 @@ server <- function(input, output, session) {
             #Remove Dates
             cols <- grep("DTC", colnames(SENDstudy$mi))
             SENDstudy$mi[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$mi$STUDYID))
+            #Consolidate "Normal" Findings
+            Example$mi$MISTRESC <- as.character(Example$mi$MISTRESC)
+            SENDstudy$mi$MISTRESC <- as.character(SENDstudy$mi$MISTRESC)
+            Example$mi$MISTRESC <- toupper(Example$mi$MISTRESC)
+            Example$mi$MISTRESC <-  str_replace_all(Example$mi$MISTRESC, "NORMAL", "UNREMARKABLE")
+            Example$mi$MISTRESC <-  str_replace_all(Example$mi$MISTRESC, "NAD", "UNREMARKABLE")
+            Example$mi$MISTRESC <-  str_replace_all(Example$mi$MISTRESC, "NO ABNORMALITY DETECTED", "UNREMARKABLE")
+            Example$mi$MISTRESC <-  str_replace_all(Example$mi$MISTRESC,"NO ABUNREMARKABLEITY DETECTED","UNREMARKABLE")
             #Find out investigated MISPECS and Frequency of Findings/Severity Range of Findings
             #Calculate percentage of Findings per MISPEC in each ARM
             MIFindings <- merge(Subjects, Example$mi[,c("USUBJID", "MISPEC", "MISTRESC","MISEV")], by = "USUBJID")
@@ -662,6 +726,7 @@ server <- function(input, output, session) {
                 count(MISEV) %>%
                 mutate(percent = n/sum(n)) %>%
                 select(-n)
+            SENDstudy$mi$MIDY <- as.numeric(SENDstudy$mi$MIDY)
             #Simulate MISPEC Results to create representative distributions of values
             for(Dose in unique(Doses$Dose)){
                 for (gender in unique(ExampleSubjects$SEX)){
@@ -677,7 +742,7 @@ server <- function(input, output, session) {
                         GenData <- data.frame('MISTRESC' = FindGendata,
                                               'MISEV'  = rep(NA, length(FindGendata)),
                                               'MIORRES' = rep(NA, length(FindGendata)))
-                        lvls <- levels(SENDstudy$mi$MISEV)
+                        lvls <- levels(Example$mi$MISEV)
                         GenData$MISEV <- factor(GenData$MISEV, levels = lvls)
                         for (i in 1:nrow(GenData)){
                             GenData$MIORRES[i] <- paste0(Organ, ": ", GenData$MISTRESC[i])
