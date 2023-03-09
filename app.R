@@ -171,6 +171,7 @@ server <- function(input, output, session) {
             }
             #Remove TK SETCDs
             Example$dm <- Example$dm[which(grepl("TK",Example$dm$SETCD) ==FALSE),]
+            Example$ta <- Example$ta[which(grepl("Toxicokinetic", Example$ta$ARM) == FALSE),]
             Example$tx <- Example$tx[which(Example$tx$SETCD %in% Example$dm$SETCD),]
             Example$lb <- Example$lb[which(Example$lb$USUBJID %in% Example$dm$USUBJID),]
             Example$mi <- Example$mi[which(Example$mi$USUBJID %in% Example$dm$USUBJID),]
@@ -347,8 +348,14 @@ server <- function(input, output, session) {
             duration <- getFieldValue(SENDstudy$ts, "TSVAL", "TSPARMCD", "DOSDUR")
             SENDstudy$ts[rows, "TSVAL"] <- paste0(Compound, ": A ",  duration," Fake Study in ",
                                                   Species)
+
+            #Clean up Vehicle
+            idx <- which(grepl("TRTV",SENDstudy$ts$TSPARMCD)==TRUE)
+            SENDstudy$ts[idx,"TSVAL"] <- paste0("VEHICLE")
+
             #Remove Identifying Information
-            RemoveTerms <- c("TFCNTRY","STDIR","SPLRNAM","TFCNTRY","TRMSAC","SSPONSOR","SPREFID", "SPLRLOC")
+            RemoveTerms <- c("TFCNTRY","STDIR","SPLRNAM","TFCNTRY","TRMSAC","SSPONSOR","SPREFID", "SPLRLOC",
+                             "PINV","STMON","TSLOC","TSCNTRY")
             for (term in RemoveTerms){
                 #Check index for Term
                 idx <- which(SENDstudy$ts$TSPARMCD == term)
@@ -495,6 +502,10 @@ server <- function(input, output, session) {
             SENDstudy$tx$SETCD <- as.character(SENDstudy$tx$SETCD)
             SENDstudy$tx$TXPARM <- as.character(SENDstudy$tx$TXPARM)
             SENDstudy$tx$TXPARMCD <- as.character(SENDstudy$tx$TXPARMCD)
+
+            #Remove Identifying Group Names
+            idx <- which(grepl("GRPLBL",SENDstudy$tx$TXPARMCD) == TRUE)
+            SENDstudy$tx$TXVAL[idx] <- paste0("GROUP: ", SENDstudy$tx$SET[idx])
 
             #Generate EX data
             #Keeps: ESDOSFRM, EXDOSFRQ, EXROUTE, EXTRTV, EXSTDY, EXDOSEU, EXVATMU, EXSTDY
