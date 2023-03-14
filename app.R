@@ -355,7 +355,7 @@ server <- function(input, output, session) {
 
             #Remove Identifying Information
             RemoveTerms <- c("TFCNTRY","STDIR","SPLRNAM","TFCNTRY","TRMSAC","SSPONSOR","SPREFID", "SPLRLOC",
-                             "PINV","STMON","TSLOC","TSCNTRY")
+                             "PINV","STMON","TSLOC","TSCNTRY","DIET","WATER", "PCLASS")
             for (term in RemoveTerms){
                 #Check index for Term
                 idx <- which(SENDstudy$ts$TSPARMCD == term)
