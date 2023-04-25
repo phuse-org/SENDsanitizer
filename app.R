@@ -4,8 +4,10 @@
 
 #Load Libraries
 library(dplyr)
+library(bayesplot)
 library(haven)
 library(Hmisc)
+library(MCMCpack)
 library(shiny)
 library(shinyFiles)
 library(shinyWidgets)
@@ -284,8 +286,8 @@ server <- function(input, output, session) {
         SubjectDet <- Subjects %>%
             group_by(Dose) %>%
             count(USUBJID) %>%
-            mutate(sum = sum(n)) %>%
-            select(-n)
+            dplyr::mutate(sum = sum(n)) %>%
+            dplyr::select(-n)
         SubjectDet <- SubjectDet[!duplicated(SubjectDet$Dose),]
         GeneratedSEND <- list()
 
@@ -444,8 +446,8 @@ server <- function(input, output, session) {
             TerminalSac <- TerminalSac %>%
                 group_by(Dose) %>%
                 count(DSDECOD) %>%
-                mutate(percent = n/sum(n)) %>%
-                select(-n)
+                dplyr::mutate(percent = n/sum(n)) %>%
+                dplyr::select(-n)
 
             #Replace StudyID
             SENDstudy$ds$STUDYID <- rep(studyID, nrow(SENDstudy$ds))
@@ -589,32 +591,95 @@ server <- function(input, output, session) {
                 mutate(ARMavg = mean(BWSTRESN, na.rm = TRUE)) %>%
                 mutate(ARMstdev = sd(BWSTRESN,na.rm = TRUE))
 
-            #Generate New Data Based on Example
+            #Make Model of weight using MCMCregress
             for (Dose in unique(Doses$Dose)){
                 for (gender in unique(ExampleSubjects$SEX)){
+                    #Limit to proper gender subjects
                     Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose & ExampleSubjects$SEX == gender)]
                     Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose & Subjects$SEX == gender)]
-                    GroupTests <- SENDstudy$bw$BWTESTCD[which(SENDstudy$bw$USUBJID %in% Subjs)]
-                    for (Test in unique(GroupTests)){
-                        #creating integer(0) for some reason
-                        Days <- unique(BWSummary$BWDY[which(BWSummary$USUBJID %in% Sub & BWSummary$BWTESTCD %in% Test)])
-                        for (day in Days){
-                            #make indexs
-                            idx <-which(SENDstudy$bw$USUBJID %in% Subjs & SENDstudy$bw$BWTESTCD %in% Test &
-                                            SENDstudy$bw$BWDY %in% day)
-                            idxs <-which(BWSummary$USUBJID %in% Sub & BWSummary$BWTESTCD %in% Test &
-                                             BWSummary$BWDY %in% day)
-                            #Filter Group mean and stdev
-                            Testavg <- unique(BWSummary$ARMavg[idxs])
-                            Teststdev <- unique(BWSummary$ARMstdev[idxs])
-                            #use rnorm() to generate data
-                            GenerData <- suppressWarnings(round(rnorm(n=length(idx), mean = Testavg, sd = Teststdev),2))
-                            #Fill tests properly with created values
-                            SENDstudy$bw$BWSTRESN[idx] <- GenerData
+                    SubBWFindings <- BWFindings[which(BWFindings$USUBJID %in% Sub),]
+                    line <- data.frame(BWSTRESN = SubBWFindings$BWSTRESN, Day= SubBWFindings$BWDY, Dose = SubBWFindings$Dose)
+                    #Make model of weight over time per dose group
+                    if (Species %in% c("DOG", "MONKEY")){
+                        #Linear fit
+                        posterior <- MCMCregress(BWSTRESN~Day, b0=0, B0 = 0.1, data = line)
+                    } else {
+                        #Log fit
+                        posterior <- MCMCregress(log(BWSTRESN)~Day, b0=0, B0 = 0.1, data = line)
+                    }
+                    #Sample model to fill in Example using Subjs
+                    #Per individual, sample from postieror and derive line for their response
+                    Fit <- sample(1:nrow(posterior), size=length(Subjs))
+                    sn <-1
+                    #Use that fit to generate new animal data
+                    for (Subj in Subjs){
+                        BWDYs <-SENDstudy$bw$BWDY[which(SENDstudy$bw$USUBJID == Subj)]
+                        SubFit <- Fit[sn]
+                        #Calculate BWSTRESN per BWDY in Model
+                        if (Species %in% c("DOG", "MONKEY")){
+                            #Linear fit
+                            GenerData <- data.frame(BWSTRESN = posterior[SubFit,1]+posterior[SubFit,2]*BWDYs,
+                                                    BWDY = BWDYs)
+                        } else {
+                            #Log Fit
+                            GenerData <- data.frame(BWSTRESN = exp(posterior[SubFit,1]+posterior[SubFit,2]*BWDYs),
+                                                    BWDY = BWDYs)
                         }
+                        #Add in noise to fit
+                        stdev <- unique(BWSummary$ARMstdev[which(BWSummary$Dose == Dose & BWSummary$SEX == gender)])
+                        GenerData$BWSTRESN <- GenerData$BWSTRESN + rnorm(length(GenerData$BWSTRESN), mean = 0, sd = stdev)
+                        #Fill into SENDstudy being generated
+                        for (day in BWDYs){
+                            idx <-which(SENDstudy$bw$USUBJID %in% Subj &
+                                            SENDstudy$bw$BWDY %in% day)
+                            idx2 <- which(GenerData$BWDY %in% day)
+                            SENDstudy$bw$BWSTRESN[idx] <- round(GenerData$BWSTRESN[idx2],2)
+                        }
+                        sn <- sn+1
                     }
                 }
             }
+
+            #Testing code to graph fit compared to average of that ARM
+            #Convert all BW into data.frame
+            Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == "HD" & ExampleSubjects$SEX == "M")]
+             TEST <- SENDstudy$bw[which(SENDstudy$bw$USUBJID %in% Subjs), c("BWDY","BWSTRESN","USUBJID")]
+            #Add Average of BWSummary
+              TEST <- merge(TEST, unique(BWSummary[which(BWSummary$Dose == "HD" & BWSummary$SEX == "M"), c("BWDY","ARMavg")]), by = c("BWDY"))
+              p <- ggplot(data= TEST, aes(x=BWDY,y = BWSTRESN, group=USUBJID, color = "Model"))+ geom_line()+
+                    geom_line(aes(y = ARMavg, label="Average", color = "Average")) +
+                    ggtitle("HD M Weight Distribution Comparison")+
+                     labs(x='BWDY (Days)', y="Weight") + scale_color_manual(name = "Legend",
+                                                                            values = c("darkred","steelblue"),
+                                                                            breaks = c("Model","Average"))
+              print(p)
+
+            #Generate New Data Based on Example >>> rnorm method option, replaces MCMCregress with more averaged values
+            # for (Dose in unique(Doses$Dose)){
+            #     for (gender in unique(ExampleSubjects$SEX)){
+            #         Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose & ExampleSubjects$SEX == gender)]
+            #         Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose & Subjects$SEX == gender)]
+            #         GroupTests <- SENDstudy$bw$BWTESTCD[which(SENDstudy$bw$USUBJID %in% Subjs)]
+            #         for (Test in unique(GroupTests)){
+            #             Days <- unique(BWSummary$BWDY[which(BWSummary$USUBJID %in% Sub & BWSummary$BWTESTCD %in% Test)])
+            #             for (day in Days){
+            #                 #make indexs
+            #                 idx <-which(SENDstudy$bw$USUBJID %in% Subjs & SENDstudy$bw$BWTESTCD %in% Test &
+            #                                 SENDstudy$bw$BWDY %in% day)
+            #                 idxs <-which(BWSummary$USUBJID %in% Sub & BWSummary$BWTESTCD %in% Test &
+            #                                  BWSummary$BWDY %in% day)
+            #                 #Filter Group mean and stdev
+            #                 Testavg <- unique(BWSummary$ARMavg[idxs])
+            #                 Teststdev <- unique(BWSummary$ARMstdev[idxs])
+            #                 #use rnorm() to generate data
+            #                 GenerData <- suppressWarnings(round(rnorm(n=length(idx), mean = Testavg, sd = Teststdev),2))
+            #                 #Fill tests properly with created values
+            #                 SENDstudy$bw$BWSTRESN[idx] <- GenerData
+            #             }
+            #         }
+            #     }
+            # }
+
             #Make BWSTRESC and BWORRES match
             SENDstudy$bw$BWSTRESC <- as.character(SENDstudy$bw$BWSTRESN)
             SENDstudy$bw$BWORRES <- SENDstudy$bw$BWSTRESN
@@ -648,36 +713,129 @@ server <- function(input, output, session) {
             cols <- grep("DTC", colnames(SENDstudy$lb))
             SENDstudy$lb[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$lb$STUDYID))
             #Find out value range per treatment group
-            LBFindings <- merge(Subjects, Example$lb[,c("USUBJID", "LBTESTCD", "LBSTRESN","LBDY")], by = "USUBJID")
+            LBFindings <- merge(Subjects, Example$lb[,c("USUBJID", "LBTESTCD", "LBSPEC", "LBSTRESN","LBDY")], by = "USUBJID")
             LBSummary <- LBFindings %>%
                 group_by(Dose, LBTESTCD,LBDY,SEX) %>%
                 mutate(ARMavg = mean(LBSTRESN, na.rm = TRUE)) %>%
                 mutate(ARMstdev = sd(LBSTRESN,na.rm = TRUE))
+            #Remove incomplete StudyTests
+            LBSummary <- na.omit(LBSummary)
+            SENDstudy$lb <- SENDstudy$lb[which(SENDstudy$lb$LBTESTCD %in% LBSummary$LBTESTCD),]
 
-            #Create distributions of values for LBSTRESN
+            #Create a distribution of values using MCMC for LBSTRESN
             for (Dose in unique(Doses$Dose)){
                 for (gender in unique(ExampleSubjects$SEX)){
                     Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose & ExampleSubjects$SEX == gender)]
                     Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose & Subjects$SEX == gender)]
-                    GroupTests <- SENDstudy$lb$LBTESTCD[which(SENDstudy$lb$USUBJID %in% Subjs)]
-                    for (lbtest in unique(GroupTests)){
-                        Days <- unique(LBSummary$LBDY[which(LBSummary$USUBJID %in% Sub & LBSummary$LBTESTCD %in% lbtest)])
-                        for (day in Days){
-                            idx <-which(SENDstudy$lb$USUBJID %in% Subjs & SENDstudy$lb$LBTESTCD %in% lbtest &
-                                            SENDstudy$lb$LBDY %in% day)
-                            idxs <-which(LBSummary$USUBJID %in% Sub & LBSummary$LBTESTCD %in% lbtest &
-                                             LBSummary$LBDY %in% day)
-                            #Filter Group mean and stdev
-                            Testavg <- unique(LBSummary$ARMavg[idxs])
-                            Teststdev <- unique(LBSummary$ARMstdev[idxs])
-                            #use rnorm to generate new test values based around normal distribution
-                            GenerData <- suppressWarnings(round(rnorm(n=length(idx), mean = Testavg, sd = Teststdev),2))
-                            #Fill tests properly with created values
-                            SENDstudy$lb$LBSTRESN[idx] <- GenerData
+                    GroupTests <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjs), c("LBTESTCD","LBSPEC")]
+                    for (lbspec in unique(GroupTests$LBSPEC)){
+                        Days <- unique(LBSummary$LBDY[which(LBSummary$USUBJID %in% Sub & LBSummary$LBSPEC %in% lbspec)])
+                        LBDATAs <- LBSummary[which(LBSummary$LBSPEC %in% lbspec),]
+                        # how to make line with varying amount of variables
+                        line <- data.frame(USUBJID= LBDATAs$USUBJID, LBSTRESN = LBDATAs$LBSTRESN, Day= LBDATAs$LBDY, LBTEST = LBDATAs$LBTESTCD)
+                        line <- reshape(line, idvar = c("USUBJID","Day"), timevar = 'LBTEST', direction = "wide")
+                        line <- sapply(line[,2:ncol(line)], as.numeric)
+                        colnames(line) <- gsub("LBSTRESN.","",colnames(line))
+                        line <- as.data.frame(line)
+                        for (test in unique(LBDATAs$LBTESTCD)){
+                            Vars <- setdiff(colnames(line),c("Day",test))
+                            #Repeating fit PER test with interaction from other tests in that lbspec
+                            equation <- paste0(Vars, sep= '*Day',collapse = " + ")
+                            #Make Fit
+                            LBfit <- MCMCpack::MCMCregress(as.formula(paste0(test, " ~ ",equation)), b0=0, B0 = 0.1, data = line)
+                            #Sample Model 'Per Individual animal'
+                            Fit <- sample(1:nrow(LBfit), size=length(Subjs))
+                            sn <-1
+                            for (Subj in Subjs) {
+                                LBFit <- LBfit[Fit[sn],]
+                                #Make LBSTRESN Fit for that variable
+                                DayVars <- which(grepl("Day",names(LBFit)) == TRUE) #Find break between interaction variables and other variables
+                                InteractionVars <- tail(DayVars,length(DayVars)-1) #Original Day Variable will be first found
+                                #Make Equation Based on Varying length of Variables
+                                #LBFit[1] is always the intercept
+                                LBTESTVAR <- LBFit[1]
+                                #Then it will be individual Variable coeff*their variables (including Day)
+                                for (num in 2:(InteractionVars[1]-1)){
+                                    testnm <- names(LBFit[num])
+                                    LBTESTVAR <- LBTESTVAR + LBFit[num]*line[,testnm]
+                                }
+                                #Then interaction variables coeff * their variables will be added
+                                for (num2 in InteractionVars){
+                                  testnm <- unlist(strsplit(names(LBFit[num2]),":"))[2]
+                                  LBTESTVAR <- LBTESTVAR + LBFit[num2]*line[,"Day"]*line[,testnm]
+                                }
+                                #Add Variance using stdev/rnorm
+                                stdev <- unique(LBSummary[which(LBSummary$Dose == Dose & LBSummary$SEX == gender & LBSummary$LBTESTCD == test),c('ARMstdev','LBDY')])
+                                LBTESTVAR <- LBTESTVAR + rnorm(length(LBTESTVAR), mean = 0, sd =stdev$ARMstdev)
+
+                                #Fill DataFrame to allocate to fake individual based on Day once variance is added
+                                GenerLBData <- data.frame(LBSTRESN = 0,
+                                                          LBDy = 0,
+                                                          LBTESTCD = test)
+                                avrgs <- unique(LBSummary[which(LBSummary$Dose == Dose & LBSummary$SEX == gender & LBSummary$LBTESTCD == test),c('ARMavg','LBDY')])
+                                #rein in values to the days
+                                for (Dayz in Days){
+                                    Val <- LBTESTVAR[which.min(abs(LBTESTVAR -avrgs$ARMavg[which(avrgs$LBDY == Dayz)]))]
+                                    GenerLBData[nrow(GenerLBData)+1,] <- c(Val ,Dayz, test)
+                                }
+                                GenerLBData <- GenerLBData[2:nrow(GenerLBData),]
+                                # For each day store the value in generated dataset SENDstudy
+                                for (day in Days){
+                                    idx <-which(SENDstudy$lb$USUBJID %in% Subj & SENDstudy$lb$LBTESTCD %in% test &
+                                                    SENDstudy$lb$LBDY %in% day)
+                                    idx2 <- which(GenerLBData$LBDy %in% day)
+                                    SENDstudy$lb$LBSTRESN[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
+                                }
+                                #add to subject count before new subject done
+                                sn <- sn+1
+                            }
                         }
                     }
                 }
             }
+
+            #Testing code to graph fit compared to average of that ARM (HD, M, Selected LB tests)
+            Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == "HD" & ExampleSubjects$SEX == "M")]
+            TEST <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjs), c("LBDY","LBSTRESN","LBTESTCD","USUBJID")]
+
+            for (SampleTests in c("RBC","ALB","SPGRAV") ){
+                #Add Average of LBSummary
+                TEST2 <- TEST[which(TEST$LBTESTCD %in% SampleTests),]
+                TEST2 <- merge(TEST2, unique(LBSummary[which(LBSummary$Dose == "HD" & LBSummary$LBTESTCD == SampleTests & LBSummary$SEX == "M"), c("LBDY","ARMavg")]), by = c("LBDY"))
+                #Make plot per test
+                p <- ggplot(data= TEST2, aes(x=LBDY,y = LBSTRESN, group=USUBJID, color = "Model"))+ geom_line()+
+                    geom_line(aes(y = ARMavg, label="Average", color = "Average")) +
+                    ggtitle(paste0("HD M Distribution Comparison ", SampleTests))+
+                    labs(x='LBDY (Days)', y=paste0(SampleTests, " Values")) + scale_color_manual(name = "Legend",
+                                                                           values = c("darkred","steelblue"),
+                                                                           breaks = c("Model","Average"))
+                print(p)
+            }
+
+            # #Create distributions of values for LBSTRESN >>> rnorm method option, replaces MCMCregress with more averaged values
+            # for (Dose in unique(Doses$Dose)){
+            #     for (gender in unique(ExampleSubjects$SEX)){
+            #         Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose & ExampleSubjects$SEX == gender)]
+            #         Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose & Subjects$SEX == gender)]
+            #         GroupTests <- SENDstudy$lb$LBTESTCD[which(SENDstudy$lb$USUBJID %in% Subjs)]
+            #         for (lbtest in unique(GroupTests)){
+            #             Days <- unique(LBSummary$LBDY[which(LBSummary$USUBJID %in% Sub & LBSummary$LBTESTCD %in% lbtest)])
+            #             for (day in Days){
+            #                 idx <-which(SENDstudy$lb$USUBJID %in% Subjs & SENDstudy$lb$LBTESTCD %in% lbtest &
+            #                                 SENDstudy$lb$LBDY %in% day)
+            #                 idxs <-which(LBSummary$USUBJID %in% Sub & LBSummary$LBTESTCD %in% lbtest &
+            #                                  LBSummary$LBDY %in% day)
+            #                 #Filter Group mean and stdev
+            #                 Testavg <- unique(LBSummary$ARMavg[idxs])
+            #                 Teststdev <- unique(LBSummary$ARMstdev[idxs])
+            #                 #use rnorm to generate new test values based around normal distribution
+            #                 GenerData <- suppressWarnings(round(rnorm(n=length(idx), mean = Testavg, sd = Teststdev),2))
+            #                 #Fill tests properly with created values
+            #                 SENDstudy$lb$LBSTRESN[idx] <- GenerData
+            #             }
+            #         }
+            #     }
+            # }
 
             #Coordinate LBORRES and LBSTRESC
             SENDstudy$lb$LBSTRESC <- as.character(SENDstudy$lb$LBSTRESN)
@@ -730,13 +888,13 @@ server <- function(input, output, session) {
             FindingsPercen <- MIFindings %>%
                 group_by(Dose, MISPEC,SEX) %>%
                 count(MISTRESC) %>%
-                mutate(percent = n/sum(n)) %>%
-                select(-n)
+                dplyr::mutate(percent = n/sum(n)) %>%
+                dplyr::select(-n)
             SevPercen <- MIFindings %>%
                 group_by(Dose, MISPEC,SEX) %>%
                 count(MISEV) %>%
-                mutate(percent = n/sum(n)) %>%
-                select(-n)
+                dplyr::mutate(percent = n/sum(n)) %>%
+                dplyr::select(-n)
             SENDstudy$mi$MIDY <- as.numeric(SENDstudy$mi$MIDY)
             #Simulate MISPEC Results to create representative distributions of values
             for(Dose in unique(Doses$Dose)){
