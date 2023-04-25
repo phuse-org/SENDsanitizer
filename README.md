@@ -6,3 +6,6 @@ The script is designed to run out of one folder on your computer. Place SEND for
 
 ## Notes on Example SEND Studies:
 It is recommended to use multiple example studies for better results. These SEND format example studies must have similar arms/dosing regimens (with the option to include or exclude recovery animals), SEND Version, and have the same SSTYP and species. The script checks for these values to be similar and will provide errors based on which of these conditions is not met. 
+
+## Benchmarking:
+App will print plots of High Dose Male Animals generated vs. the examples' values for BW, ALB, RBC, and SPGRAV as benchmarking in the Rstudio console automatically. These plots can be expanded to other values as well.
