@@ -721,18 +721,31 @@ server <- function(input, output, session) {
             #Remove incomplete StudyTests
             LBSummary <- na.omit(LBSummary)
             SENDstudy$lb <- SENDstudy$lb[which(SENDstudy$lb$LBTESTCD %in% LBSummary$LBTESTCD),]
+            SENDstudy$lb <- SENDstudy$lb[which(SENDstudy$lb$LBSPEC %in% c('WHOLE BLOOD', 'SERUM', 'URINE')),]
 
             #Create a distribution of values using MCMC for LBSTRESN
             for (Dose in unique(Doses$Dose)){
                 for (gender in unique(ExampleSubjects$SEX)){
+                    print(paste0(Dose, " - ", gender))
                     Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose & ExampleSubjects$SEX == gender)]
                     Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose & Subjects$SEX == gender)]
                     GroupTests <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjs), c("LBTESTCD","LBSPEC")]
                     for (lbspec in unique(GroupTests$LBSPEC)){
                         Days <- unique(LBSummary$LBDY[which(LBSummary$USUBJID %in% Sub & LBSummary$LBSPEC %in% lbspec)])
                         LBDATAs <- LBSummary[which(LBSummary$LBSPEC %in% lbspec),]
+                        LBDATAs <- LBDATAs[which(LBDATAs$USUBJID %in% Sub),]
                         #Remove Tests that have a ARMstev of 0 (meaning they likely don't have enough data)
                         LBDATAs <- LBDATAs[which(LBDATAs$ARMstdev != 0),]
+                        #Remove tests that do not have enough data (i.e. all days)
+                        Testspread <- table(droplevels(LBDATAs$LBTESTCD), LBDATAs$LBDY)
+                        rowsub <- apply(Testspread,1, function(row) all(row !=0))
+                        highDataTests <- rownames(Testspread)[rowsub]
+                        if (length(highDataTests) <= 1){
+                           ToRemove <- which(GroupTests$LBSPEC %in% c(lbspec))
+                           SENDstudy$lb <- SENDstudy$lb[-ToRemove,]
+                           next #Too little data; SKips loop
+                        }
+                        LBDATAs <- LBDATAs[which(LBDATAs$LBTESTCD %in% highDataTests),]
                         # how to make line with varying amount of variables
                         line <- data.frame(USUBJID= LBDATAs$USUBJID, LBSTRESN = LBDATAs$LBSTRESN, Day= LBDATAs$LBDY, LBTEST = LBDATAs$LBTESTCD)
                         line <- distinct(line) #check for and remove duplicate rows
@@ -744,8 +757,8 @@ server <- function(input, output, session) {
                         line <- na.omit(line)
                         for (test in unique(LBDATAs$LBTESTCD)){
                             Vars <- setdiff(colnames(line),c("Day",test))
-                            if (length(Vars) > 10){ #limit Vars to 10 random variables for computation time
-                                Vars <- sample(Vars, 10)
+                            if (length(Vars) > 10){ #limit Vars to 2 random variables for computation time
+                                Vars <- sample(Vars, 2)
                             }
                             #Repeating fit PER test with interaction from other tests in that lbspec
                             equation <- paste0(Vars, sep= '*Day',collapse = " + ")
