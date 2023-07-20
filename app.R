@@ -2,6 +2,8 @@
 #TA, TS, and TX Domains
 #Requires a SEND nonclinical dataset as a base
 
+#LB Values are not consistently accurate >> Needs work
+
 #Load Libraries
 library(dplyr)
 library(bayesplot)
