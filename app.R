@@ -2,8 +2,6 @@
 #TA, TS, and TX Domains
 #Requires a SEND nonclinical dataset as a base
 
-#LB Values are not consistently accurate >> Needs work
-
 #Load Libraries
 library(dplyr)
 library(bayesplot)
@@ -629,7 +627,7 @@ server <- function(input, output, session) {
                         }
                         #Add in noise to fit
                         stdev <- unique(BWSummary$ARMstdev[which(BWSummary$Dose == Dose & BWSummary$SEX == gender)])
-                        GenerData$BWSTRESN <- GenerData$BWSTRESN + rnorm(length(GenerData$BWSTRESN), mean = 0, sd = stdev)
+                        GenerData$BWSTRESN <- GenerData$BWSTRESN + rnorm(length(GenerData$BWSTRESN), mean = 0, sd = (stdev/2))
                         #Fill into SENDstudy being generated
                         for (day in BWDYs){
                             idx <-which(SENDstudy$bw$USUBJID %in% Subj &
@@ -648,12 +646,13 @@ server <- function(input, output, session) {
              TEST <- SENDstudy$bw[which(SENDstudy$bw$USUBJID %in% Subjs), c("BWDY","BWSTRESN","USUBJID")]
             #Add Average of BWSummary
               TEST <- merge(TEST, unique(BWSummary[which(BWSummary$Dose == "HD" & BWSummary$SEX == "M"), c("BWDY","ARMavg")]), by = c("BWDY"))
-              p <- ggplot(data= TEST, aes(x=BWDY,y = BWSTRESN, group=USUBJID, color = "Model"))+ geom_line()+
-                    geom_line(aes(y = ARMavg, label="Average", color = "Average")) +
+              p <- ggplot(data= TEST, aes(x=BWDY,y = BWSTRESN, group=USUBJID, color = "Simulated Animal Data"))+ geom_line()+
+                    geom_line(aes(y = ARMavg, label="Average of Source Data", color = "Average of Source Data")) +
                     ggtitle("HD M Weight Distribution Comparison")+
                      labs(x='BWDY (Days)', y="Weight") + scale_color_manual(name = "Legend",
                                                                             values = c("darkred","steelblue"),
-                                                                            breaks = c("Model","Average"))
+                                                                            breaks = c("Simulated Animal Data",
+                                                                                       "Average of Source Data"))
               print(p)
 
             #Generate New Data Based on Example >>> rnorm method option, replaces MCMCregress with more averaged values
@@ -791,7 +790,7 @@ server <- function(input, output, session) {
                                 }
                                 #Add Variance using stdev/rnorm
                                 stdev <- unique(LBSummary[which(LBSummary$Dose == Dose & LBSummary$SEX == gender & LBSummary$LBTESTCD == test),c('ARMstdev','LBDY')])
-                                LBTESTVAR <- LBTESTVAR + rnorm(length(LBTESTVAR), mean = 0, sd =stdev$ARMstdev)
+                                LBTESTVAR <- abs(LBTESTVAR + rnorm(length(LBTESTVAR), mean = 0, sd = (stdev$ARMstdev)))
 
                                 #Fill DataFrame to allocate to fake individual based on Day once variance is added
                                 GenerLBData <- data.frame(LBSTRESN = 0,
@@ -828,12 +827,16 @@ server <- function(input, output, session) {
                 TEST2 <- TEST[which(TEST$LBTESTCD %in% SampleTests),]
                 TEST2 <- merge(TEST2, unique(LBSummary[which(LBSummary$Dose == "HD" & LBSummary$LBTESTCD == SampleTests & LBSummary$SEX == "M"), c("LBDY","ARMavg")]), by = c("LBDY"))
                 #Make plot per test
-                p <- ggplot(data= TEST2, aes(x=LBDY,y = LBSTRESN, group=USUBJID, color = "Model"))+ geom_line()+
-                    geom_line(aes(y = ARMavg, label="Average", color = "Average")) +
+                p <- ggplot(data= TEST2, aes(x=factor(LBDY),y = LBSTRESN, group=USUBJID, color = "Simulated Animal Data"))+ geom_line()+
+                    geom_point(aes(x=factor(LBDY),y = LBSTRESN, group=USUBJID, color = "Simulated Animal Data"))+
+                    geom_line(aes(y = ARMavg, label="Average of Source Data", color = "Average of Source Data")) +
+                    geom_point(aes(y = ARMavg, label="Average of Source Data", color = "Average of Source Data"))+
+                    scale_x_discrete()+
                     ggtitle(paste0("HD M Distribution Comparison ", SampleTests))+
                     labs(x='LBDY (Days)', y=paste0(SampleTests, " Values")) + scale_color_manual(name = "Legend",
                                                                            values = c("darkred","steelblue"),
-                                                                           breaks = c("Model","Average"))
+                                                                           breaks = c("Simulated Animal Data",
+                                                                                      "Average of Source Data"))
                 print(p)
             }
 
@@ -861,6 +864,44 @@ server <- function(input, output, session) {
             #         }
             #     }
             # }
+
+            #Plot to look at correlation between Urine SPGRAV and Urine Volume
+            Subjs <- ExampleSubjects$USUBJID
+            TEST <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjs), c("LBDY","LBSTRESN","LBTESTCD","USUBJID")]
+            Test3 <- TEST[which(TEST$LBTESTCD %in% c("SPGRAV","VOLUME")),]
+            for (day in unique(Test3$LBDY)){
+                Test4 <- Test3[which(Test3$LBDY == day), c("USUBJID","LBTESTCD","LBSTRESN")]
+                Test4 <- reshape(Test4, idvar = "USUBJID", timevar = "LBTESTCD", direction = "wide")
+                #Model of relationship
+                newx <- seq(min(Test4$LBSTRESN.SPGRAV), max(Test4$LBSTRESN.SPGRAV), by = 0.001)
+                ydata <- seq(min(Test4$LBSTRESN.VOLUME), max(Test4$LBSTRESN.VOLUME),
+                             by = (max(Test4$LBSTRESN.VOLUME)-min(Test4$LBSTRESN.VOLUME))/length(newx))
+                ydata <- sort(ydata, decreasing = TRUE)
+                if (length(ydata)>length(newx)){
+                    ydata <- ydata[1:length(newx)]
+                }
+                #Model attempt 1 - linear
+                # modelline <- lm(ydata ~ exp(-1/newx))
+                # newxy <- list(newx)
+                # modeltest <- predict(modelline)
+                # modeldata <- data.frame(y = modeltest, x = newx)
+                #model attempt 2 - nonlinear
+                fo3 <- y ~ 1/(x^c)
+                data <- data.frame(y = ydata, x = newx)
+                fm3 <- nls(fo3, data=data, start = list(c=1))
+                modeltest <- predict(fm3)
+                modeldata <- data.frame(y = sort(modeltest,decreasing = TRUE), x = newx)
+
+                #add in gender
+                Test4 <- merge(Test4, ExampleSubjects[,c("USUBJID","SEX","ARM")], by = "USUBJID")
+                q <- ggplot() +
+                    geom_point(data = Test4, aes(x=LBSTRESN.SPGRAV, y=LBSTRESN.VOLUME, shape = SEX, color = ARM)) +
+                    geom_line(data = modeldata, aes(x=x, y=y, color = 'Model of Relationship'))+
+                    labs(x='Urine Specific Gravity (SPGRAV)', y="Urine Volume (mL)") +
+                    ggtitle(paste0("Generated Volume and SPGRAV for day ", day, " of collection"))
+                print(q)
+            }
+
 
             #Coordinate LBORRES and LBSTRESC
             SENDstudy$lb$LBSTRESC <- as.character(SENDstudy$lb$LBSTRESN)
