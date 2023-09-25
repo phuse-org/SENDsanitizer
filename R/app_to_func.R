@@ -12,8 +12,17 @@
 # library(tidyr)
 # library(tools)
 
+#' @title Run function
 #' @param path Mandatory\cr
-#' path of data
+#' path where real data located, should be directory
+#' @param number mandatory, default 1\cr
+#'   how many studies to generate
+#' @param recovery optional\cr
+#' recovery
+#' @param where_to_save optional\cr
+#' if no directory path given, fake/generate study data will be save
+#' directory given in path argument
+#
 #' @export
 
 #' @import dplyr
