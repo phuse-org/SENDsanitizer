@@ -1,20 +1,35 @@
-library(fs)
-library(dplyr)
-library(bayesplot)
-library(haven)
-library(Hmisc)
-library(MCMCpack)
-## library(shiny)
-## library(shinyFiles)
-## library(shinyWidgets)
-library(stringr)
-library(this.path)
-library(tidyr)
-library(tools)
+# library(fs)
+# library(dplyr)
+# library(bayesplot)
+# library(haven)
+# library(Hmisc)
+# library(MCMCpack)
+# ## library(shiny)
+# ## library(shinyFiles)
+# ## library(shinyWidgets)
+# library(stringr)
+# library(this.path)
+# library(tidyr)
+# library(tools)
 
-source('fct_Functions.R')
+#' @param path Mandatory\cr
+#' path of data
+#' @export
+
+#' @import dplyr
+#' @import bayesplot
+#' @import haven
+#' @import Hmisc
+#' @import MCMCpack
+#' @import stringr
+#' @import tidyr
+#' @import tools
+#' @import fs
+
+
+
 sanitize <- function(path, number=1, recovery=FALSE, where_to_save=NULL) {
-  
+
 
         Createme <- number
         print(paste0("study to generate: ", Createme))
@@ -27,7 +42,7 @@ sanitize <- function(path, number=1, recovery=FALSE, where_to_save=NULL) {
         print(ExampleStudies)
         NumData <- length(ExampleStudies)
   print(NumData)
-        
+
 
         ## Make Loop for Loading in the SEND Data per Example Study
         for (i in 1:NumData){
@@ -983,30 +998,7 @@ print(GeneratedSEND)
 
   }
 
-data_san <- 'C:/Users/Md.Ali/OneDrive - FDA/yousuf/00_github_projects/SENDsanitizer/data_ss/monkey/'
-save_path <- 'C:/Users/Md.Ali/OneDrive - FDA/yousuf/00_github_projects/SENDsanitizer/data_ss/all_fake/'
-  sanitize(path=data_san, number =1, where_to_save=save_path)
+# data_san <- 'C:/Users/Md.Ali/OneDrive - FDA/yousuf/00_github_projects/SENDsanitizer/data_ss/monkey/'
+# save_path <- 'C:/Users/Md.Ali/OneDrive - FDA/yousuf/00_github_projects/SENDsanitizer/data_ss/all_fake/'
+#   sanitize(path=data_san, number =1, where_to_save=save_path)
 
-## fs::path(data_san, 'FAKE', '109238')
-
-##                 study_fake <- paste0('FAKE','lsdkL')
-##                 dir_to_save <- fs::path(data_san,study_fake)
-## print(dir_to_save)
-
-## fs::path(dir_to_save, 'dm', ext = 'xtp')
-
-##                 study_fake <- paste0('FAKE','IND192837')
-##               path_save <- save_path
-##               print(path_save)
-##                 dir_to_save <- fs::path(path_save,study_fake)
-## print(dir_to_save)
-##               fs::dir_create(dir_to_save)
-##                 ## dir.create(dir_to_save) #Create Folder to Hold Study
-
-##                 #Loop through domains created to print them in created folder
-##                 Domains <- names(SENDstudy)
-##                 for (domain in Domains){
-##                     ## printpath <- paste0(path,"/FAKE",studyID,"/",domain,".xpt")
-##                     printpath <- fs::path(dir_to_save, domain, ext= 'xpt')
-##                     write_xpt(SENDstudy[[domain]],path = printpath, version = 5)
-##                 }

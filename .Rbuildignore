@@ -1,0 +1,5 @@
+^SENDsanitizer\.Rproj$
+^\.Rproj\.user$
+^app\.R$
+^example\.R$
+^LICENSE\.md$
