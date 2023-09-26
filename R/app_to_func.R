@@ -582,7 +582,7 @@ print(GeneratedSEND)
              TEST <- SENDstudy$bw[which(SENDstudy$bw$USUBJID %in% Subjs), c("BWDY","BWSTRESN","USUBJID")]
             #Add Average of BWSummary
               TEST <- merge(TEST, unique(BWSummary[which(BWSummary$Dose == "HD" & BWSummary$SEX == "M"), c("BWDY","ARMavg")]), by = c("BWDY"))
-              p <- ggplot(data= TEST, aes(x=BWDY,y = BWSTRESN, group=USUBJID, color = "Simulated Animal Data"))+ geom_line()+
+              p <- ggplot2::ggplot(data= TEST, aes(x=BWDY,y = BWSTRESN, group=USUBJID, color = "Simulated Animal Data"))+ geom_line()+
                     geom_line(aes(y = ARMavg, label="Average of Source Data", color = "Average of Source Data")) +
                     ggtitle("HD M Weight Distribution Comparison")+
                      labs(x='BWDY (Days)', y="Weight") + scale_color_manual(name = "Legend",
@@ -763,7 +763,7 @@ print(GeneratedSEND)
                 TEST2 <- TEST[which(TEST$LBTESTCD %in% SampleTests),]
                 TEST2 <- merge(TEST2, unique(LBSummary[which(LBSummary$Dose == "HD" & LBSummary$LBTESTCD == SampleTests & LBSummary$SEX == "M"), c("LBDY","ARMavg")]), by = c("LBDY"))
                 #Make plot per test
-                p <- ggplot(data= TEST2, aes(x=factor(LBDY),y = LBSTRESN, group=USUBJID, color = "Simulated Animal Data"))+ geom_line()+
+                p <- ggplot2::ggplot(data= TEST2, aes(x=factor(LBDY),y = LBSTRESN, group=USUBJID, color = "Simulated Animal Data"))+ geom_line()+
                     geom_point(aes(x=factor(LBDY),y = LBSTRESN, group=USUBJID, color = "Simulated Animal Data"))+
                     geom_line(aes(y = ARMavg, label="Average of Source Data", color = "Average of Source Data")) +
                     geom_point(aes(y = ARMavg, label="Average of Source Data", color = "Average of Source Data"))+
@@ -830,7 +830,7 @@ print(GeneratedSEND)
 
                 #add in gender
                 Test4 <- merge(Test4, ExampleSubjects[,c("USUBJID","SEX","ARM")], by = "USUBJID")
-                q <- ggplot() +
+                q <- ggplot2::ggplot() +
                     geom_point(data = Test4, aes(x=LBSTRESN.SPGRAV, y=LBSTRESN.VOLUME, shape = SEX, color = ARM)) +
                     geom_line(data = modeldata, aes(x=x, y=y, color = 'Model of Relationship'))+
                     labs(x='Urine Specific Gravity (SPGRAV)', y="Urine Volume (mL)") +
