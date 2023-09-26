@@ -26,6 +26,7 @@
 #' @export
 
 #' @import dplyr
+#' @import ggplot2
 #' @import bayesplot
 #' @import haven
 #' @import Hmisc

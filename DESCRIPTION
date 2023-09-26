@@ -13,6 +13,7 @@ Imports:
     bayesplot,
     dplyr,
     fs,
+    ggplot2,
     haven,
     Hmisc,
     MCMCpack,
