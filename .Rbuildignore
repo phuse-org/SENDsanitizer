@@ -3,3 +3,4 @@
 ^app\.R$
 ^example\.R$
 ^LICENSE\.md$
+^test_run\.R$

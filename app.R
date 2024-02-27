@@ -20,7 +20,7 @@ library(tools)
 homePath <- dirname(this.path())
 setwd(homePath)
 #Source Needed Functions
-source(paste0(homePath, "/fct_Functions.R"))
+source(paste0(homePath, "/R/fct_Functions.R"))
 
 ui <- fluidPage(
 
