@@ -4,3 +4,5 @@
 ^example\.R$
 ^LICENSE\.md$
 ^test_run\.R$
+^send_columns\.xls$
+^test_data$

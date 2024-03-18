@@ -22,6 +22,8 @@
 #' @param where_to_save optional\cr
 #' if no directory path given, fake/generate study data will be save
 #' directory given in path argument
+#' @param combination optional\cr
+#' boolean
 #
 #' @export
 
@@ -38,38 +40,133 @@
 
 
 
-sanitize <- function(path, number=1, recovery=FALSE, where_to_save=NULL) {
+sanitize <- function(path, number=1, recovery=FALSE,
+                     where_to_save=NULL, combination=FALSE) {
 
 
         Createme <- number
         print(paste0("study to generate: ", Createme))
-        PRINT <- TRUE
+        PRINT <- FALSE
         Recovery <- recovery
 
 
- datasetInput <- fs::dir_ls(path)
-        ExampleStudies <- datasetInput
-        print(ExampleStudies)
-        NumData <- length(ExampleStudies)
-  print(NumData)
+  if (combination) {
+    datasetInput <- path
 
+  } else {
+
+ datasetInput <- fs::dir_ls(path)
+  }
+  ExampleStudies <- datasetInput
+        ## print(ExampleStudies)
+  NumData <- length(ExampleStudies)
+  ## print(NumData)
+
+## bw_col <- c("STUDYID", "DOMAIN", "USUBJID", "BWSEQ", "BWTESTCD", "BWTEST",
+## "BWORRES", "BWORRESU", "BWSTRESC", "BWSTRESN", "BWSTRESU", "BWSTAT",
+## "BWREASND", "BWBLFL", "BWFAST", "BWEXCLFL", "BWUSCHFL",
+## "VISITDY", "BWDTC", "BWDY", "BWNOMDY", "BWNOMLBL")
+
+
+## bw_col <- c("STUDYID", "DOMAIN", "USUBJID", "BWSEQ", "BWTESTCD", "BWTEST",
+## "BWORRES", "BWORRESU", "BWSTRESC", "BWSTRESN", "BWSTRESU", "BWBLFL",
+## "VISITDY", "BWDTC", "BWDY")
+
+
+## bw_col <- c("STUDYID", "DOMAIN", "USUBJID", "BWTESTCD", "BWTEST",
+## "BWORRES", "BWORRESU", "BWSTRESC", "BWSTRESN", "BWSTRESU", "BWBLFL",
+## "BWDTC", "BWDY")
+
+
+
+## dm_col <- c("STUDYID", "DOMAIN", "USUBJID", "SUBJID", "AGEU", "SEX",
+##             "ARMCD", "ARM", "SETCD"
+## )
+
+
+
+## ds_col <- c("STUDYID", "DOMAIN", "USUBJID", "DSSEQ", "DSTERM", "DSDECOD",
+##  "DSSTDTC", "DSSTDY","VISITDY")
+
+## ex_col <- c("STUDYID", "DOMAIN", "USUBJID", "EXSEQ", "EXTRT", "EXDOSE",
+## "EXDOSU", "EXDOSFRM", "EXDOSFRQ", "EXROUTE", "EXLOT", "EXTRTV",
+## "EXVAMT", "EXVAMTU", "EXSTDTC", "EXSTDY")
+
+
+
+
+## lb_col <- c("STUDYID", "DOMAIN", "USUBJID",  "LBTESTCD", "LBTEST",
+## "LBCAT", "LBORRES", "LBORRESU", "LBSTRESC", "LBSTRESN", "LBSTRESU",
+## "LBSPEC",  "LBMETHOD", "LBBLFL",  "LBDTC",
+## "LBDY" )
+
+
+
+## mi_col <- c("STUDYID", "DOMAIN", "USUBJID", "MITESTCD", "MITEST",
+## "MIORRES", "MISTRESC", "MIRESCAT",   "MISPEC",
+## "MISPCCND", "MISPCUFL", "MISEV", "MIDTC", "MIDY")
+
+## ta_col <- c("STUDYID", "DOMAIN", "ARMCD", "ARM", "TAETORD", "ETCD", "ELEMENT",
+## "EPOCH")
+
+
+## ts_col <- c("STUDYID", "DOMAIN", "TSSEQ", "TSGRPID", "TSPARMCD", "TSPARM",
+## "TSVAL", "TSVALNF")
+
+
+
+## tx_col <- c("STUDYID", "DOMAIN", "SETCD", "SET", "TXSEQ", "TXPARMCD", "TXPARM",
+## "TXVAL")
+
+## tx_col <- c("STUDYID", "DOMAIN", "SETCD", "SET", "TXSEQ", "TXPARMCD", "TXPARM",
+## "TXVAL")
 
         ## Make Loop for Loading in the SEND Data per Example Study
         for (i in 1:NumData){
+          browser()
             Name <- paste0('ExampleStudy',as.character(i))
             assign(Name,load.xpt.files(ExampleStudies[i]))
         }
         Domains <- c("bw","dm","ds","ex","lb","mi","ta","ts","tx")
 
+
         #Check that Example Studies are Similar and Consolidate
         if (NumData>1){
             #Generate Names of number of Example Study and concatenate
             Example <- ExampleStudy1
+          print(colnames(Example$ds))
+          ## Example$bw <- Example$bw[, bw_col]
+          ## Example$dm <- Example$dm[, dm_col]
+          ## Example$ds <- Example$ds[, ds_col]
+          ## Example$ex <- Example$ex[, ex_col]
+          ## Example$lb <- Example$lb[, lb_col]
+
+          ## Example$mi <- Example$mi[, mi_col]
+          ## Example$ta <- Example$ta[, ta_col]
+          ## Example$ts <- Example$ts[, ts_col]
+          ## Example$tx <- Example$tx[, tx_col]
             for (j in 2:NumData){
                 Name <- paste0('ExampleStudy',as.character(j))
                 #Combine BW, DM, DS, EX, LB, MI, TA, TS, and TX
+                ## print(colnames(Example$bw))
+                ## print(colnames(get(Name)$bw))
+
+                ## browser()
+                ## df_bw <- get(Name)$bw
+                ## df_bw <- df_bw[, bw_col]
+                ## Example$bw <- rbind(Example$bw, get(Name)$bw[, bw_col])
+                ## Example$dm <- rbind(Example$dm, get(Name)$dm[, dm_col])
+                ## Example$ds <- rbind(Example$ds, get(Name)$ds[, ds_col])
+                ## Example$ex <- rbind(Example$ex, get(Name)$ex[, ex_col])
+                ## Example$lb <- rbind(Example$lb, get(Name)$lb[, lb_col])
+                ## Example$mi <- rbind(Example$mi, get(Name)$mi[, mi_col])
+                ## Example$ta <- rbind(Example$ta, get(Name)$ta[, ta_col])
+                ## Example$ts <- rbind(Example$ts, get(Name)$ts[, ts_col])
+                ## Example$tx <- rbind(Example$tx, get(Name)$tx[, tx_col])
+                ##
                 Example$bw <- rbind(Example$bw, get(Name)$bw)
                 Example$dm <- rbind(Example$dm, get(Name)$dm)
+
                 Example$ds <- rbind(Example$ds, get(Name)$ds)
                 Example$ex <- rbind(Example$ex, get(Name)$ex)
                 Example$lb <- rbind(Example$lb, get(Name)$lb)
@@ -78,7 +175,6 @@ sanitize <- function(path, number=1, recovery=FALSE, where_to_save=NULL) {
                 Example$ts <- rbind(Example$ts, get(Name)$ts)
                 Example$tx <- rbind(Example$tx, get(Name)$tx)
             }
-
           ## print(Example['bw'])
 
             #remove unused domains
@@ -197,6 +293,7 @@ sanitize <- function(path, number=1, recovery=FALSE, where_to_save=NULL) {
          }
         }
         #Consolidate Severity Methods
+    browser()
         Example$mi$MISEV <- as.character(Example$mi$MISEV)
         Example$mi$MISEV <- str_replace_all(Example$mi$MISEV, "1 OF 5", "1")
         Example$mi$MISEV <- str_replace_all(Example$mi$MISEV, "1 OF 4", "1")
@@ -700,7 +797,7 @@ print(GeneratedSEND)
                             #Repeating fit PER test with interaction from other tests in that lbspec
                             equation <- paste0(Vars, sep= '*Day',collapse = " + ")
                             #Error test
-                            print(paste0(lbspec, " - ", test ))
+                            ## print(paste0(lbspec, " - ", test ))
                             #Make Fit
                             LBfit <- MCMCpack::MCMCregress(as.formula(paste0(test, " ~ ",equation)), b0=0, B0 = 0.1, data = line)
                             #Sample Model 'Per Individual animal'
