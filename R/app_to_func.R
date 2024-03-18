@@ -62,6 +62,49 @@ sanitize <- function(path, number=1, recovery=FALSE,
   NumData <- length(ExampleStudies)
   ## print(NumData)
 
+##########
+
+##  [1] "STUDYID"  "DOMAIN"   "USUBJID"  "BWSEQ"    "BWTESTCD" "BWTEST"
+##  [7] "BWORRES"  "BWORRESU" "BWSTRESC" "BWSTRESN" "BWSTRESU" "BWBLFL"
+## [13] "VISITDY"  "BWDTC"    "BWDY"
+
+## $dm
+##  [1] "STUDYID" "DOMAIN"  "USUBJID" "SUBJID"  "RFSTDTC" "RFENDTC" "BRTHDTC"
+##  [8] "AGE"     "AGEU"    "SEX"     "ARMCD"   "ARM"     "SETCD"
+
+## $ds
+## [1] "STUDYID" "DOMAIN"  "USUBJID" "DSSEQ"   "DSTERM"  "DSDECOD" "VISITDY"
+## [8] "DSSTDTC" "DSSTDY"
+
+## $ex
+##  [1] "STUDYID"  "DOMAIN"   "USUBJID"  "EXSEQ"    "EXTRT"    "EXDOSE"
+##  [7] "EXDOSU"   "EXDOSFRM" "EXDOSFRQ" "EXROUTE"  "EXLOT"    "EXTRTV"
+## [13] "EXVAMT"   "EXVAMTU"  "EXSTDTC"  "EXSTDY"
+
+## $lb
+##  [1] "STUDYID"  "DOMAIN"   "USUBJID"  "LBSEQ"    "LBTESTCD" "LBTEST"
+##  [7] "LBCAT"    "LBSCAT"   "LBORRES"  "LBORRESU" "LBSTRESC" "LBSTRESN"
+## [13] "LBSTRESU" "LBSPEC"   "LBMETHOD" "LBBLFL"   "VISITDY"  "LBDTC"
+## [19] "LBDY"
+
+## $mi
+##  [1] "STUDYID"  "DOMAIN"   "USUBJID"  "MISEQ"    "MITESTCD" "MITEST"
+##  [7] "MIORRES"  "MISTRESC" "MIRESCAT" "MISTAT"   "MIREASND" "MISPEC"
+## [13] "MISPCCND" "MISPCUFL" "MILAT"    "MISEV"    "MIDTHREL" "MIDTC"
+## [19] "MIDY"
+
+## $ta
+## [1] "STUDYID" "DOMAIN"  "ARMCD"   "ARM"     "TAETORD" "ETCD"    "ELEMENT"
+## [8] "EPOCH"
+
+## $ts
+## [1] "STUDYID"  "DOMAIN"   "TSSEQ"    "TSGRPID"  "TSPARMCD" "TSPARM"   "TSVAL"
+
+## $tx
+## [1] "STUDYID"  "DOMAIN"   "SETCD"    "SET"      "TXSEQ"    "TXPARMCD" "TXPARM"
+## [8] "TXVAL"
+###################
+  
 ## bw_col <- c("STUDYID", "DOMAIN", "USUBJID", "BWSEQ", "BWTESTCD", "BWTEST",
 ## "BWORRES", "BWORRESU", "BWSTRESC", "BWSTRESN", "BWSTRESU", "BWSTAT",
 ## "BWREASND", "BWBLFL", "BWFAST", "BWEXCLFL", "BWUSCHFL",
@@ -123,7 +166,7 @@ sanitize <- function(path, number=1, recovery=FALSE,
 
         ## Make Loop for Loading in the SEND Data per Example Study
         for (i in 1:NumData){
-          browser()
+          ## browser()
             Name <- paste0('ExampleStudy',as.character(i))
             assign(Name,load.xpt.files(ExampleStudies[i]))
         }
@@ -293,7 +336,7 @@ sanitize <- function(path, number=1, recovery=FALSE,
          }
         }
         #Consolidate Severity Methods
-    browser()
+    ## browser()
         Example$mi$MISEV <- as.character(Example$mi$MISEV)
         Example$mi$MISEV <- str_replace_all(Example$mi$MISEV, "1 OF 5", "1")
         Example$mi$MISEV <- str_replace_all(Example$mi$MISEV, "1 OF 4", "1")
