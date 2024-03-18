@@ -120,43 +120,44 @@ sanitize <- function(path, number=1, recovery=FALSE,
 ## "BWORRES", "BWORRESU", "BWSTRESC", "BWSTRESN", "BWSTRESU", "BWBLFL",
 ## "BWDTC", "BWDY")
 
+  bw_col <- c("STUDYID", "DOMAIN", "USUBJID","VISITDY","BWDY","BWTEST",
+              "BWTESTCD","BWSTRESU","BWORRESU","BWSTRESN",
+              "BWSTRESC","BWORRES")
 
 
-## dm_col <- c("STUDYID", "DOMAIN", "USUBJID", "SUBJID", "AGEU", "SEX",
-##             "ARMCD", "ARM", "SETCD"
-## )
-
-
-
-## ds_col <- c("STUDYID", "DOMAIN", "USUBJID", "DSSEQ", "DSTERM", "DSDECOD",
-##  "DSSTDTC", "DSSTDY","VISITDY")
-
-## ex_col <- c("STUDYID", "DOMAIN", "USUBJID", "EXSEQ", "EXTRT", "EXDOSE",
-## "EXDOSU", "EXDOSFRM", "EXDOSFRQ", "EXROUTE", "EXLOT", "EXTRTV",
-## "EXVAMT", "EXVAMTU", "EXSTDTC", "EXSTDY")
+dm_col <- c("STUDYID",  "USUBJID", "SUBJID", "AGEU", "SEX",
+            "ARMCD", "ARM", "SETCD"
+)
 
 
 
+ds_col <- c("STUDYID", "DOMAIN", "USUBJID",  "DSTERM", "DSDECOD","VISITDY")
 
-## lb_col <- c("STUDYID", "DOMAIN", "USUBJID",  "LBTESTCD", "LBTEST",
-## "LBCAT", "LBORRES", "LBORRESU", "LBSTRESC", "LBSTRESN", "LBSTRESU",
-## "LBSPEC",  "LBMETHOD", "LBBLFL",  "LBDTC",
-## "LBDY" )
-
-
-
-## mi_col <- c("STUDYID", "DOMAIN", "USUBJID", "MITESTCD", "MITEST",
-## "MIORRES", "MISTRESC", "MIRESCAT",   "MISPEC",
-## "MISPCCND", "MISPCUFL", "MISEV", "MIDTC", "MIDY")
-
-## ta_col <- c("STUDYID", "DOMAIN", "ARMCD", "ARM", "TAETORD", "ETCD", "ELEMENT",
-## "EPOCH")
+ex_col <- c("STUDYID", "USUBJID", "EXTRT", "EXDOSE",
+"EXDOSU", "EXDOSFRM", "EXDOSFRQ", "EXROUTE", "EXTRTV",
+"EXVAMT", "EXVAMTU","EXLOT")
 
 
-## ts_col <- c("STUDYID", "DOMAIN", "TSSEQ", "TSGRPID", "TSPARMCD", "TSPARM",
-## "TSVAL", "TSVALNF")
 
 
+lb_col <- c("STUDYID",  "USUBJID",  "LBTESTCD", "LBTEST",
+"LBCAT", "LBORRES", "LBORRESU", "LBSTRESC", "LBSTRESN", "LBSTRESU",
+"LBSPEC", "LBMETHOD",
+"LBDY" )
+
+
+
+mi_col <- c("STUDYID", "USUBJID", "MITESTCD", "MITEST",
+"MIORRES", "MISTRESC",  "MISPEC",
+"MISEV", "MIDY")
+
+ta_col <- c("STUDYID",  "ARMCD", "ARM")
+
+
+
+ts_col <- c("STUDYID",  "TSPARMCD", "TSVAL")
+
+tx_col <- c("STUDYID",  "SETCD", "SET", "TXPARMCD", "TXPARM","TXVAL")
 
 ## tx_col <- c("STUDYID", "DOMAIN", "SETCD", "SET", "TXSEQ", "TXPARMCD", "TXPARM",
 ## "TXVAL")
@@ -177,17 +178,18 @@ sanitize <- function(path, number=1, recovery=FALSE,
         if (NumData>1){
             #Generate Names of number of Example Study and concatenate
             Example <- ExampleStudy1
-          print(colnames(Example$ds))
-          ## Example$bw <- Example$bw[, bw_col]
-          ## Example$dm <- Example$dm[, dm_col]
-          ## Example$ds <- Example$ds[, ds_col]
-          ## Example$ex <- Example$ex[, ex_col]
-          ## Example$lb <- Example$lb[, lb_col]
+          ## print(colnames(Example$ds))
+          Example$bw <- Example$bw[, bw_col]
+          Example$dm <- Example$dm[, dm_col]
 
-          ## Example$mi <- Example$mi[, mi_col]
-          ## Example$ta <- Example$ta[, ta_col]
-          ## Example$ts <- Example$ts[, ts_col]
-          ## Example$tx <- Example$tx[, tx_col]
+          Example$ds <- Example$ds[, ds_col]
+          Example$ex <- Example$ex[, ex_col]
+          Example$lb <- Example$lb[, lb_col]
+
+          Example$mi <- Example$mi[, mi_col]
+          Example$ta <- Example$ta[, ta_col]
+          Example$ts <- Example$ts[, ts_col]
+          Example$tx <- Example$tx[, tx_col]
             for (j in 2:NumData){
                 Name <- paste0('ExampleStudy',as.character(j))
                 #Combine BW, DM, DS, EX, LB, MI, TA, TS, and TX
@@ -197,26 +199,26 @@ sanitize <- function(path, number=1, recovery=FALSE,
                 ## browser()
                 ## df_bw <- get(Name)$bw
                 ## df_bw <- df_bw[, bw_col]
-                ## Example$bw <- rbind(Example$bw, get(Name)$bw[, bw_col])
-                ## Example$dm <- rbind(Example$dm, get(Name)$dm[, dm_col])
-                ## Example$ds <- rbind(Example$ds, get(Name)$ds[, ds_col])
-                ## Example$ex <- rbind(Example$ex, get(Name)$ex[, ex_col])
-                ## Example$lb <- rbind(Example$lb, get(Name)$lb[, lb_col])
-                ## Example$mi <- rbind(Example$mi, get(Name)$mi[, mi_col])
-                ## Example$ta <- rbind(Example$ta, get(Name)$ta[, ta_col])
-                ## Example$ts <- rbind(Example$ts, get(Name)$ts[, ts_col])
-                ## Example$tx <- rbind(Example$tx, get(Name)$tx[, tx_col])
+                Example$bw <- rbind(Example$bw, get(Name)$bw[, bw_col])
+                Example$dm <- rbind(Example$dm, get(Name)$dm[, dm_col])
+                Example$ds <- rbind(Example$ds, get(Name)$ds[, ds_col])
+                Example$ex <- rbind(Example$ex, get(Name)$ex[, ex_col])
+                Example$lb <- rbind(Example$lb, get(Name)$lb[, lb_col])
+                Example$mi <- rbind(Example$mi, get(Name)$mi[, mi_col])
+                Example$ta <- rbind(Example$ta, get(Name)$ta[, ta_col])
+                Example$ts <- rbind(Example$ts, get(Name)$ts[, ts_col])
+                Example$tx <- rbind(Example$tx, get(Name)$tx[, tx_col])
                 ##
-                Example$bw <- rbind(Example$bw, get(Name)$bw)
-                Example$dm <- rbind(Example$dm, get(Name)$dm)
+                ## Example$bw <- rbind(Example$bw, get(Name)$bw)
+                ## Example$dm <- rbind(Example$dm, get(Name)$dm)
 
-                Example$ds <- rbind(Example$ds, get(Name)$ds)
-                Example$ex <- rbind(Example$ex, get(Name)$ex)
-                Example$lb <- rbind(Example$lb, get(Name)$lb)
-                Example$mi <- rbind(Example$mi, get(Name)$mi)
-                Example$ta <- rbind(Example$ta, get(Name)$ta)
-                Example$ts <- rbind(Example$ts, get(Name)$ts)
-                Example$tx <- rbind(Example$tx, get(Name)$tx)
+                ## Example$ds <- rbind(Example$ds, get(Name)$ds)
+                ## Example$ex <- rbind(Example$ex, get(Name)$ex)
+                ## Example$lb <- rbind(Example$lb, get(Name)$lb)
+                ## Example$mi <- rbind(Example$mi, get(Name)$mi)
+                ## Example$ta <- rbind(Example$ta, get(Name)$ta)
+                ## Example$ts <- rbind(Example$ts, get(Name)$ts)
+                ## Example$tx <- rbind(Example$tx, get(Name)$tx)
             }
           ## print(Example['bw'])
 
@@ -224,7 +226,11 @@ sanitize <- function(path, number=1, recovery=FALSE,
             Example <- Example[Domains]
             #Check Species are the same
             Species <- getFieldValue(Example$ts, "TSVAL", "TSPARMCD", "SPECIES")
+          ## browser()
+          print(Species)
             if (length(unique(Species)) >1){
+              tab_pr <- Example$ts[Example$ts$TSPARMCD=="SPECIES",]
+              print(tab_pr)
                 stop("ERROR:Species are not the same between SEND Example Studies. Pick one Species.")
             }
             #CHeck Study Type is the same
@@ -262,6 +268,11 @@ sanitize <- function(path, number=1, recovery=FALSE,
             }
             DoseTable <- table(doses)
             if (any(DoseTable == 0)){
+              ind <- which(DoseTable==0)
+          dd <- data.frame(DoseTable)
+          studyid_remove <- unique(dd[which(dd$Freq==0),c('STUDYID')])
+            print('please remove following studyid')
+              print(studyid_remove)
                 stop("ERROR:ARMCD for Dosing is not equavalent between SEND Example Studies. Try removing Recovery Animals.")
             }
 
@@ -658,7 +669,8 @@ print(GeneratedSEND)
             SENDstudy$bw[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$bw$STUDYID))
 
             #Remove BWBLFL
-            SENDstudy$bw$BWBLFL <- NA
+
+            ## SENDstudy$bw$BWBLFL <- NA
 
             #Find average weight behavior by dose and gender in Example
             BWFindings <- merge(Subjects, Example$bw[,c("USUBJID", "BWTESTCD", "BWSTRESN","BWDY")], by = "USUBJID")
@@ -721,7 +733,7 @@ print(GeneratedSEND)
             Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == "HD" & ExampleSubjects$SEX == "M")]
              TEST <- SENDstudy$bw[which(SENDstudy$bw$USUBJID %in% Subjs), c("BWDY","BWSTRESN","USUBJID")]
             #Add Average of BWSummary
-              TEST <- merge(TEST, unique(BWSummary[which(BWSummary$Dose == "HD" & BWSummary$SEX == "M"), c("BWDY","ARMavg")]), by = c("BWDY"))
+              ## TEST <- merge(TEST, unique(BWSummary[which(BWSummary$Dose == "HD" & BWSummary$SEX == "M"), c("BWDY","ARMavg")]), by = c("BWDY"))
               ## p <- ggplot2::ggplot(data= TEST, aes(x=BWDY,y = BWSTRESN, group=USUBJID, color = "Simulated Animal Data"))+ geom_line()+
               ##       geom_line(aes(y = ARMavg, label="Average of Source Data", color = "Average of Source Data")) +
               ##       ggtitle("HD M Weight Distribution Comparison")+
@@ -900,8 +912,8 @@ print(GeneratedSEND)
 
             for (SampleTests in c("RBC","ALB","SPGRAV") ){
                 #Add Average of LBSummary
-                TEST2 <- TEST[which(TEST$LBTESTCD %in% SampleTests),]
-                TEST2 <- merge(TEST2, unique(LBSummary[which(LBSummary$Dose == "HD" & LBSummary$LBTESTCD == SampleTests & LBSummary$SEX == "M"), c("LBDY","ARMavg")]), by = c("LBDY"))
+                ## TEST2 <- TEST[which(TEST$LBTESTCD %in% SampleTests),]
+                ## TEST2 <- merge(TEST2, unique(LBSummary[which(LBSummary$Dose == "HD" & LBSummary$LBTESTCD == SampleTests & LBSummary$SEX == "M"), c("LBDY","ARMavg")]), by = c("LBDY"))
                 #Make plot per test
                 ## p <- ggplot2::ggplot(data= TEST2, aes(x=factor(LBDY),y = LBSTRESN, group=USUBJID, color = "Simulated Animal Data"))+ geom_line()+
                 ##     geom_point(aes(x=factor(LBDY),y = LBSTRESN, group=USUBJID, color = "Simulated Animal Data"))+
@@ -942,41 +954,42 @@ print(GeneratedSEND)
             # }
 
             #Plot to look at correlation between Urine SPGRAV and Urine Volume
-            Subjs <- ExampleSubjects$USUBJID
-            TEST <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjs), c("LBDY","LBSTRESN","LBTESTCD","USUBJID")]
-            Test3 <- TEST[which(TEST$LBTESTCD %in% c("SPGRAV","VOLUME")),]
-            for (day in unique(Test3$LBDY)){
-                Test4 <- Test3[which(Test3$LBDY == day), c("USUBJID","LBTESTCD","LBSTRESN")]
-                Test4 <- reshape(Test4, idvar = "USUBJID", timevar = "LBTESTCD", direction = "wide")
-                #Model of relationship
-                newx <- seq(min(Test4$LBSTRESN.SPGRAV), max(Test4$LBSTRESN.SPGRAV), by = 0.001)
-                ydata <- seq(min(Test4$LBSTRESN.VOLUME), max(Test4$LBSTRESN.VOLUME),
-                             by = (max(Test4$LBSTRESN.VOLUME)-min(Test4$LBSTRESN.VOLUME))/length(newx))
-                ydata <- sort(ydata, decreasing = TRUE)
-                if (length(ydata)>length(newx)){
-                    ydata <- ydata[1:length(newx)]
-                }
-                #Model attempt 1 - linear
-                # modelline <- lm(ydata ~ exp(-1/newx))
-                # newxy <- list(newx)
-                # modeltest <- predict(modelline)
-                # modeldata <- data.frame(y = modeltest, x = newx)
-                #model attempt 2 - nonlinear
-                fo3 <- y ~ 1/(x^c)
-                data <- data.frame(y = ydata, x = newx)
-                fm3 <- nls(fo3, data=data, start = list(c=1))
-                modeltest <- predict(fm3)
-                modeldata <- data.frame(y = sort(modeltest,decreasing = TRUE), x = newx)
 
-                #add in gender
-                Test4 <- merge(Test4, ExampleSubjects[,c("USUBJID","SEX","ARM")], by = "USUBJID")
-                ## q <- ggplot2::ggplot() +
-                ##     geom_point(data = Test4, aes(x=LBSTRESN.SPGRAV, y=LBSTRESN.VOLUME, shape = SEX, color = ARM)) +
-                ##     geom_line(data = modeldata, aes(x=x, y=y, color = 'Model of Relationship'))+
-                ##     labs(x='Urine Specific Gravity (SPGRAV)', y="Urine Volume (mL)") +
-                ##     ggtitle(paste0("Generated Volume and SPGRAV for day ", day, " of collection"))
-                ## print(q)
-            }
+            ## Subjs <- ExampleSubjects$USUBJID
+            ## TEST <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjs), c("LBDY","LBSTRESN","LBTESTCD","USUBJID")]
+            ## Test3 <- TEST[which(TEST$LBTESTCD %in% c("SPGRAV","VOLUME")),]
+            ## for (day in unique(Test3$LBDY)){
+            ##     Test4 <- Test3[which(Test3$LBDY == day), c("USUBJID","LBTESTCD","LBSTRESN")]
+            ##     Test4 <- reshape(Test4, idvar = "USUBJID", timevar = "LBTESTCD", direction = "wide")
+            ##     #Model of relationship
+            ##     newx <- seq(min(Test4$LBSTRESN.SPGRAV), max(Test4$LBSTRESN.SPGRAV), by = 0.001)
+            ##     ydata <- seq(min(Test4$LBSTRESN.VOLUME), max(Test4$LBSTRESN.VOLUME),
+            ##                  by = (max(Test4$LBSTRESN.VOLUME)-min(Test4$LBSTRESN.VOLUME))/length(newx))
+            ##     ydata <- sort(ydata, decreasing = TRUE)
+            ##     if (length(ydata)>length(newx)){
+            ##         ydata <- ydata[1:length(newx)]
+            ##     }
+            ##     #Model attempt 1 - linear
+            ##     # modelline <- lm(ydata ~ exp(-1/newx))
+            ##     # newxy <- list(newx)
+            ##     # modeltest <- predict(modelline)
+            ##     # modeldata <- data.frame(y = modeltest, x = newx)
+            ##     #model attempt 2 - nonlinear
+            ##     fo3 <- y ~ 1/(x^c)
+            ##     data <- data.frame(y = ydata, x = newx)
+            ##     fm3 <- nls(fo3, data=data, start = list(c=1))
+            ##     modeltest <- predict(fm3)
+            ##     modeldata <- data.frame(y = sort(modeltest,decreasing = TRUE), x = newx)
+
+            ##     #add in gender
+            ##     Test4 <- merge(Test4, ExampleSubjects[,c("USUBJID","SEX","ARM")], by = "USUBJID")
+            ##     ## q <- ggplot2::ggplot() +
+            ##     ##     geom_point(data = Test4, aes(x=LBSTRESN.SPGRAV, y=LBSTRESN.VOLUME, shape = SEX, color = ARM)) +
+            ##     ##     geom_line(data = modeldata, aes(x=x, y=y, color = 'Model of Relationship'))+
+            ##     ##     labs(x='Urine Specific Gravity (SPGRAV)', y="Urine Volume (mL)") +
+            ##     ##     ggtitle(paste0("Generated Volume and SPGRAV for day ", day, " of collection"))
+            ##     ## print(q)
+            ## }
 
 
             #Coordinate LBORRES and LBSTRESC
@@ -985,7 +998,7 @@ print(GeneratedSEND)
             SENDstudy$lb$LBORRES <- SENDstudy$lb$LBSTRESN
 
             #Remove LBBLFL
-            SENDstudy$lb$LBBLFL <- NA
+            ## SENDstudy$lb$LBBLFL <- NA
 
             #Make Factors as Characters
             SENDstudy$lb$LBTESTCD <- as.character(SENDstudy$lb$LBTESTCD)
@@ -1087,11 +1100,11 @@ print(GeneratedSEND)
             SENDstudy$mi$MIRESCAT[which(grepl("UNREMARKABLE",SENDstudy$mi$MISTRESC) == FALSE)] <- "NON-NEOPLASTIC"
 
             #Remove MISTAT, MIRESCAT, MIDTHREL, and MISPCCND
-            SENDstudy$mi$MISTAT <- NA
-            SENDstudy$mi$MIREASND <- NA
-            SENDstudy$mi$MISPCCND <- NA
-            SENDstudy$mi$MISPCUFL <- NA
-            SENDstudy$mi$MIDTHREL <- NA
+            ## SENDstudy$mi$MISTAT <- NA
+            ## SENDstudy$mi$MIREASND <- NA
+            ## SENDstudy$mi$MISPCCND <- NA
+            ## SENDstudy$mi$MISPCUFL <- NA
+            ## SENDstudy$mi$MIDTHREL <- NA
 
             #Make Factors as Characters
             SENDstudy$mi$MITESTCD <- as.character(SENDstudy$mi$MITESTCD)

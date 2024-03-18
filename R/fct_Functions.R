@@ -40,7 +40,7 @@ load.xpt.files <- function(path=getwd(),domainsOfInterest=NULL,showProgress=F) {
       setProgress(value=count/length(xptFiles),message=paste0('Loading ',basename(xptFile),'...'))
     }
     count <- count + 1
-    xptData <- haven::read_xpt(xptFile)
+    xptData <- sasxport.get(xptFile)
     colnames(xptData) <- toupper(colnames(xptData))
     dataFrames[[count]] <- xptData
   }
