@@ -1056,8 +1056,3 @@ stop('there are more columns than rows ')
 
 
   }
-
-# data_san <- 'C:/Users/Md.Ali/OneDrive - FDA/yousuf/00_github_projects/SENDsanitizer/data_ss/monkey/'
-# save_path <- 'C:/Users/Md.Ali/OneDrive - FDA/yousuf/00_github_projects/SENDsanitizer/data_ss/all_fake/'
-#   sanitize(path=data_san, number =1, where_to_save=save_path)
-
