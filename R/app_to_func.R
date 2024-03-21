@@ -37,18 +37,17 @@
 #' @import tidyr
 #' @import tools
 #' @import fs
-
+#' @import RSQLite
+#' @import DBI
+# what will happen when visitday not present but
 
 
 sanitize <- function(path, number=1, recovery=FALSE,
                      where_to_save=NULL, combination=FALSE) {
-
-
         Createme <- number
         print(paste0("study to generate: ", Createme))
         PRINT <- FALSE
         Recovery <- recovery
-
 
   if (combination) {
     datasetInput <- path
@@ -62,112 +61,11 @@ sanitize <- function(path, number=1, recovery=FALSE,
   NumData <- length(ExampleStudies)
   ## print(NumData)
 
-##########
-
-##  [1] "STUDYID"  "DOMAIN"   "USUBJID"  "BWSEQ"    "BWTESTCD" "BWTEST"
-##  [7] "BWORRES"  "BWORRESU" "BWSTRESC" "BWSTRESN" "BWSTRESU" "BWBLFL"
-## [13] "VISITDY"  "BWDTC"    "BWDY"
-
-## $dm
-##  [1] "STUDYID" "DOMAIN"  "USUBJID" "SUBJID"  "RFSTDTC" "RFENDTC" "BRTHDTC"
-##  [8] "AGE"     "AGEU"    "SEX"     "ARMCD"   "ARM"     "SETCD"
-
-## $ds
-## [1] "STUDYID" "DOMAIN"  "USUBJID" "DSSEQ"   "DSTERM"  "DSDECOD" "VISITDY"
-## [8] "DSSTDTC" "DSSTDY"
-
-## $ex
-##  [1] "STUDYID"  "DOMAIN"   "USUBJID"  "EXSEQ"    "EXTRT"    "EXDOSE"
-##  [7] "EXDOSU"   "EXDOSFRM" "EXDOSFRQ" "EXROUTE"  "EXLOT"    "EXTRTV"
-## [13] "EXVAMT"   "EXVAMTU"  "EXSTDTC"  "EXSTDY"
-
-## $lb
-##  [1] "STUDYID"  "DOMAIN"   "USUBJID"  "LBSEQ"    "LBTESTCD" "LBTEST"
-##  [7] "LBCAT"    "LBSCAT"   "LBORRES"  "LBORRESU" "LBSTRESC" "LBSTRESN"
-## [13] "LBSTRESU" "LBSPEC"   "LBMETHOD" "LBBLFL"   "VISITDY"  "LBDTC"
-## [19] "LBDY"
-
-## $mi
-##  [1] "STUDYID"  "DOMAIN"   "USUBJID"  "MISEQ"    "MITESTCD" "MITEST"
-##  [7] "MIORRES"  "MISTRESC" "MIRESCAT" "MISTAT"   "MIREASND" "MISPEC"
-## [13] "MISPCCND" "MISPCUFL" "MILAT"    "MISEV"    "MIDTHREL" "MIDTC"
-## [19] "MIDY"
-
-## $ta
-## [1] "STUDYID" "DOMAIN"  "ARMCD"   "ARM"     "TAETORD" "ETCD"    "ELEMENT"
-## [8] "EPOCH"
-
-## $ts
-## [1] "STUDYID"  "DOMAIN"   "TSSEQ"    "TSGRPID"  "TSPARMCD" "TSPARM"   "TSVAL"
-
-## $tx
-## [1] "STUDYID"  "DOMAIN"   "SETCD"    "SET"      "TXSEQ"    "TXPARMCD" "TXPARM"
-## [8] "TXVAL"
-###################
-  
-## bw_col <- c("STUDYID", "DOMAIN", "USUBJID", "BWSEQ", "BWTESTCD", "BWTEST",
-## "BWORRES", "BWORRESU", "BWSTRESC", "BWSTRESN", "BWSTRESU", "BWSTAT",
-## "BWREASND", "BWBLFL", "BWFAST", "BWEXCLFL", "BWUSCHFL",
-## "VISITDY", "BWDTC", "BWDY", "BWNOMDY", "BWNOMLBL")
 
 
-## bw_col <- c("STUDYID", "DOMAIN", "USUBJID", "BWSEQ", "BWTESTCD", "BWTEST",
-## "BWORRES", "BWORRESU", "BWSTRESC", "BWSTRESN", "BWSTRESU", "BWBLFL",
-## "VISITDY", "BWDTC", "BWDY")
-
-
-## bw_col <- c("STUDYID", "DOMAIN", "USUBJID", "BWTESTCD", "BWTEST",
-## "BWORRES", "BWORRESU", "BWSTRESC", "BWSTRESN", "BWSTRESU", "BWBLFL",
-## "BWDTC", "BWDY")
-
-  bw_col <- c("STUDYID", "DOMAIN", "USUBJID","VISITDY","BWDY","BWTEST",
-              "BWTESTCD","BWSTRESU","BWORRESU","BWSTRESN",
-              "BWSTRESC","BWORRES")
-
-
-dm_col <- c("STUDYID",  "USUBJID", "SUBJID", "AGEU", "SEX",
-            "ARMCD", "ARM", "SETCD"
-)
-
-
-
-ds_col <- c("STUDYID", "DOMAIN", "USUBJID",  "DSTERM", "DSDECOD","VISITDY")
-
-ex_col <- c("STUDYID", "USUBJID", "EXTRT", "EXDOSE",
-"EXDOSU", "EXDOSFRM", "EXDOSFRQ", "EXROUTE", "EXTRTV",
-"EXVAMT", "EXVAMTU","EXLOT")
-
-
-
-
-lb_col <- c("STUDYID",  "USUBJID",  "LBTESTCD", "LBTEST",
-"LBCAT", "LBORRES", "LBORRESU", "LBSTRESC", "LBSTRESN", "LBSTRESU",
-"LBSPEC", "LBMETHOD",
-"LBDY" )
-
-
-
-mi_col <- c("STUDYID", "USUBJID", "MITESTCD", "MITEST",
-"MIORRES", "MISTRESC",  "MISPEC",
-"MISEV", "MIDY")
-
-ta_col <- c("STUDYID",  "ARMCD", "ARM")
-
-
-
-ts_col <- c("STUDYID",  "TSPARMCD", "TSVAL")
-
-tx_col <- c("STUDYID",  "SETCD", "SET", "TXPARMCD", "TXPARM","TXVAL")
-
-## tx_col <- c("STUDYID", "DOMAIN", "SETCD", "SET", "TXSEQ", "TXPARMCD", "TXPARM",
-## "TXVAL")
-
-## tx_col <- c("STUDYID", "DOMAIN", "SETCD", "SET", "TXSEQ", "TXPARMCD", "TXPARM",
-## "TXVAL")
 
         ## Make Loop for Loading in the SEND Data per Example Study
         for (i in 1:NumData){
-          ## browser()
             Name <- paste0('ExampleStudy',as.character(i))
             assign(Name,load.xpt.files(ExampleStudies[i]))
         }
@@ -177,48 +75,24 @@ tx_col <- c("STUDYID",  "SETCD", "SET", "TXPARMCD", "TXPARM","TXVAL")
         #Check that Example Studies are Similar and Consolidate
         if (NumData>1){
             #Generate Names of number of Example Study and concatenate
-            Example <- ExampleStudy1
-          ## print(colnames(Example$ds))
-          Example$bw <- Example$bw[, bw_col]
-          Example$dm <- Example$dm[, dm_col]
 
-          Example$ds <- Example$ds[, ds_col]
-          Example$ex <- Example$ex[, ex_col]
-          Example$lb <- Example$lb[, lb_col]
+          Example <- ExampleStudy1
+          ## Example$dm <- Example$dm[, dm_col]
 
-          Example$mi <- Example$mi[, mi_col]
-          Example$ta <- Example$ta[, ta_col]
-          Example$ts <- Example$ts[, ts_col]
-          Example$tx <- Example$tx[, tx_col]
             for (j in 2:NumData){
                 Name <- paste0('ExampleStudy',as.character(j))
                 #Combine BW, DM, DS, EX, LB, MI, TA, TS, and TX
-                ## print(colnames(Example$bw))
-                ## print(colnames(get(Name)$bw))
 
-                ## browser()
-                ## df_bw <- get(Name)$bw
-                ## df_bw <- df_bw[, bw_col]
-                Example$bw <- rbind(Example$bw, get(Name)$bw[, bw_col])
-                Example$dm <- rbind(Example$dm, get(Name)$dm[, dm_col])
-                Example$ds <- rbind(Example$ds, get(Name)$ds[, ds_col])
-                Example$ex <- rbind(Example$ex, get(Name)$ex[, ex_col])
-                Example$lb <- rbind(Example$lb, get(Name)$lb[, lb_col])
-                Example$mi <- rbind(Example$mi, get(Name)$mi[, mi_col])
-                Example$ta <- rbind(Example$ta, get(Name)$ta[, ta_col])
-                Example$ts <- rbind(Example$ts, get(Name)$ts[, ts_col])
-                Example$tx <- rbind(Example$tx, get(Name)$tx[, tx_col])
-                ##
-                ## Example$bw <- rbind(Example$bw, get(Name)$bw)
-                ## Example$dm <- rbind(Example$dm, get(Name)$dm)
+                Example$bw <- data.table::rbindlist(list(Example$bw, get(Name)$bw),fill = T,use.names = TRUE)
+                Example$dm <- data.table::rbindlist(list(Example$dm, get(Name)$dm),fill = T,use.names = TRUE)
+                Example$ds <- data.table::rbindlist(list(Example$ds, get(Name)$ds),fill = T,use.names = TRUE)
+                Example$ex <- data.table::rbindlist(list(Example$ex, get(Name)$ex),fill = T,use.names = TRUE)
+                Example$lb <- data.table::rbindlist(list(Example$lb, get(Name)$lb),fill = T,use.names = TRUE)
+                Example$mi <- data.table::rbindlist(list(Example$mi, get(Name)$mi),fill = T,use.names = TRUE)
+                Example$ta <- data.table::rbindlist(list(Example$ta, get(Name)$ta),fill = T,use.names = TRUE)
+                Example$ts <- data.table::rbindlist(list(Example$ts, get(Name)$ts),fill = T,use.names = TRUE)
+                Example$tx <- data.table::rbindlist(list(Example$tx, get(Name)$tx),fill = T,use.names = TRUE)
 
-                ## Example$ds <- rbind(Example$ds, get(Name)$ds)
-                ## Example$ex <- rbind(Example$ex, get(Name)$ex)
-                ## Example$lb <- rbind(Example$lb, get(Name)$lb)
-                ## Example$mi <- rbind(Example$mi, get(Name)$mi)
-                ## Example$ta <- rbind(Example$ta, get(Name)$ta)
-                ## Example$ts <- rbind(Example$ts, get(Name)$ts)
-                ## Example$tx <- rbind(Example$tx, get(Name)$tx)
             }
           ## print(Example['bw'])
 
@@ -226,7 +100,6 @@ tx_col <- c("STUDYID",  "SETCD", "SET", "TXPARMCD", "TXPARM","TXVAL")
             Example <- Example[Domains]
             #Check Species are the same
             Species <- getFieldValue(Example$ts, "TSVAL", "TSPARMCD", "SPECIES")
-          ## browser()
           print(Species)
             if (length(unique(Species)) >1){
               tab_pr <- Example$ts[Example$ts$TSPARMCD=="SPECIES",]
@@ -243,7 +116,6 @@ tx_col <- c("STUDYID",  "SETCD", "SET", "TXPARMCD", "TXPARM","TXVAL")
             if (length(unique(SNDIGVER)) >1){
                 stop("ERROR:SEND versions are not the same between SEND Example Studies. Pick one SNDIGVER.")
             }
-
 
 
 
@@ -298,7 +170,7 @@ tx_col <- c("STUDYID",  "SETCD", "SET", "TXPARMCD", "TXPARM","TXVAL")
 
         #Get SEND Species, LB TESTCDs and MI Tests from Example Study
         Species <- unique(getFieldValue(Example$ts, "TSVAL", "TSPARMCD", "SPECIES"))
-        LBTestCDs <- unique(Example$lb$LBTESTCD)
+      LBTestCDs <- unique(Example$lb$LBTESTCD)
         MITests <- unique(Example$mi$MISPEC)
 
         #Find out Animal USUBJIDs for Control and Treated Animals
@@ -331,8 +203,11 @@ tx_col <- c("STUDYID",  "SETCD", "SET", "TXPARMCD", "TXPARM","TXVAL")
                 }
             }
         }
+
+        Doses <- Doses[, c("ARMCD","Dose")]
+        Doses <- Doses[!duplicated(Doses),]
         #Correlate USUBJID with Dose Group
-        Subjects <- merge(Example$dm[,c("USUBJID","ARMCD","SEX")], Doses, by = "ARMCD")
+        Subjects <- merge(Example$dm[,c("USUBJID","ARMCD","SEX")], Doses[, c("ARMCD","Dose")], by = "ARMCD")
 
         #Double Check Recovery Coding
         RecoveryAnimals <- Example$ds$USUBJID[which(grepl("Recovery",Example$ds$DSTERM) == TRUE)]
@@ -347,7 +222,6 @@ tx_col <- c("STUDYID",  "SETCD", "SET", "TXPARMCD", "TXPARM","TXVAL")
          }
         }
         #Consolidate Severity Methods
-    ## browser()
         Example$mi$MISEV <- as.character(Example$mi$MISEV)
         Example$mi$MISEV <- str_replace_all(Example$mi$MISEV, "1 OF 5", "1")
         Example$mi$MISEV <- str_replace_all(Example$mi$MISEV, "1 OF 4", "1")
@@ -551,13 +425,18 @@ print(GeneratedSEND)
                 #Add in Randomized Data to Subjects in Each Group
                 SENDstudy$ds[which(SENDstudy$ds$USUBJID %in% Subjs), "DSDECOD"] <- Gendata
                 #Make VISITDY Appropriate
+                if('VISITDY' %in% colnames(SENDstudy$ds)){
+
                 VISTDY <- max(SENDstudy$ds[which(SENDstudy$ds$USUBJID %in% Subjs), "VISITDY"], na.rm = TRUE)
                 SENDstudy$ds[which(SENDstudy$ds$USUBJID %in% Subjs), "VISITDY"] <- VISTDY
-            }
-            #Ensure DSTERM/VISITDY is APPROPRIATE
+
             SENDstudy$ds <-SENDstudy$ds %>%
                 mutate(DSTERM = ifelse(DSDECOD == 'FOUND DEAD','Found Dead','Terminal necropsy')) %>%
                 mutate(VISITDY = ifelse(DSDECOD == 'FOUND DEAD',NA,VISITDY))
+                }
+            }
+
+            #Ensure DSTERM/VISITDY is APPROPRIATE
 
             #Generate TX data
             #Keeps: SETCD
@@ -815,7 +694,7 @@ print(GeneratedSEND)
             #Create a distribution of values using MCMC for LBSTRESN
             for (Dose in unique(Doses$Dose)){
                 for (gender in unique(ExampleSubjects$SEX)){
-                    print(paste0(Dose, " - ", gender))
+                    ## print(paste0(Dose, " - ", gender))
                     Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose & ExampleSubjects$SEX == gender)]
                     Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose & Subjects$SEX == gender)]
                     GroupTests <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjs), c("LBTESTCD","LBSPEC")]
@@ -826,7 +705,8 @@ print(GeneratedSEND)
                         #Remove Tests that have a ARMstev of 0 (meaning they likely don't have enough data)
                         LBDATAs <- LBDATAs[which(LBDATAs$ARMstdev != 0),]
                         #Remove tests that do not have enough data (i.e. all days)
-                        Testspread <- table(droplevels(LBDATAs$LBTESTCD), LBDATAs$LBDY)
+                        ## Testspread <- table(droplevels(LBDATAs$LBTESTCD), LBDATAs$LBDY)
+                        Testspread <- table(LBDATAs$LBTESTCD, LBDATAs$LBDY)
                         rowsub <- apply(Testspread,1, function(row) all(row !=0))
                         highDataTests <- rownames(Testspread)[rowsub]
                         if (length(highDataTests) <= 1){
@@ -844,16 +724,30 @@ print(GeneratedSEND)
                         line <- as.data.frame(line)
                         #Remove NA values (fit cannot have them)
                         line <- na.omit(line)
+                        no_col <- length(colnames(line))
+                        no_row <- nrow(line)
+                        if (no_col > no_row) {
+                          print(head(SENDstudy$lb))
+                          print(head(line))
+
+stop('there are more columns than rows ')
+
+                        }
+                        ## tryCatch({
+
                         for (test in unique(LBDATAs$LBTESTCD)){
                             Vars <- setdiff(colnames(line),c("Day",test))
                             if (length(Vars) > 10){ #limit Vars to 2 random variables for computation time
                                 Vars <- sample(Vars, 2)
                             }
                             #Repeating fit PER test with interaction from other tests in that lbspec
+
                             equation <- paste0(Vars, sep= '*Day',collapse = " + ")
                             #Error test
                             ## print(paste0(lbspec, " - ", test ))
-                            #Make Fit
+                                        #Make Fit
+
+                            ## browser()
                             LBfit <- MCMCpack::MCMCregress(as.formula(paste0(test, " ~ ",equation)), b0=0, B0 = 0.1, data = line)
                             #Sample Model 'Per Individual animal'
                             Fit <- sample(1:nrow(LBfit), size=length(Subjs))
@@ -902,6 +796,8 @@ print(GeneratedSEND)
                                 sn <- sn+1
                             }
                         }
+
+                        ## }, error=function(e) print(e))
                     }
                 }
             }
