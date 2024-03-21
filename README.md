@@ -25,4 +25,4 @@ console automatically. These plots can be expanded to other values as well.
 
 `install.packages('remotes')`
 
-`remotes::install_github('sbutler5/SENDsanitizer', ref = 'package')`
+`remotes::install_github('phuse-org/SENDsanitizer')`
