@@ -4,13 +4,7 @@
 \alias{sanitize}
 \title{Run function}
 \usage{
-sanitize(
-  path,
-  number = 1,
-  recovery = FALSE,
-  where_to_save = NULL,
-  combination = FALSE
-)
+sanitize(path, number = 1, recovery = FALSE, where_to_save = NULL)
 }
 \arguments{
 \item{path}{Mandatory\cr
@@ -25,9 +19,6 @@ recovery}
 \item{where_to_save}{optional\cr
 if no directory path given, fake/generate study data will be save
 directory given in path argument}
-
-\item{combination}{optional\cr
-boolean}
 }
 \description{
 Run function

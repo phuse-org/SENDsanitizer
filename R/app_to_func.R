@@ -22,9 +22,6 @@
 #' @param where_to_save optional\cr
 #' if no directory path given, fake/generate study data will be save
 #' directory given in path argument
-#' @param combination optional\cr
-#' boolean
-#
 #' @export
 
 #' @import dplyr
@@ -39,41 +36,35 @@
 #' @import fs
 #' @import RSQLite
 #' @import DBI
-# what will happen when visitday not present but
+# what will happen when visitday not present but dsnomdy present
 
 
 sanitize <- function(path, number=1, recovery=FALSE,
-                     where_to_save=NULL, combination=FALSE) {
-        Createme <- number
-        print(paste0("study to generate: ", Createme))
+                     where_to_save=NULL) {
+
+        number  <- as.numeric(number)
+        print(paste0("study to generate: ", as.character(number)))
         PRINT <- FALSE
         Recovery <- recovery
-
-  if (combination) {
-    datasetInput <- path
-
-  } else {
-
- datasetInput <- fs::dir_ls(path)
-  }
-  ExampleStudies <- datasetInput
-        ## print(ExampleStudies)
-  NumData <- length(ExampleStudies)
-  ## print(NumData)
-
+        ExampleStudies <- path
+        print('study path provided')
+        print(ExampleStudies)
+        NumData <- length(ExampleStudies)
+        print(NumData)
 
 
 
         ## Make Loop for Loading in the SEND Data per Example Study
-        for (i in 1:NumData){
+  for (i in 1:NumData){
             Name <- paste0('ExampleStudy',as.character(i))
             assign(Name,load.xpt.files(ExampleStudies[i]))
+            print(Name)
         }
         Domains <- c("bw","dm","ds","ex","lb","mi","ta","ts","tx")
 
 
         #Check that Example Studies are Similar and Consolidate
-        if (NumData>1){
+        if (NumData > 1){
             #Generate Names of number of Example Study and concatenate
 
           Example <- ExampleStudy1
@@ -145,6 +136,7 @@ sanitize <- function(path, number=1, recovery=FALSE,
           studyid_remove <- unique(dd[which(dd$Freq==0),c('STUDYID')])
             print('please remove following studyid')
               print(studyid_remove)
+              print('ERROR:ARMCD line 147 ')
                 stop("ERROR:ARMCD for Dosing is not equavalent between SEND Example Studies. Try removing Recovery Animals.")
             }
 
@@ -253,7 +245,7 @@ sanitize <- function(path, number=1, recovery=FALSE,
 
 print(GeneratedSEND)
 
-   for (j in 1:Createme){
+   for (j in 1:number ){
             #Make SENDstudy length of one example study
             onestudy <- as.character(Example$dm$STUDYID[1])
             #Generate base for study to fill with proper SEND format
@@ -325,7 +317,6 @@ print(GeneratedSEND)
                 #Remove Term
                 SENDstudy$ts$TSVAL[idx] <- ""
             }
-
 
             #Generate TA Data
             #Keeps: EPOCH, ELEMEND, ETCD, TAETORD, DOMAIN
@@ -568,10 +559,12 @@ print(GeneratedSEND)
                     line <- data.frame(BWSTRESN = SubBWFindings$BWSTRESN, Day= SubBWFindings$BWDY, Dose = SubBWFindings$Dose)
                     #Make model of weight over time per dose group
                     if (Species %in% c("DOG", "MONKEY")){
+                      ## print('line 562')
                         #Linear fit
                         posterior <- MCMCregress(BWSTRESN~Day, b0=0, B0 = 0.1, data = line)
                     } else {
                         #Log fit
+                      ## print('line 567')
                         posterior <- MCMCregress(log(BWSTRESN)~Day, b0=0, B0 = 0.1, data = line)
                     }
                     #Sample model to fill in Example using Subjs
@@ -681,7 +674,12 @@ print(GeneratedSEND)
             cols <- grep("DTC", colnames(SENDstudy$lb))
             SENDstudy$lb[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$lb$STUDYID))
             #Find out value range per treatment group
-            LBFindings <- merge(Subjects, Example$lb[,c("USUBJID", "LBTESTCD", "LBSPEC", "LBSTRESN","LBDY")], by = "USUBJID")
+            LBFindings <- merge(Subjects, Example$lb[,c("USUBJID", "LBTESTCD", "LBSPEC", "LBSTRESN","LBDY","LBCAT")], by = "USUBJID")
+     LBFindings <- LBFindings %>% dplyr::filter(LBCAT=="CLINICAL CHEMISTRY")
+     ## LBFindings <- LBFindings %>% dplyr::filter(LBCAT=="CLINICAL CHEMISTRY",
+     ##                                            LBTESTCD %in% c('CHOL',
+     ##                                                            'GLDH',
+     ##                                                            'BICARB'))
             LBSummary <- LBFindings %>%
                 group_by(Dose, LBTESTCD,LBDY,SEX) %>%
                 mutate(ARMavg = mean(LBSTRESN, na.rm = TRUE)) %>%
@@ -692,9 +690,9 @@ print(GeneratedSEND)
             SENDstudy$lb <- SENDstudy$lb[which(SENDstudy$lb$LBSPEC %in% c('WHOLE BLOOD', 'SERUM', 'URINE')),]
 
             #Create a distribution of values using MCMC for LBSTRESN
-            for (Dose in unique(Doses$Dose)){
+     for (Dose in unique(Doses$Dose)){
                 for (gender in unique(ExampleSubjects$SEX)){
-                    ## print(paste0(Dose, " - ", gender))
+                  ## print(paste0(Dose, " - ", gender))
                     Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose & ExampleSubjects$SEX == gender)]
                     Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose & Subjects$SEX == gender)]
                     GroupTests <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjs), c("LBTESTCD","LBSPEC")]
@@ -726,16 +724,29 @@ print(GeneratedSEND)
                         line <- na.omit(line)
                         no_col <- length(colnames(line))
                         no_row <- nrow(line)
-                        if (no_col > no_row) {
-                          print(head(SENDstudy$lb))
-                          print(head(line))
 
-stop('there are more columns than rows ')
+                        ## print(Dose)
+                        ## if (no_col > no_row) {
+                        ##   print('__________________________________')
 
-                        }
+                        ##   print(Dose)
+                        ##   print('there are more columns than rows')
+                        ##   print('**********************************')
+
+
+                        ## }
                         ## tryCatch({
+##:ess-bp-start::browser@nil:##
+browser(expr=is.null(.ESSBP.[["@5@"]]));##:ess-bp-end:##
 
-                        for (test in unique(LBDATAs$LBTESTCD)){
+                        ll <- unique(LBDATAs$LBTESTCD)
+                        ll <- ll[which(!ll %in% 'GLOBUL')]
+                        print(ll)
+
+                        for (test in ll){
+                          print(test)
+
+                          tryCatch({
                             Vars <- setdiff(colnames(line),c("Day",test))
                             if (length(Vars) > 10){ #limit Vars to 2 random variables for computation time
                                 Vars <- sample(Vars, 2)
@@ -747,10 +758,32 @@ stop('there are more columns than rows ')
                             ## print(paste0(lbspec, " - ", test ))
                                         #Make Fit
 
-                            ## browser()
-                            LBfit <- MCMCpack::MCMCregress(as.formula(paste0(test, " ~ ",equation)), b0=0, B0 = 0.1, data = line)
+                        ## if (no_col > no_row) {
+                          ## print('__________________________________')
+
+                          formula_lb <- as.formula(paste0(test, " ~ ", equation))
+
+                          ## ## print('there are more columns than rows')
+                          ## print('**********************************')
+                        ## }
+                            ## LBfit <- MCMCpack::MCMCregress(as.formula(paste0(test, " ~ ",equation)), b0=0, B0 = 0.1, data = line)
+                          ##   print('761')
+                          ## print(test)
+                            LBfit <- MCMCpack::MCMCregress(formula = formula_lb, b0=0, B0 = 0.1, data = line)
+                            ## LBfit <- MCMCpack::MCMCregress(formula = formula_lb, b0=0, B0 = 0.1, data = line)
+                          ## }, error=function(e){
+                          ##   print('error')
+                          ## print(Dose)
+                          ## print(Vars)
+                          ## print(equation)
+                          ## print(test)
+                          ##   print(e)
+                          ##   print(line)
+
+                          ## })
                             #Sample Model 'Per Individual animal'
                             Fit <- sample(1:nrow(LBfit), size=length(Subjs))
+                          ## print('done')
                             sn <-1
                             for (Subj in Subjs) {
                                 LBFit <- LBfit[Fit[sn],]
@@ -795,13 +828,13 @@ stop('there are more columns than rows ')
                                 #add to subject count before new subject done
                                 sn <- sn+1
                             }
-                        }
+                        ## }
 
-                        ## }, error=function(e) print(e))
+                        }, error=function(e) print(e))
                     }
                 }
             }
-
+}
             #Testing code to graph fit compared to average of that ARM (HD, M, Selected LB tests)
             Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == "HD" & ExampleSubjects$SEX == "M")]
             TEST <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjs), c("LBDY","LBSTRESN","LBTESTCD","USUBJID")]
