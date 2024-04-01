@@ -36,6 +36,8 @@
 #' @import fs
 #' @import RSQLite
 #' @import DBI
+#' @import data.table
+#' @importFrom utils head
 # what will happen when visitday not present but dsnomdy present
 
 
@@ -736,8 +738,6 @@ print(GeneratedSEND)
 
                         ## }
                         ## tryCatch({
-##:ess-bp-start::browser@nil:##
-browser(expr=is.null(.ESSBP.[["@5@"]]));##:ess-bp-end:##
 
                         ll <- unique(LBDATAs$LBTESTCD)
                         ll <- ll[which(!ll %in% 'GLOBUL')]
