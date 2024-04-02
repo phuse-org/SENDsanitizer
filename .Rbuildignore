@@ -1,11 +1,4 @@
-^SENDsanitizer\.Rproj$
-^\.Rproj\.user$
-^app\.R$
-^example\.R$
-^LICENSE\.md$
-^test_run\.R$
-^send_columns\.xls$
-^test_data$
-^get_studies\.R$
 ^no_git_dir$
 ^no_git_run\.R$
+^app\.R$
+^LICENSE\.md$

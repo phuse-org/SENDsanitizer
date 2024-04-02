@@ -1,17 +1,3 @@
-# library(fs)
-# library(dplyr)
-# library(bayesplot)
-# library(haven)
-# library(Hmisc)
-# library(MCMCpack)
-# ## library(shiny)
-# ## library(shinyFiles)
-# ## library(shinyWidgets)
-# library(stringr)
-# library(this.path)
-# library(tidyr)
-# library(tools)
-
 #' @title Run function
 #' @param path Mandatory\cr
 #' path where real data located, should be directory
@@ -20,24 +6,21 @@
 #' @param recovery optional\cr
 #' recovery
 #' @param where_to_save optional\cr
-#' if no directory path given, fake/generate study data will be save
+#' if no directory path given, fak eata will be save
 #' directory given in path argument
 #' @export
 
-#' @import dplyr
-#' @import ggplot2
-#' @import bayesplot
-#' @import haven
-#' @import Hmisc
-#' @import MCMCpack
-#' @import stringr
-#' @import tidyr
-#' @import tools
-#' @import fs
-#' @import RSQLite
-#' @import DBI
 #' @import data.table
-#' @importFrom utils head
+#' @import utils
+#' @importFrom dplyr filter count distinct group_by mutate select
+#' @importFrom haven write_xpt
+#' @importFrom MCMCpack MCMCregress
+#' @importFrom stringr str_detect str_replace_all
+#' @importFrom tidyr replace_na
+#' @importFrom fs dir_create path
+#' @importFrom data.table rbindlist
+#' @importFrom utils tail
+
 # what will happen when visitday not present but dsnomdy present
 
 
@@ -201,72 +184,74 @@ sanitize <- function(path, number=1, recovery=FALSE,
         Doses <- Doses[, c("ARMCD","Dose")]
         Doses <- Doses[!duplicated(Doses),]
         #Correlate USUBJID with Dose Group
-        Subjects <- merge(Example$dm[,c("USUBJID","ARMCD","SEX")], Doses[, c("ARMCD","Dose")], by = "ARMCD")
+  Subjects <- merge(Example$dm[,c("USUBJID","ARMCD","SEX")], Doses[, c("ARMCD","Dose")], by = "ARMCD")
 
-        #Double Check Recovery Coding
-        RecoveryAnimals <- Example$ds$USUBJID[which(grepl("Recovery",Example$ds$DSTERM) == TRUE)]
-        if (Recovery == FALSE){
-         if (length(RecoveryAnimals)==0){
+                                        #Double Check Recovery Coding
+  RecoveryAnimals <- Example$ds$USUBJID[which(grepl("Recovery",Example$ds$DSTERM) == TRUE)]
+  if (Recovery == FALSE){
+          if (length(RecoveryAnimals)==0){
 
          } else if (identical(integer(0),which(Subjects$USUBJID %in% RecoveryAnimals)) == TRUE) {
 
          }
-             else {
-             Subjects <- Subjects[-which(Subjects$USUBJID %in% RecoveryAnimals),]
+         else {
+           Subjects <- Subjects[-which(Subjects$USUBJID %in% RecoveryAnimals),]
          }
         }
-        #Consolidate Severity Methods
-        Example$mi$MISEV <- as.character(Example$mi$MISEV)
-        Example$mi$MISEV <- str_replace_all(Example$mi$MISEV, "1 OF 5", "1")
-        Example$mi$MISEV <- str_replace_all(Example$mi$MISEV, "1 OF 4", "1")
-        Example$mi$MISEV <- str_replace_all(Example$mi$MISEV, "PRESENT", "1")
-        Example$mi$MISEV <- str_replace_all(Example$mi$MISEV, "MINIMAL", "1")
-        Example$mi$MISEV <-  str_replace_all(Example$mi$MISEV, "2 OF 5", "2")
-        Example$mi$MISEV <-  str_replace_all(Example$mi$MISEV, "MILD", "2")
-        Example$mi$MISEV <-  str_replace_all(Example$mi$MISEV, "3 OF 5", "3")
-        Example$mi$MISEV <-  str_replace_all(Example$mi$MISEV, "2 OF 4", "3")
-        Example$mi$MISEV <-  str_replace_all(Example$mi$MISEV, "MODERATE", "3")
-        Example$mi$MISEV <-  str_replace_all(Example$mi$MISEV, "4 OF 5", "4")
-        Example$mi$MISEV <-  str_replace_all(Example$mi$MISEV, "3 OF 4", "4")
-        Example$mi$MISEV <-  str_replace_all(Example$mi$MISEV, "MARKED", "4")
-        Example$mi$MISEV <-  str_replace_all(Example$mi$MISEV, "5 OF 5", "5")
-        Example$mi$MISEV <-  str_replace_all(Example$mi$MISEV, "4 OF 4", "5")
-        Example$mi$MISEV <-  str_replace_all(Example$mi$MISEV, "SEVERE", "5")
-        Example$mi$MISEV <- replace_na(Example$mi$MISEV, "0")
-        Example$mi$MISEV <- ordered(Example$mi$MISEV, levels= c("0","1", "2", "3", "4","5"))
+                                        #Consolidate Severity Methods
+  Example$mi$MISEV <- as.character(Example$mi$MISEV)
+
+  Example$mi$MISEV <- gsub("1 OF 5", "1",Example$mi$MISEV)
+  Example$mi$MISEV <- gsub("1 OF 4", "1",Example$mi$MISEV)
+  Example$mi$MISEV <- gsub("PRESENT", "1",Example$mi$MISEV)
+  Example$mi$MISEV <- gsub("MINIMAL", "1",Example$mi$MISEV)
+  Example$mi$MISEV <- gsub("3 OF 5", "3",Example$mi$MISEV)
+  Example$mi$MISEV <- gsub("2 OF 4", "3",Example$mi$MISEV)
+  Example$mi$MISEV <- gsub("MODERATE", "3",Example$mi$MISEV)
+  Example$mi$MISEV <- gsub("4 OF 5", "4",Example$mi$MISEV)
+  Example$mi$MISEV <- gsub("3 OF 4", "4",Example$mi$MISEV)
+  Example$mi$MISEV <- gsub("MARKED", "4",Example$mi$MISEV)
+  Example$mi$MISEV <- gsub("5 OF 5", "5",Example$mi$MISEV)
+  Example$mi$MISEV <- gsub("4 OF 4", "5",Example$mi$MISEV)
+  Example$mi$MISEV <- gsub("SEVERE", "5",Example$mi$MISEV)
+ind <- which(Example$mi$MISEV=='')
+ Example$mi$MISEV[ind] <- '0'
+  ## Example$mi$MISEV[is.na(Example$mi$MISEV)]  <- '0'
+  ## Example$mi$MISEV <- tidyr::replace_na(Example$mi$MISEV, "0")
+  Example$mi$MISEV <- ordered(Example$mi$MISEV, levels= c("0","1", "2", "3", "4","5"))
 
 
-        #Set number of subjects to create based on Example(s)
-        SubjectDet <- Subjects %>%
-            group_by(Dose) %>%
-            count(USUBJID) %>%
-            dplyr::mutate(sum = sum(n)) %>%
-            dplyr::select(-n)
-        SubjectDet <- SubjectDet[!duplicated(SubjectDet$Dose),]
+                                        #Set number of subjects to create based on Example(s)
+  SubjectDet <- Subjects %>%
+          dplyr::group_by(Dose) %>%
+          dplyr::count(USUBJID) %>%
+          dplyr::mutate(sum = sum(n)) %>%
+          dplyr::select(-n)
+  SubjectDet <- SubjectDet[!duplicated(SubjectDet$Dose),]
         GeneratedSEND <- list()
 
-print(GeneratedSEND)
+  print(GeneratedSEND)
 
-   for (j in 1:number ){
-            #Make SENDstudy length of one example study
-            onestudy <- as.character(Example$dm$STUDYID[1])
-            #Generate base for study to fill with proper SEND format
-            SENDstudy <- list( 'dm' = data.frame(Example$dm[which(Example$dm$STUDYID == onestudy),]),
-                               'bw' = data.frame(Example$bw[which(Example$bw$STUDYID == onestudy),]),
-                               'ds' = data.frame(Example$ds[which(Example$ds$STUDYID == onestudy),]),
-                               'ex' = data.frame(Example$ex[which(Example$ex$STUDYID == onestudy),]),
-                               'lb' = data.frame(Example$lb[which(Example$lb$STUDYID == onestudy),]),
-                               'mi' = data.frame(Example$mi[which(Example$mi$STUDYID == onestudy),]),
-                               'ta' = data.frame(Example$ta[which(Example$ta$STUDYID == onestudy),]),
-                               'ts' = data.frame(Example$ts[which(Example$ts$STUDYID == onestudy),]),
-                               'tx' = data.frame(Example$tx[which(Example$tx$STUDYID == onestudy),]))
+  for (j in 1:number ){
+                                        #Make SENDstudy length of one example study
+    onestudy <- as.character(Example$dm$STUDYID[1])
+                                        #Generate base for study to fill with proper SEND format
+    SENDstudy <- list( 'dm' = data.frame(Example$dm[which(Example$dm$STUDYID == onestudy),]),
+                      'bw' = data.frame(Example$bw[which(Example$bw$STUDYID == onestudy),]),
+                      'ds' = data.frame(Example$ds[which(Example$ds$STUDYID == onestudy),]),
+                      'ex' = data.frame(Example$ex[which(Example$ex$STUDYID == onestudy),]),
+                      'lb' = data.frame(Example$lb[which(Example$lb$STUDYID == onestudy),]),
+                      'mi' = data.frame(Example$mi[which(Example$mi$STUDYID == onestudy),]),
+                      'ta' = data.frame(Example$ta[which(Example$ta$STUDYID == onestudy),]),
+                      'ts' = data.frame(Example$ts[which(Example$ts$STUDYID == onestudy),]),
+                      'tx' = data.frame(Example$tx[which(Example$tx$STUDYID == onestudy),]))
 
-            #Create StudyID and Compound Name for generated study
-            studyID <- floor(runif(1, min = 10000, max = 100000))
-            Compound <- paste0("Fake-Drug ", floor(runif(1, min = 1, max = 100000)))
+                                        #Create StudyID and Compound Name for generated study
+    studyID <- floor(stats::runif(1, min = 10000, max = 100000))
+    Compound <- paste0("Fake-Drug ", floor(stats::runif(1, min = 1, max = 100000)))
 
-            #Generate TS Data
-            #Keeps: Study design, GLP flag and type, duration, species, age, vehicle, dosing duration
+                                        #Generate TS Data
+                                        #Keeps: Study design, GLP flag and type, duration, species, age, vehicle, dosing duration
             #Replaces: dates, study title, study facility, study compound, primary treatment
             #Removes: Study Director, Animal Purchasing Location, and Test Facility Country
 
@@ -286,9 +271,13 @@ print(GeneratedSEND)
             SENDstudy$ts[rows, "TSVAL"] <- rep(Compound, length(rows))
             if (NumData > 1){
                 Vehicles <- Example$ts[grep("TRTV",Example$ts$TSPARMCD),"TSVAL"]
+                print(Vehicles)
+                str(Vehicles)
                 #Remove any N/A or "NOT AVAILABLE"
-                Vehicles <- Vehicles[which(str_detect(Vehicles,"NOT AVAILABLE") == FALSE)]
-                Vehicles <- Vehicles[which(str_detect(Vehicles,"NA") == FALSE)]
+                ## Vehicles <- Vehicles[grep('NOT AVAILABLE',Vehicles$TSVAL,ignore.case = T,invert = T)]
+                ## Vehicles <- Vehicles[grep('NA',Vehicles$TSVAL,invert = T)]
+                Vehicles <- Vehicles[which(stringr::str_detect(Vehicles,"NOT AVAILABLE") == FALSE)]
+                Vehicles <- Vehicles[which(stringr::str_detect(Vehicles,"NA") == FALSE)]
                 #Check if values are the same for vehicle and concatinate if not
                 if (length(unique(Vehicles)) == 1){
                     SENDstudy$ts[grep("TRTV",SENDstudy$ts$TSPARMCD),"TSVAL"] <- Vehicles
@@ -398,8 +387,8 @@ print(GeneratedSEND)
             #Calculate percentage of Terminal Sacrifice in each ARM
             TerminalSac <- merge(Example$ds, Subjects, by = "USUBJID")
             TerminalSac <- TerminalSac %>%
-                group_by(Dose) %>%
-                count(DSDECOD) %>%
+                dplyr::group_by(Dose) %>%
+                dplyr::count(DSDECOD) %>%
                 dplyr::mutate(percent = n/sum(n)) %>%
                 dplyr::select(-n)
 
@@ -424,8 +413,8 @@ print(GeneratedSEND)
                 SENDstudy$ds[which(SENDstudy$ds$USUBJID %in% Subjs), "VISITDY"] <- VISTDY
 
             SENDstudy$ds <-SENDstudy$ds %>%
-                mutate(DSTERM = ifelse(DSDECOD == 'FOUND DEAD','Found Dead','Terminal necropsy')) %>%
-                mutate(VISITDY = ifelse(DSDECOD == 'FOUND DEAD',NA,VISITDY))
+                dplyr::mutate(DSTERM = ifelse(DSDECOD == 'FOUND DEAD','Found Dead','Terminal necropsy')) %>%
+                dplyr::mutate(VISITDY = ifelse(DSDECOD == 'FOUND DEAD',NA,VISITDY))
                 }
             }
 
@@ -487,7 +476,7 @@ print(GeneratedSEND)
 
             #Generate Fake EXLOT
             Lotnum <- length(levels(SENDstudy$ex$EXLOT))
-            Lot <- paste0("Fake", floor(runif(Lotnum, min = 1, max = 100000)))
+            Lot <- paste0("Fake", floor(stats::runif(Lotnum, min = 1, max = 100000)))
             for (i in 1:Lotnum){
                 levels(SENDstudy$ex$EXLOT)[i] <-Lot[i]
             }
@@ -499,7 +488,7 @@ print(GeneratedSEND)
             #Find Distribution of Dose to Vehicle (EXDOSE) to (EXVAMT)
             Dist <- SENDstudy$ex$EXDOSE/SENDstudy$ex$EXVAMT
             #Generate EXDOSE and EXVAMT Numbers based on expectation
-            Gen <- round(runif(length(Dist),min=min(SENDstudy$ex$EXVAMT), max = max(SENDstudy$ex$EXVAMT)),2)
+            Gen <- round(stats::runif(length(Dist),min=min(SENDstudy$ex$EXVAMT), max = max(SENDstudy$ex$EXVAMT)),2)
             SENDstudy$ex$EXVAMT <- Gen
             SENDstudy$ex$EXDOSE <- Gen*Dist
 
@@ -547,9 +536,9 @@ print(GeneratedSEND)
             #Find average weight behavior by dose and gender in Example
             BWFindings <- merge(Subjects, Example$bw[,c("USUBJID", "BWTESTCD", "BWSTRESN","BWDY")], by = "USUBJID")
             BWSummary <- BWFindings %>%
-                group_by(Dose, BWTESTCD,BWDY,SEX) %>%
-                mutate(ARMavg = mean(BWSTRESN, na.rm = TRUE)) %>%
-                mutate(ARMstdev = sd(BWSTRESN,na.rm = TRUE))
+                dplyr::group_by(Dose, BWTESTCD,BWDY,SEX) %>%
+                dplyr::mutate(ARMavg = mean(BWSTRESN, na.rm = TRUE)) %>%
+                dplyr::mutate(ARMstdev = sd(BWSTRESN,na.rm = TRUE))
 
             #Make Model of weight using MCMCregress
             for (Dose in unique(Doses$Dose)){
@@ -563,11 +552,11 @@ print(GeneratedSEND)
                     if (Species %in% c("DOG", "MONKEY")){
                       ## print('line 562')
                         #Linear fit
-                        posterior <- MCMCregress(BWSTRESN~Day, b0=0, B0 = 0.1, data = line)
+                        posterior <- MCMCpack::MCMCregress(BWSTRESN~Day, b0=0, B0 = 0.1, data = line)
                     } else {
                         #Log fit
                       ## print('line 567')
-                        posterior <- MCMCregress(log(BWSTRESN)~Day, b0=0, B0 = 0.1, data = line)
+                        posterior <- MCMCpack::MCMCregress(log(BWSTRESN)~Day, b0=0, B0 = 0.1, data = line)
                     }
                     #Sample model to fill in Example using Subjs
                     #Per individual, sample from postieror and derive line for their response
@@ -589,7 +578,7 @@ print(GeneratedSEND)
                         }
                         #Add in noise to fit
                         stdev <- unique(BWSummary$ARMstdev[which(BWSummary$Dose == Dose & BWSummary$SEX == gender)])
-                        GenerData$BWSTRESN <- GenerData$BWSTRESN + rnorm(length(GenerData$BWSTRESN), mean = 0, sd = (stdev/2))
+                        GenerData$BWSTRESN <- GenerData$BWSTRESN + stats::rnorm(length(GenerData$BWSTRESN), mean = 0, sd = (stdev/2))
                         #Fill into SENDstudy being generated
                         for (day in BWDYs){
                             idx <-which(SENDstudy$bw$USUBJID %in% Subj &
@@ -683,11 +672,11 @@ print(GeneratedSEND)
      ##                                                            'GLDH',
      ##                                                            'BICARB'))
             LBSummary <- LBFindings %>%
-                group_by(Dose, LBTESTCD,LBDY,SEX) %>%
-                mutate(ARMavg = mean(LBSTRESN, na.rm = TRUE)) %>%
-                mutate(ARMstdev = sd(LBSTRESN,na.rm = TRUE))
+                dplyr::group_by(Dose, LBTESTCD,LBDY,SEX) %>%
+                dplyr::mutate(ARMavg = mean(LBSTRESN, na.rm = TRUE)) %>%
+                dplyr::mutate(ARMstdev = sd(LBSTRESN,na.rm = TRUE))
             #Remove incomplete StudyTests
-            LBSummary <- na.omit(LBSummary)
+            LBSummary <- stats::na.omit(LBSummary)
             SENDstudy$lb <- SENDstudy$lb[which(SENDstudy$lb$LBTESTCD %in% LBSummary$LBTESTCD),]
             SENDstudy$lb <- SENDstudy$lb[which(SENDstudy$lb$LBSPEC %in% c('WHOLE BLOOD', 'SERUM', 'URINE')),]
 
@@ -717,13 +706,13 @@ print(GeneratedSEND)
                         LBDATAs <- LBDATAs[which(LBDATAs$LBTESTCD %in% highDataTests),]
                         # how to make line with varying amount of variables
                         line <- data.frame(USUBJID= LBDATAs$USUBJID, LBSTRESN = LBDATAs$LBSTRESN, Day= LBDATAs$LBDY, LBTEST = LBDATAs$LBTESTCD)
-                        line <- distinct(line) #check for and remove duplicate rows
-                        line <- reshape(line, idvar = c("USUBJID","Day"), timevar = 'LBTEST', direction = "wide")
+                        line <- dplyr::distinct(line) #check for and remove duplicate rows
+                        line <- stats::reshape(line, idvar = c("USUBJID","Day"), timevar = 'LBTEST', direction = "wide")
                         line <- sapply(line[,2:ncol(line)], as.numeric)
                         colnames(line) <- gsub("LBSTRESN.","",colnames(line))
                         line <- as.data.frame(line)
                         #Remove NA values (fit cannot have them)
-                        line <- na.omit(line)
+                        line <- stats::na.omit(line)
                         no_col <- length(colnames(line))
                         no_row <- nrow(line)
 
@@ -761,7 +750,7 @@ print(GeneratedSEND)
                         ## if (no_col > no_row) {
                           ## print('__________________________________')
 
-                          formula_lb <- as.formula(paste0(test, " ~ ", equation))
+                          formula_lb <- stats::as.formula(paste0(test, " ~ ", equation))
 
                           ## ## print('there are more columns than rows')
                           ## print('**********************************')
@@ -789,7 +778,7 @@ print(GeneratedSEND)
                                 LBFit <- LBfit[Fit[sn],]
                                 #Make LBSTRESN Fit for that variable
                                 DayVars <- which(grepl("Day",names(LBFit)) == TRUE) #Find break between interaction variables and other variables
-                                InteractionVars <- tail(DayVars,length(DayVars)-1) #Original Day Variable will be first found
+                                InteractionVars <- utils::tail(DayVars,length(DayVars)-1) #Original Day Variable will be first found
                                 #Make Equation Based on Varying length of Variables
                                 #LBFit[1] is always the intercept
                                 LBTESTVAR <- LBFit[1]
@@ -805,7 +794,7 @@ print(GeneratedSEND)
                                 }
                                 #Add Variance using stdev/rnorm
                                 stdev <- unique(LBSummary[which(LBSummary$Dose == Dose & LBSummary$SEX == gender & LBSummary$LBTESTCD == test),c('ARMstdev','LBDY')])
-                                LBTESTVAR <- abs(LBTESTVAR + rnorm(length(LBTESTVAR), mean = 0, sd = (stdev$ARMstdev)))
+                                LBTESTVAR <- abs(LBTESTVAR + stats::rnorm(length(LBTESTVAR), mean = 0, sd = (stdev$ARMstdev)))
 
                                 #Fill DataFrame to allocate to fake individual based on Day once variance is added
                                 GenerLBData <- data.frame(LBSTRESN = 0,
@@ -962,21 +951,21 @@ print(GeneratedSEND)
             Example$mi$MISTRESC <- as.character(Example$mi$MISTRESC)
             SENDstudy$mi$MISTRESC <- as.character(SENDstudy$mi$MISTRESC)
             Example$mi$MISTRESC <- toupper(Example$mi$MISTRESC)
-            Example$mi$MISTRESC <-  str_replace_all(Example$mi$MISTRESC, "NORMAL", "UNREMARKABLE")
-            Example$mi$MISTRESC <-  str_replace_all(Example$mi$MISTRESC, "NAD", "UNREMARKABLE")
-            Example$mi$MISTRESC <-  str_replace_all(Example$mi$MISTRESC, "NO ABNORMALITY DETECTED", "UNREMARKABLE")
-            Example$mi$MISTRESC <-  str_replace_all(Example$mi$MISTRESC,"NO ABUNREMARKABLEITY DETECTED","UNREMARKABLE")
+            Example$mi$MISTRESC <-  stringr::str_replace_all(Example$mi$MISTRESC, "NORMAL", "UNREMARKABLE")
+            Example$mi$MISTRESC <-  stringr::str_replace_all(Example$mi$MISTRESC, "NAD", "UNREMARKABLE")
+            Example$mi$MISTRESC <-  stringr::str_replace_all(Example$mi$MISTRESC, "NO ABNORMALITY DETECTED", "UNREMARKABLE")
+            Example$mi$MISTRESC <-  stringr::str_replace_all(Example$mi$MISTRESC,"NO ABUNREMARKABLEITY DETECTED","UNREMARKABLE")
             #Find out investigated MISPECS and Frequency of Findings/Severity Range of Findings
             #Calculate percentage of Findings per MISPEC in each ARM
             MIFindings <- merge(Subjects, Example$mi[,c("USUBJID", "MISPEC", "MISTRESC","MISEV")], by = "USUBJID")
             FindingsPercen <- MIFindings %>%
-                group_by(Dose, MISPEC,SEX) %>%
-                count(MISTRESC) %>%
+                dplyr::group_by(Dose, MISPEC,SEX) %>%
+                dplyr::count(MISTRESC) %>%
                 dplyr::mutate(percent = n/sum(n)) %>%
                 dplyr::select(-n)
             SevPercen <- MIFindings %>%
-                group_by(Dose, MISPEC,SEX) %>%
-                count(MISEV) %>%
+                dplyr::group_by(Dose, MISPEC,SEX) %>%
+                dplyr::count(MISEV) %>%
                 dplyr::mutate(percent = n/sum(n)) %>%
                 dplyr::select(-n)
             SENDstudy$mi$MIDY <- as.numeric(SENDstudy$mi$MIDY)
@@ -1060,7 +1049,7 @@ print(GeneratedSEND)
                 for (domain in Domains){
                     ## printpath <- paste0(path,"/FAKE",studyID,"/",domain,".xpt")
                     printpath <- fs::path(dir_to_save, domain, ext= 'xpt')
-                    write_xpt(SENDstudy[[domain]],path = printpath, version = 5)
+                    haven::write_xpt(SENDstudy[[domain]],path = printpath, version = 5)
 
                   print(paste0('file saved in: ',printpath))
                 }
@@ -1077,7 +1066,7 @@ print(GeneratedSEND)
                 for (domain in Domains){
                     ## printpath <- paste0(path,"/FAKE",studyID,"/",domain,".xpt")
                     printpath <- fs::path(dir_to_save, domain, ext= 'xpt')
-                    write_xpt(SENDstudy[[domain]],path = printpath, version = 5)
+                    haven::write_xpt(SENDstudy[[domain]],path = printpath, version = 5)
                   print(paste0('file saved in: ',printpath))
                 }
 

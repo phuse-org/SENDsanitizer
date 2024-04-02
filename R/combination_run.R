@@ -22,13 +22,15 @@
 #
 #' @export
 
+#' @importFrom utils combn
+
 
 sanitize_batch <- function(path, number=1, recovery=FALSE,
                            where_to_save=NULL, study_batch=2) {
   save <- where_to_save
 dir_comb <- path
 taken_m <- as.numeric(study_batch)
-kk <- combn(seq(length(dir_comb)), m=taken_m)
+kk <- utils::combn(seq(length(dir_comb)), m=taken_m)
 df <- as.data.frame(kk)
 dir_list <- list()
 for (i in 1:length(colnames(df))){
