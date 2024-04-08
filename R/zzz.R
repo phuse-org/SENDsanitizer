@@ -41,5 +41,5 @@ utils::globalVariables('y')
 utils::globalVariables('MISPEC')
 utils::globalVariables('MISTRESC')
 utils::globalVariables('MISEV')
-    invisible()
+  invisible()
 }

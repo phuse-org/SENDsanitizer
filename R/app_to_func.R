@@ -20,6 +20,7 @@
 #' @importFrom fs dir_create path
 #' @importFrom data.table rbindlist
 #' @importFrom utils tail
+#' @importFrom magrittr  %>%
 
 # what will happen when visitday not present but dsnomdy present
 
@@ -54,6 +55,7 @@ sanitize <- function(path, number=1, recovery=FALSE,
 
           Example <- ExampleStudy1
           ## Example$dm <- Example$dm[, dm_col]
+
 
             for (j in 2:NumData){
                 Name <- paste0('ExampleStudy',as.character(j))
@@ -92,7 +94,6 @@ sanitize <- function(path, number=1, recovery=FALSE,
             if (length(unique(SNDIGVER)) >1){
                 stop("ERROR:SEND versions are not the same between SEND Example Studies. Pick one SNDIGVER.")
             }
-
 
 
             #Remove TK SETCDs
@@ -234,6 +235,8 @@ ind <- which(Example$mi$MISEV=='')
 
   for (j in 1:number ){
                                         #Make SENDstudy length of one example study
+    ##
+    ## browser()
     onestudy <- as.character(Example$dm$STUDYID[1])
                                         #Generate base for study to fill with proper SEND format
     SENDstudy <- list( 'dm' = data.frame(Example$dm[which(Example$dm$STUDYID == onestudy),]),
@@ -250,8 +253,8 @@ ind <- which(Example$mi$MISEV=='')
     studyID <- floor(stats::runif(1, min = 10000, max = 100000))
     Compound <- paste0("Fake-Drug ", floor(stats::runif(1, min = 1, max = 100000)))
 
-                                        #Generate TS Data
-                                        #Keeps: Study design, GLP flag and type, duration, species, age, vehicle, dosing duration
+#Generate TS Data
+#Keeps: Study design, GLP flag and type, duration, species, age, vehicle, dosing duration
             #Replaces: dates, study title, study facility, study compound, primary treatment
             #Removes: Study Director, Animal Purchasing Location, and Test Facility Country
 
@@ -665,7 +668,9 @@ ind <- which(Example$mi$MISEV=='')
             cols <- grep("DTC", colnames(SENDstudy$lb))
             SENDstudy$lb[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$lb$STUDYID))
             #Find out value range per treatment group
-            LBFindings <- merge(Subjects, Example$lb[,c("USUBJID", "LBTESTCD", "LBSPEC", "LBSTRESN","LBDY","LBCAT")], by = "USUBJID")
+    LBFindings <- merge(Subjects, Example$lb[,c("USUBJID", "LBTESTCD",
+                                                "LBSPEC", "LBSTRESN","LBDY","LBCAT")],
+                                                  by = "USUBJID")
      LBFindings <- LBFindings %>% dplyr::filter(LBCAT=="CLINICAL CHEMISTRY")
      ## LBFindings <- LBFindings %>% dplyr::filter(LBCAT=="CLINICAL CHEMISTRY",
      ##                                            LBTESTCD %in% c('CHOL',
@@ -681,14 +686,17 @@ ind <- which(Example$mi$MISEV=='')
             SENDstudy$lb <- SENDstudy$lb[which(SENDstudy$lb$LBSPEC %in% c('WHOLE BLOOD', 'SERUM', 'URINE')),]
 
             #Create a distribution of values using MCMC for LBSTRESN
-     for (Dose in unique(Doses$Dose)){
+    for (Dose in unique(Doses$Dose)){
                 for (gender in unique(ExampleSubjects$SEX)){
                   ## print(paste0(Dose, " - ", gender))
                     Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose & ExampleSubjects$SEX == gender)]
                     Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose & Subjects$SEX == gender)]
-                    GroupTests <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjs), c("LBTESTCD","LBSPEC")]
+                  GroupTests <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjs), c("LBTESTCD","LBSPEC")]
                     for (lbspec in unique(GroupTests$LBSPEC)){
+## browser()
                         Days <- unique(LBSummary$LBDY[which(LBSummary$USUBJID %in% Sub & LBSummary$LBSPEC %in% lbspec)])
+                      ind <- which(is.na(LBSummary$LBSTRESN))
+                      LBSummary <- LBSummary[-ind, ]
                         LBDATAs <- LBSummary[which(LBSummary$LBSPEC %in% lbspec),]
                         LBDATAs <- LBDATAs[which(LBDATAs$USUBJID %in% Sub),]
                         #Remove Tests that have a ARMstev of 0 (meaning they likely don't have enough data)
@@ -730,10 +738,9 @@ ind <- which(Example$mi$MISEV=='')
 
                         ll <- unique(LBDATAs$LBTESTCD)
                         ll <- ll[which(!ll %in% 'GLOBUL')]
-                        print(ll)
+                        ## print(ll)
 
                         for (test in ll){
-                          print(test)
 
                           tryCatch({
                             Vars <- setdiff(colnames(line),c("Day",test))
@@ -750,6 +757,9 @@ ind <- which(Example$mi$MISEV=='')
                         ## if (no_col > no_row) {
                           ## print('__________________________________')
 
+
+                          ## print('current test')
+                          ## print(test)
                           formula_lb <- stats::as.formula(paste0(test, " ~ ", equation))
 
                           ## ## print('there are more columns than rows')
@@ -819,7 +829,14 @@ ind <- which(Example$mi$MISEV=='')
                             }
                         ## }
 
-                        }, error=function(e) print(e))
+                          }, error=function(e) {
+
+                          print(e)
+                          print(test)
+                            print(formula_lb)
+                            print(line)
+                          }
+                          )
                     }
                 }
             }
