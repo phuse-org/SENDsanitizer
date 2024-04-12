@@ -6,7 +6,7 @@
 #' @param recovery optional\cr
 #' recovery
 #' @param where_to_save optional\cr
-#' if no directory path given, fak eata will be save
+#' if no directory path given, fake data will be save
 #' directory given in path argument
 #' @export
 
@@ -206,6 +206,8 @@ sanitize <- function(path, number=1, recovery=FALSE,
   Example$mi$MISEV <- gsub("1 OF 4", "1",Example$mi$MISEV)
   Example$mi$MISEV <- gsub("PRESENT", "1",Example$mi$MISEV)
   Example$mi$MISEV <- gsub("MINIMAL", "1",Example$mi$MISEV)
+  Example$mi$MISEV <- gsub("2 OF 5", "2",Example$mi$MISEV)
+  Example$mi$MISEV <- gsub("MILD", "2",Example$mi$MISEV)
   Example$mi$MISEV <- gsub("3 OF 5", "3",Example$mi$MISEV)
   Example$mi$MISEV <- gsub("2 OF 4", "3",Example$mi$MISEV)
   Example$mi$MISEV <- gsub("MODERATE", "3",Example$mi$MISEV)
@@ -650,6 +652,8 @@ ind <- which(Example$mi$MISEV=='')
                 SENDstudy$bw$VISITDY <- as.character(SENDstudy$bw$VISITDY)
             }
 
+
+            #LB
             #Generates NUMERICAL LB Data
             #Keeps: DOMAIN, LBTESTs, LBTESTCD, LBDY, LBDY, LBCAT
             #Replaces: STUDYID, USUBJID, LBORRES, LBSTRESC, LBSTRESN, and LBDTC
@@ -790,7 +794,7 @@ ind <- which(Example$mi$MISEV=='')
                                 DayVars <- which(grepl("Day",names(LBFit)) == TRUE) #Find break between interaction variables and other variables
                                 InteractionVars <- utils::tail(DayVars,length(DayVars)-1) #Original Day Variable will be first found
                                 #Make Equation Based on Varying length of Variables
-                                #LBFit[1] is always the intercept
+                                # LBFit[1] is always the intercept
                                 LBTESTVAR <- LBFit[1]
                                 #Then it will be individual Variable coeff*their variables (including Day)
                                 for (num in 2:(InteractionVars[1]-1)){

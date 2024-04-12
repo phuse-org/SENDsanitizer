@@ -17,7 +17,7 @@ how many studies to generate}
 recovery}
 
 \item{where_to_save}{optional\cr
-if no directory path given, fak eata will be save
+if no directory path given, fake data will be save
 directory given in path argument}
 }
 \description{
