@@ -1,4 +1,4 @@
-# SENDsanitizer
+# SENDsanitizer  
 
 Based on example SEND Repeat-Dose Toxicity Studies, generates new studies that
 follow similar dose responsive trends for modelling purposes. It currently
@@ -16,13 +16,29 @@ install.packages("devtools")
 devtools::install_github('phuse-org/SENDsanitizer')
 ```
 
-## Run the app 
+## Generate fake xpt files  
+
 ```
 library(SENDsanitizer)
-SENDsanitizer::sanitize()
+SENDsanitizer::sanitize(path='path/to/directory/of/xpt/files/of/study/',
+nubmer=1,
+where_to_save='path/to/directory/where/generated/files/should/save/')
 
 ```
 
+
+## Install from cloned repo  
+
+
+Clone the [GitHub](https://github.com/phuse-org/SENDsanitizer) repo
+and set repo as working directory.
+
+```
+devtools::load_all(".")
+SENDsanitizer::sanitize(path='path/to/directory/of/xpt/files/of/study/',
+nubmer=1,
+where_to_save='path/to/directory/where/generated/files/should/save/')
+```
 
 
 
