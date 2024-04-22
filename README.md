@@ -9,6 +9,10 @@ scripts generate a random number for STUDYID to use in different domains.
 All indentifiable information is removed from study given. 
 All date information is replaced with 'XXXX-XX-XX' where appropriate.
 
+## MCMC method
+
+how we are using to generate data?
+
 
 ## Installation  
 
