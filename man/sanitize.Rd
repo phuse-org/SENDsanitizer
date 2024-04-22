@@ -8,7 +8,8 @@ sanitize(path, number = 1, recovery = FALSE, where_to_save = NULL)
 }
 \arguments{
 \item{path}{Mandatory\cr
-path where real data located, should be directory}
+path where real data/xpt files located, should be a directory that contains
+xpt files}
 
 \item{number}{mandatory, default 1\cr
 how many studies to generate}
@@ -17,6 +18,7 @@ how many studies to generate}
 recovery}
 
 \item{where_to_save}{optional\cr
+where to save generated xpt files. Should be a directory.
 if no directory path given, fake data will be save
 directory given in path argument}
 }

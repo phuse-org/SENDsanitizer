@@ -257,7 +257,7 @@ ind <- which(Example$mi$MISEV=='')
                                         #Create StudyID and Compound Name for generated study
     studyID <- floor(stats::runif(1, min = 10000, max = 100000))
     Compound <- paste0("Fake-Drug ", floor(stats::runif(1, min = 1, max = 100000)))
-
+#0
 #Generate TS Data
 #Keeps: Study design, GLP flag and type, duration, species, age, vehicle, dosing duration
             #Replaces: dates, study title, study facility, study compound, primary treatment
@@ -316,8 +316,8 @@ ind <- which(Example$mi$MISEV=='')
                 #Remove Term
                 SENDstudy$ts$TSVAL[idx] <- ""
             }
-
-            #Generate TA Data
+#1
+#Generate TA Data
             #Keeps: EPOCH, ELEMEND, ETCD, TAETORD, DOMAIN
             #Replaces: StudyID, ARM
 
@@ -336,7 +336,7 @@ ind <- which(Example$mi$MISEV=='')
                 SENDstudy$ta[rows,"ARM"] <- rep(Dosein, length(rows))
             }
 
-            #Generate DM Data
+#2           #Generate DM Data
             #Keeps: Number of each gender animals in each treatment group
             #Replaces: StudyID, USUBJID, Dates
 
@@ -376,8 +376,8 @@ ind <- which(Example$mi$MISEV=='')
             #Make Factors Characters for Correct .xpt creation
             SENDstudy$dm$SEX <- as.character(SENDstudy$dm$SEX)
             SENDstudy$dm$AGEU <- as.character(SENDstudy$dm$AGEU)
-
-            #Generate DS Data
+#3
+#Generate DS Data
             #Keeps: VISITDY
             #Replaces: StudyID, USUBJID, USUBJID, Dates
 
@@ -427,7 +427,7 @@ ind <- which(Example$mi$MISEV=='')
             }
 
             #Ensure DSTERM/VISITDY is APPROPRIATE
-
+#4
             #Generate TX data
             #Keeps: SETCD
             #Replaces: SET
@@ -456,6 +456,7 @@ ind <- which(Example$mi$MISEV=='')
                 SENDstudy$tx$TXVAL[which(grepl(SETCD,SENDstudy$tx$TXVAL)== TRUE)] <- unique(DoseCover)
                 SENDstudy$tx$SET[which(SENDstudy$tx$SET == SETCD)] <- unique(DoseCover)
             }
+    ## browser()
             #Replace Factors with Characters
             SENDstudy$tx$SETCD <- as.character(SENDstudy$tx$SETCD)
             SENDstudy$tx$TXPARM <- as.character(SENDstudy$tx$TXPARM)
@@ -464,7 +465,7 @@ ind <- which(Example$mi$MISEV=='')
             #Remove Identifying Group Names
             idx <- which(grepl("GRPLBL",SENDstudy$tx$TXPARMCD) == TRUE)
             SENDstudy$tx$TXVAL[idx] <- paste0("GROUP: ", SENDstudy$tx$SET[idx])
-
+#5
             #Generate EX data
             #Keeps: ESDOSFRM, EXDOSFRQ, EXROUTE, EXTRTV, EXSTDY, EXDOSEU, EXVATMU, EXSTDY
             #Replaces: EXTRT, EXLOT, EXSTDTC, EXVAMT, EXDOSE, USUBJID, STUDYID
@@ -517,7 +518,8 @@ ind <- which(Example$mi$MISEV=='')
                 SENDstudy$tx$TXVAL[idx] <- ""
             }
 
-
+#6
+#bw
             #Generates BW Data
             #Keeps: BWORRESU, BWTESTCD, BWSTRESU
             #Replaces: STUDYID, USUBJID, BWORRES, BWSTRESC, BWSTRESN, and BWDTC
@@ -655,7 +657,7 @@ ind <- which(Example$mi$MISEV=='')
                 SENDstudy$bw$VISITDY <- as.character(SENDstudy$bw$VISITDY)
             }
 
-
+#7
             #LB
             #Generates NUMERICAL LB Data
             #Keeps: DOMAIN, LBTESTs, LBTESTCD, LBDY, LBDY, LBCAT
@@ -954,12 +956,12 @@ ind <- which(Example$mi$MISEV=='')
             SENDstudy$lb$LBMETHOD <- as.character(SENDstudy$lb$LBMETHOD)
             SENDstudy$lb$LBSPEC <- as.character(SENDstudy$lb$LBSPEC)
             SENDstudy$lb$LBSTRESU <- as.character(SENDstudy$lb$LBSTRESU)
-
+#8
 #OM
 
 ## generate OM data
 
-browser()
+## browser()
             SENDstudy$om <- SENDstudy$om[which(SENDstudy$om$USUBJID %in% Subjects$USUBJID),]
 
             SENDstudy$om$STUDYID <- rep(studyID, nrow(SENDstudy$om))
@@ -1152,6 +1154,8 @@ browser()
             Example$mi$MISTRESC <-  stringr::str_replace_all(Example$mi$MISTRESC,"NO ABUNREMARKABLEITY DETECTED","UNREMARKABLE")
             #Find out investigated MISPECS and Frequency of Findings/Severity Range of Findings
             #Calculate percentage of Findings per MISPEC in each ARM
+
+## browser()
             MIFindings <- merge(Subjects, Example$mi[,c("USUBJID", "MISPEC", "MISTRESC","MISEV")], by = "USUBJID")
             FindingsPercen <- MIFindings %>%
                 dplyr::group_by(Dose, MISPEC,SEX) %>%
