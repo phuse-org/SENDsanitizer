@@ -8,6 +8,7 @@ generates bw, dm, ds, ex, lb, mi, ta, ts, tx domains.
 
 A random number is generated for StudyID and utilized across all domains during data creation. Dates replaced with 'XXXX-XX-XX' in relevant domains.
 
+__TS, TA, DM, DS, TX, EX__  
 In the TS domain, identifiable information like study facility details, location, study title, and vehicle names are replaced with pre-defined values ('FAKE FACILITY' for facility, 'XXXX-XX-XX' for dates). Details of study director, animal purchasing location, and test facility country are eliminated.
 
 For the TA domain, StudyID is substituted with a random number, and ARM is replaced with predefined values like Control, LD, MD, and HD for various doses.
@@ -16,31 +17,22 @@ In the DM domain, StudyID is replaced with a randomly generated StudyID, and USU
 
 Within the DS domain, StudyID, USUBJID, and dates are replaced as previously described. 
 
-TX domain 
-The SET variable is updated with Control, LD, MD, or HD values, and group-level information is replaced with SET values (Control, LD, MD or HD) 
+In TX domain the SET variable is updated with Control, LD, MD, or HD values, and group-level information is replaced with SET values (Control, LD, MD or HD) 
 value of the parameter SPLRNAM, SSPONSOR, SPREFID and SPLRLOC which contain identifiable information in TXPARMCD were removed
 
 EX domain 
 
 
-BW LB OM Domain
+__BW LB OM Domain__  
 
 A Bayesian Regression model were build for each domain of bw, lb and om using MCMCregress function from MCMCpack R package [MCMCpack: Markov Chain Monte Carlo
 in R](https://doi.org/10.18637/jss.v042.i09). Numerical Data then generated using this model.
 
 StudyID, USUBJID, and dates are replaced as previously described within the LB, BW and OM domain.
 
-MI domain 
+__MI domain__   
 
-
-
-### 
-
-    
-
-## MCMC method
-
-how we are using to generate data?
+percentage of the incidence and serverity was calculated.
 
 
 ## Installation  
