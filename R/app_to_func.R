@@ -6,10 +6,9 @@
 #'   how many studies to generate
 #' @param recovery optional\cr
 #' recovery
-#' @param where_to_save optional\cr
+#' @param where_to_save mandatory\cr
 #' where to save generated xpt files. Should be a directory.
-#' if no directory path given, fake data will be save
-#' directory given in path argument
+
 #' @export
 
 #' @import data.table
@@ -518,10 +517,6 @@ ind <- which(Example$mi$MISEV=='')
                 SENDstudy$tx$TXVAL[idx] <- ""
             }
 
-<<<<<<< HEAD
-#6
-=======
->>>>>>> om_update
 #bw
             #Generates BW Data
             #Keeps: BWORRESU, BWTESTCD, BWSTRESU
@@ -1066,9 +1061,9 @@ ind <- which(Example$mi$MISEV=='')
               ## equation <- paste0(Vars, collapse = " + ")
               kl <- paste0('`', Vars[1],'`',' + ','`',  Vars[2],'`' )
               equation  <- paste0('`', test,'`' , ' ~ ', kl)
-              print(equation)
+              ## print(equation)
               formula_om <- stats::as.formula(equation)
-              print(formula_om)
+              ## print(formula_om)
 
                             OMfit <- MCMCpack::MCMCregress(formula = formula_om, b0=0, B0 = 0.1, data = line)
                             #Sample Model 'Per Individual animal'
@@ -1172,7 +1167,7 @@ ind <- which(Example$mi$MISEV=='')
     }
     }
 
-print('done_loop')
+## print('done_loop')
   #Coordinate LBORRES and LBSTRESC
     SENDstudy$om$OMSTRESC <- as.character(SENDstudy$om$OMSTRESN)
     SENDstudy$om$OMORRESU <- SENDstudy$om$OMSTRESU
@@ -1311,8 +1306,11 @@ print('done_loop')
                 ## dir.create(dir_to_save) #Create Folder to Hold Study
 
                 #Loop through domains created to print them in created folder
+                ## browser()
                 Domains <- names(SENDstudy)
+              Domains <- setdiff(Domains, 'om')
                 for (domain in Domains){
+                  
                     ## printpath <- paste0(path,"/FAKE",studyID,"/",domain,".xpt")
                     printpath <- fs::path(dir_to_save, domain, ext= 'xpt')
                     haven::write_xpt(SENDstudy[[domain]],path = printpath, version = 5)
@@ -1321,20 +1319,23 @@ print('done_loop')
                 }
             } else {
 
+              stop(paste0('where to save is not given.',
+                          ' Give a directory where to save xpt file and try agian'))
 
-                study_fake <- paste0('FAKE',studyID)
-                dir_to_save <- fs::path(path,study_fake)
-              fs::dir_create(dir_to_save)
-                ## dir.create(dir_to_save) #Create Folder to Hold Study
 
-                #Loop through domains created to print them in created folder
-                Domains <- names(SENDstudy)
-                for (domain in Domains){
-                    ## printpath <- paste0(path,"/FAKE",studyID,"/",domain,".xpt")
-                    printpath <- fs::path(dir_to_save, domain, ext= 'xpt')
-                    haven::write_xpt(SENDstudy[[domain]],path = printpath, version = 5)
-                  print(paste0('file saved in: ',printpath))
-                }
+              ##   study_fake <- paste0('FAKE',studyID)
+              ##   dir_to_save <- fs::path(path,study_fake)
+              ## fs::dir_create(dir_to_save)
+              ##   ## dir.create(dir_to_save) #Create Folder to Hold Study
+
+              ##   #Loop through domains created to print them in created folder
+              ##   Domains <- names(SENDstudy)
+              ##   for (domain in Domains){
+              ##       ## printpath <- paste0(path,"/FAKE",studyID,"/",domain,".xpt")
+              ##       printpath <- fs::path(dir_to_save, domain, ext= 'xpt')
+              ##       haven::write_xpt(SENDstudy[[domain]],path = printpath, version = 5)
+              ##     print(paste0('file saved in: ',printpath))
+                ## }
 
 
             }
