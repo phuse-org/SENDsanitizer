@@ -2,7 +2,7 @@
 % Please edit documentation in R/app_to_func.R
 \name{sanitize}
 \alias{sanitize}
-\title{Run function}
+\title{function to generate fake data}
 \usage{
 sanitize(path, number = 1, recovery = FALSE, where_to_save = NULL)
 }
@@ -17,11 +17,9 @@ how many studies to generate}
 \item{recovery}{optional\cr
 recovery}
 
-\item{where_to_save}{optional\cr
-where to save generated xpt files. Should be a directory.
-if no directory path given, fake data will be save
-directory given in path argument}
+\item{where_to_save}{mandatory\cr
+where to save generated xpt files. Should be a directory.}
 }
 \description{
-Run function
+function to generate fake data
 }

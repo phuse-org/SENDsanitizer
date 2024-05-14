@@ -1,4 +1,4 @@
-
+#' @title function to generate fake data
 #' @param path Mandatory\cr
 #' path where real data/xpt files located, should be a directory that contains
 #' xpt files
@@ -765,37 +765,18 @@ ind <- which(Example$mi$MISEV=='')
                             }
                             #Repeating fit PER test with interaction from other tests in that lbspec
 
+
                             equation <- paste0(Vars, sep= '*Day',collapse = " + ")
-                            #Error test
-                            ## print(paste0(lbspec, " - ", test ))
                                         #Make Fit
 
-                        ## if (no_col > no_row) {
-                          ## print('__________________________________')
-
-
-                          ## print('current test')
-                          ## print(test)
                           formula_lb <- stats::as.formula(paste0(test, " ~ ", equation))
 
-                          ## ## print('there are more columns than rows')
-                          ## print('**********************************')
-                        ## }
                             ## LBfit <- MCMCpack::MCMCregress(as.formula(paste0(test, " ~ ",equation)), b0=0, B0 = 0.1, data = line)
                           ##   print('761')
                           ## print(test)
                             LBfit <- MCMCpack::MCMCregress(formula = formula_lb, b0=0, B0 = 0.1, data = line)
                             ## LBfit <- MCMCpack::MCMCregress(formula = formula_lb, b0=0, B0 = 0.1, data = line)
-                          ## }, error=function(e){
-                          ##   print('error')
-                          ## print(Dose)
-                          ## print(Vars)
-                          ## print(equation)
-                          ## print(test)
-                          ##   print(e)
-                          ##   print(line)
 
-                          ## })
                             #Sample Model 'Per Individual animal'
                             Fit <- sample(1:nrow(LBfit), size=length(Subjs))
                           ## print('done')
@@ -805,6 +786,9 @@ ind <- which(Example$mi$MISEV=='')
                                 #Make LBSTRESN Fit for that variable
                                 DayVars <- which(grepl("Day",names(LBFit)) == TRUE) #Find break between interaction variables and other variables
                                 InteractionVars <- utils::tail(DayVars,length(DayVars)-1) #Original Day Variable will be first found
+                                ##:ess-bp-start::browser@nil:##
+browser(expr=is.null(.ESSBP.[["@2@"]]));##:ess-bp-end:##
+
                                 #Make Equation Based on Varying length of Variables
                                 # LBFit[1] is always the intercept
                                 LBTESTVAR <- LBFit[1]
@@ -969,6 +953,8 @@ ind <- which(Example$mi$MISEV=='')
 #8
 #OM
 
+
+
             ######### Generates NUMERICAL OM Data #############
 ## generate OM data
 
@@ -997,10 +983,12 @@ ind <- which(Example$mi$MISEV=='')
 
    OMSummary  <- stats::na.omit(OMSummary)
 
+    SENDstudy$om$OMSTRESN_new <- NA
     om_study <- SENDstudy$om[SENDstudy$om$OMTESTCD=='WEIGHT',c('USUBJID','OMSPEC','OMSTRESN')]
     for(Dose in unique(Doses$Dose)){
       for(gender in unique(ExampleSubjects$SEX)){
 
+        ## ExampleSubjects <- SENDstudy$dm[,c("USUBJID", "ARM","SUBJID","SEX")]
         Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose & ExampleSubjects$SEX == gender)]
         Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose & Subjects$SEX == gender)]
         GroupTests <- SENDstudy$om[which(SENDstudy$om$USUBJID %in% Subjs), c("OMTESTCD","OMSPEC")]
@@ -1053,13 +1041,14 @@ ind <- which(Example$mi$MISEV=='')
 
             tryCatch({
               Vars <- setdiff(colnames(line),test)
+              print(length(Vars))
                             if (length(Vars) > 10){ #limit Vars to 2 random variables for computation time
                               Vars <- sample(Vars, 2)
                             }
-                                        #Repeating fit PER test with interaction from other tests in that omspec
-
+              #Repeating fit PER test with interaction from other tests in that omspec
               ## equation <- paste0(Vars, collapse = " + ")
-              kl <- paste0('`', Vars[1],'`',' + ','`',  Vars[2],'`' )
+              kl <- paste0('`', paste0(Vars, collapse = '`+`'),'`')
+              ## kl <- paste0('`', Vars[1],'`',' + ','`',  Vars[2],'`' )
               equation  <- paste0('`', test,'`' , ' ~ ', kl)
               ## print(equation)
               formula_om <- stats::as.formula(equation)
@@ -1124,7 +1113,7 @@ ind <- which(Example$mi$MISEV=='')
 ## browser()
 ## print('stop')
 ##                               }
-                              SENDstudy$om[indx,'OMSTRESN'] <- final_val
+                              SENDstudy$om[indx,'OMSTRESN_new'] <- final_val
 
 
 
@@ -1165,7 +1154,60 @@ ind <- which(Example$mi$MISEV=='')
         }
       }
     }
-    }
+  }
+
+# ratio calculation
+    ## for(Dose in unique(Doses$Dose)){
+    ##   for(gender in unique(ExampleSubjects$SEX)){
+
+    ##     Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose & ExampleSubjects$SEX == gender)]
+    ##     Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose & Subjects$SEX == gender)]
+    ##     GroupTests <- SENDstudy$om[which(SENDstudy$om$USUBJID %in% Subjs), c("OMTESTCD","OMSPEC")]
+    ##     GroupTests <- GroupTests[GroupTests$OMTESTCD %in% c('OWBR','OWHT'),]
+
+    ##     for(omspec in unique(GroupTests$OMTESTCD)){
+
+
+    ##       OMDATAs <- OMSummary[which(OMSummary$OMTESTCD=='WEIGHT'),]
+
+    ##       OMDATAs <- OMDATAs[which(OMDATAs$USUBJID %in% Sub),]
+    ##       OMDATAs <- OMDATAs[which(OMDATAs$ARMstdev != 0),]
+
+    ##       line <- data.frame(USUBJID= OMDATAs$USUBJID, OMSTRESN = OMDATAs$OMSTRESN,
+    ##                           OMTEST = OMDATAs$OMSPEC)
+    ##       line <- dplyr::distinct(line) #check for and remove duplicate rows
+    ##       line <- tidyr::pivot_wider(line, values_from = 'OMSTRESN',
+    ##                                  names_from = 'OMTEST')
+
+    ##       line <- line[, 2:length(colnames(line))]
+    ##       line <- stats::na.omit(line)
+
+    ##       ll <- unique(OMDATAs$OMSPEC)
+
+    ##       for (test in ll){
+
+    ##           Vars <- setdiff(colnames(line),test)
+    ##                         if (length(Vars) > 10){ #limit Vars to 2 random variables for computation time
+    ##                           Vars <- sample(Vars, 2)
+    ##                         }
+
+    ##           kl <- paste0('`', Vars[1],'`',' + ','`',  Vars[2],'`' )
+    ##           equation  <- paste0('`', test,'`' , ' ~ ', kl)
+    ##           formula_om <- stats::as.formula(equation)
+
+    ##                         OMfit <- MCMCpack::MCMCregress(formula = formula_om, b0=0, B0 = 0.1, data = line)
+    ##           Fit <- sample(1:nrow(OMfit), size=length(Subjs))
+    ##           sn <-1
+    ##                         for (Subj in Subjs) {
+    ##                           print(Subj)
+    ##                           sn <- sn+1
+    ##                         }
+    ##           ## }
+
+    ##       }
+    ##     }
+    ##   }
+    ## }
 
 ## print('done_loop')
   #Coordinate LBORRES and LBSTRESC
@@ -1188,6 +1230,7 @@ ind <- which(Example$mi$MISEV=='')
     ## SENDstudy$om$OMMETHOD <- as.character(SENDstudy$om$OMMETHOD)
     SENDstudy$om$OMSPEC <- as.character(SENDstudy$om$OMSPEC)
     SENDstudy$om$OMSTRESU <- as.character(SENDstudy$om$OMSTRESU)
+  ## browser()
 
                                         #MI
                                         #Generate MI Data
