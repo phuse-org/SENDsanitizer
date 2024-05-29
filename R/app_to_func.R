@@ -31,24 +31,26 @@ sanitize <- function(path, number=1, recovery=FALSE,
                      where_to_save=NULL) {
 
         number  <- as.numeric(number)
-        print(paste0("study to generate: ", as.character(number)))
+        ## print(paste0("study to generate: ", as.character(number)))
         PRINT <- FALSE
         Recovery <- recovery
         ExampleStudies <- path
         print('study path provided')
-        print(ExampleStudies)
+        print(basename(ExampleStudies))
         NumData <- length(ExampleStudies)
-        print(NumData)
+        ## print(NumData)
 
 
         ## Make Loop for Loading in the SEND Data per Example Study
   for (i in 1:NumData){
             Name <- paste0('ExampleStudy',as.character(i))
             assign(Name,load.xpt.files(ExampleStudies[i]))
-            print(Name)
+            ## print(Name)
         }
-        Domains <- c("bw","dm","ds","ex","lb","mi","ta","ts","tx","om")
+        Domains <- c("bw","dm","ds","ex","lb","mi","ta","ts","tx","om","pooldef","pc")
 
+            Species <- getFieldValue(ExampleStudy1$ts, "TSVAL", "TSPARMCD", "SPECIES")
+          print(paste0('Species: ',Species$TSVAL))
 
   #Check that Example Studies are Similar and Consolidate
   if (NumData > 1){
@@ -140,13 +142,24 @@ sanitize <- function(path, number=1, recovery=FALSE,
             #remove unused domains
             Example <- ExampleStudy1 #First study loaded will always be ExampleStudy1
             Example <- Example[Domains]
-
+# remove TK animal
+            Example$dm <- Example$dm[which(grepl("TK",Example$dm$SETCD) ==FALSE),]
+            Example$ta <- Example$ta[which(grepl("Toxicokinetic", Example$ta$ARM) == FALSE),]
+            Example$tx <- Example$tx[which(Example$tx$SETCD %in% Example$dm$SETCD),]
+            Example$lb <- Example$lb[which(Example$lb$USUBJID %in% Example$dm$USUBJID),]
+            Example$om <- Example$om[which(Example$om$USUBJID %in% Example$dm$USUBJID),]
+            Example$mi <- Example$mi[which(Example$mi$USUBJID %in% Example$dm$USUBJID),]
+            Example$bw <- Example$bw[which(Example$bw$USUBJID %in% Example$dm$USUBJID),]
+            Example$ex <- Example$ex[which(Example$ex$USUBJID %in% Example$dm$USUBJID),]
+            Example$ta <- Example$ta[which(Example$ta$ARMCD %in% Example$dm$ARMCD),]
             #Create ARMCD and DOSE Correlation
             Doses <-data.frame("ARMCD" = as.character(unique(Example$ta$ARMCD)),
                                "Dose" = as.character(unique(Example$ta$ARM)))
 
 
 }
+
+
 
 
         #Get SEND Species, LB TESTCDs and MI Tests from Example Study
@@ -169,12 +182,80 @@ sanitize <- function(path, number=1, recovery=FALSE,
             Doses$Dose[which(Doses$ARMCD=="2R")] <- "LD R"
             Doses$Dose[which(Doses$ARMCD== paste0(Maxdose,"R"))] <- "HD R"
         } else {
+          ## browser()
             Maxdose <- max(as.numeric(as.character(ARMS)))
         }
+ # dose categorization
+  get_setcd <- get_trt_group(ExampleStudy1 = Example)
+  if(is.null(get_setcd[[1]][['treatment_group']])){
+    print(get_setcd[[1]][['setcd']])
+    print('there is no treatment group in the study')
+
+  }
+  tx_doses <- get_doses(Example$tx)
+  treatment_doses <- tx_doses[SETCD %in% get_setcd[[1]][['treatment_group']]]
+
+clean_dose <- SENDsanitizer:::clean_txval_dose(treatment_doses$TXVAL)
+  trt <- data.table::copy(treatment_doses)
+  trt$dose  <- clean_dose
+  ## if(length(trt$dose) < 3) {
+
+  ## }
+  maxdose <- max(trt$dose)
+  maxdose
+  trt
+
+  trt <- trt[dose==maxdose, `:=`(cat='HD')]
+
+  if(length(unique(trt$dose)) > 1){
+  if (0 %in% unique(trt$dose)){
+    trt <- trt[dose==0, `:=`(cat='Control')]
+
+  } else{
+    trt <- trt[dose %in% min(dose),`:=`(cat='Control')]
+
+  }
+  }else{
+print('there is only one dose group')
+
+  }
+
+
+  if(length(unique(trt$dose)) > 2){
+  low <- min(trt[!cat %in% c('Control', 'HD'),dose])
+  trt <- trt[dose %in% low, `:=`(cat='LD')]
+  } else {
+print('There is only 2 dose group')
+  }
+
+  if(length(unique(trt$dose)) >= 3){
+
+  mid  <- unique(trt[is.na(cat),dose])
+
+  if(length(mid) > 1) {
+    for (i in 1:length(mid)){
+      mdose <- mid[i]
+trt <- trt[dose %in% mdose, `:=`(cat=paste0('MD','_', as.character(i)))]
+    }
+  } else{
+trt <- trt[dose %in% mid, `:=`(cat='MD')]
+  }
+
+  }
+  print(trt)
+  print(get_setcd)
+  print(treatment_doses)
+
+  ## stop('stopped')
+##:ess-bp-start::browser@nil:##
+browser(expr=is.null(.ESSBP.[["@7@"]]));##:ess-bp-end:##
+
         Doses$Dose[which(Doses$ARMCD=="1")] <- "Control"
-        Doses$Dose[which(Doses$ARMCD==Maxdose)] <- "HD"
+         Doses$Dose[which(Doses$ARMCD==Maxdose)] <- "HD"
         Doses$Dose[which(Doses$ARMCD=="2")] <- "LD"
-        if (length(ARMS) > 3){
+  if (length(ARMS) > 3){
+    tryCatch({
+
             for (i in  3:(max(as.numeric(ARMS)) - 1)){
                 j <- i-2
                 if (j == 1){
@@ -183,11 +264,17 @@ sanitize <- function(path, number=1, recovery=FALSE,
                     Doses$Dose[Doses$ARMCD== as.character(i)] <- paste0("MD", j)
                 }
             }
+    }, error=function(e){
+print(ARMS)
+stop('Non numeric ARM')
+
+    })
         }
         Doses <- Doses[, c("ARMCD","Dose")]
         Doses <- Doses[!duplicated(Doses),]
         #Correlate USUBJID with Dose Group
   Subjects <- merge(Example$dm[,c("USUBJID","ARMCD","SEX")], Doses[, c("ARMCD","Dose")], by = "ARMCD")
+  ## Subjects <- merge(dm[,c('USUBJID','SETCD','SEX')], trt[,c('SETCD','cat')], by = 'SETCD')
 
                                         #Double Check Recovery Coding
   RecoveryAnimals <- Example$ds$USUBJID[which(grepl("Recovery",Example$ds$DSTERM) == TRUE)]
@@ -235,7 +322,7 @@ ind <- which(Example$mi$MISEV=='')
   SubjectDet <- SubjectDet[!duplicated(SubjectDet$Dose),]
         GeneratedSEND <- list()
 
-  print(GeneratedSEND)
+  ## print(GeneratedSEND)
 
   for (j in 1:number ){
                                         #Make SENDstudy length of one example study
@@ -516,6 +603,7 @@ ind <- which(Example$mi$MISEV=='')
                 #Remove Term
                 SENDstudy$tx$TXVAL[idx] <- ""
             }
+print('TS TA DM DS EX domain DONE.....')
 
 #bw
             #Generates BW Data
@@ -547,7 +635,9 @@ ind <- which(Example$mi$MISEV=='')
                 dplyr::group_by(Dose, BWTESTCD,BWDY,SEX) %>%
                 dplyr::mutate(ARMavg = mean(BWSTRESN, na.rm = TRUE)) %>%
                 dplyr::mutate(ARMstdev = sd(BWSTRESN,na.rm = TRUE))
-
+    # when there is only one value in group
+    # sd is NA.
+    # which later create warning in generdata and stdev
             #Make Model of weight using MCMCregress
             for (Dose in unique(Doses$Dose)){
                 for (gender in unique(ExampleSubjects$SEX)){
@@ -589,7 +679,19 @@ ind <- which(Example$mi$MISEV=='')
                             GenerData <- data.frame(BWSTRESN = exp(posterior[SubFit,1]+posterior[SubFit,2]*BWDYs),
                                                     BWDY = BWDYs)
                         }
+
                         #Add in noise to fit
+##                         tryCatch({
+
+##                         stdev <- unique(BWSummary$ARMstdev[which(BWSummary$Dose == Dose & BWSummary$SEX == gender)])
+##                         GenerData$BWSTRESN <- GenerData$BWSTRESN + stats::rnorm(length(GenerData$BWSTRESN), mean = 0, sd = (stdev/2))
+##                         },warning=function(e){
+
+##                          ## print(e)
+##                           browser()
+
+
+##                         })
                         stdev <- unique(BWSummary$ARMstdev[which(BWSummary$Dose == Dose & BWSummary$SEX == gender)])
                         GenerData$BWSTRESN <- GenerData$BWSTRESN + stats::rnorm(length(GenerData$BWSTRESN), mean = 0, sd = (stdev/2))
                         #Fill into SENDstudy being generated
@@ -660,6 +762,7 @@ ind <- which(Example$mi$MISEV=='')
                 SENDstudy$bw$VISITDY <- as.character(SENDstudy$bw$VISITDY)
             }
 
+print('BW DONE')
 #7
             #LB
             ######### Generates NUMERICAL LB Data #############
@@ -683,7 +786,14 @@ ind <- which(Example$mi$MISEV=='')
     LBFindings <- merge(Subjects, Example$lb[,c("USUBJID", "LBTESTCD",
                                                 "LBSPEC", "LBSTRESN","LBDY","LBCAT")],
                                                   by = "USUBJID")
+
+    if ('CLINICAL CHEMISTRY' %in% unique(LBFindings$LBCAT)){
+
      LBFindings <- LBFindings %>% dplyr::filter(LBCAT=="CLINICAL CHEMISTRY")
+    } else {
+stop('No observation for Clinical Chemistry in this study')
+    }
+
      ## LBFindings <- LBFindings %>% dplyr::filter(LBCAT=="CLINICAL CHEMISTRY",
      ##                                            LBTESTCD %in% c('CHOL',
      ##                                                            'GLDH',
@@ -697,6 +807,8 @@ ind <- which(Example$mi$MISEV=='')
             SENDstudy$lb <- SENDstudy$lb[which(SENDstudy$lb$LBTESTCD %in% LBSummary$LBTESTCD),]
             ## SENDstudy$lb <- SENDstudy$lb[which(SENDstudy$lb$LBSPEC %in% c('WHOLE BLOOD', 'SERUM', 'URINE')),]
 
+    SENDstudy$lb$LBSTRESN_new <- NA
+    SENDstudy$lb$LBSTRESN_org <- SENDstudy$lb$LBSTRESN
             #Create a distribution of values using MCMC for LBSTRESN
     for (Dose in unique(Doses$Dose)){
                 for (gender in unique(ExampleSubjects$SEX)){
@@ -786,8 +898,6 @@ ind <- which(Example$mi$MISEV=='')
                                 #Make LBSTRESN Fit for that variable
                                 DayVars <- which(grepl("Day",names(LBFit)) == TRUE) #Find break between interaction variables and other variables
                                 InteractionVars <- utils::tail(DayVars,length(DayVars)-1) #Original Day Variable will be first found
-                                ##:ess-bp-start::browser@nil:##
-browser(expr=is.null(.ESSBP.[["@2@"]]));##:ess-bp-end:##
 
                                 #Make Equation Based on Varying length of Variables
                                 # LBFit[1] is always the intercept
@@ -823,7 +933,10 @@ browser(expr=is.null(.ESSBP.[["@2@"]]));##:ess-bp-end:##
                                     idx <-which(SENDstudy$lb$USUBJID %in% Subj & SENDstudy$lb$LBTESTCD %in% test &
                                                     SENDstudy$lb$LBDY %in% day)
                                     idx2 <- which(GenerLBData$LBDy %in% day)
-                                    SENDstudy$lb$LBSTRESN[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
+
+                                    ## SENDstudy$lb$LBSTRESN[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
+                                    SENDstudy$lb$LBSTRESN_new[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
+                                    SENDstudy$lb$LBSTRESN_org[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
                                 }
                                 #add to subject count before new subject done
                                 sn <- sn+1
@@ -832,10 +945,11 @@ browser(expr=is.null(.ESSBP.[["@2@"]]));##:ess-bp-end:##
 
                           }, error=function(e) {
 
-                          print(e)
-                          print(test)
-                            print(formula_lb)
-                            print(line)
+                            err_for <- paste0(test, " ~ ", equation)
+                          ## print(e)
+                          ## print(test)
+                            ## print(err_for)
+                            ## print(line)
                           }
                           )
                     }
@@ -856,7 +970,7 @@ browser(expr=is.null(.ESSBP.[["@2@"]]));##:ess-bp-end:##
                 ## p <- ggplot2::ggplot(data= TEST2, aes(x=factor(LBDY),y = LBSTRESN, group=USUBJID, color = "Simulated Animal Data"))+ geom_line()+
                 ##     geom_point(aes(x=factor(LBDY),y = LBSTRESN, group=USUBJID, color = "Simulated Animal Data"))+
                 ##     geom_line(aes(y = ARMavg, label="Average of Source Data", color = "Average of Source Data")) +
-                ##     geom_point(aes(y = ARMavg, label="Average of Source Data", color = "Average of Source Data"))+
+              ##     geom_point(aes(y = ARMavg, label="Average of Source Data", color = "Average of Source Data"))+
                 ##     scale_x_discrete()+
                 ##     ggtitle(paste0("HD M Distribution Comparison ", SampleTests))+
                 ##     labs(x='LBDY (Days)', y=paste0(SampleTests, " Values")) + scale_color_manual(name = "Legend",
@@ -950,6 +1064,7 @@ browser(expr=is.null(.ESSBP.[["@2@"]]));##:ess-bp-end:##
             SENDstudy$lb$LBMETHOD <- as.character(SENDstudy$lb$LBMETHOD)
             SENDstudy$lb$LBSPEC <- as.character(SENDstudy$lb$LBSPEC)
             SENDstudy$lb$LBSTRESU <- as.character(SENDstudy$lb$LBSTRESU)
+    print('LB DONE')
 #8
 #OM
 
@@ -984,12 +1099,14 @@ browser(expr=is.null(.ESSBP.[["@2@"]]));##:ess-bp-end:##
    OMSummary  <- stats::na.omit(OMSummary)
 
     SENDstudy$om$OMSTRESN_new <- NA
+    SENDstudy$om$OMSTRESN_org <- SENDstudy$om$OMSTRESN
     om_study <- SENDstudy$om[SENDstudy$om$OMTESTCD=='WEIGHT',c('USUBJID','OMSPEC','OMSTRESN')]
     for(Dose in unique(Doses$Dose)){
       for(gender in unique(ExampleSubjects$SEX)){
 
         ## ExampleSubjects <- SENDstudy$dm[,c("USUBJID", "ARM","SUBJID","SEX")]
         Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose & ExampleSubjects$SEX == gender)]
+        Subjs <- Subjs[which(Subjs %in% unique(om_study$USUBJID))]
         Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose & Subjects$SEX == gender)]
         GroupTests <- SENDstudy$om[which(SENDstudy$om$USUBJID %in% Subjs), c("OMTESTCD","OMSPEC")]
         GroupTests <- GroupTests[GroupTests$OMTESTCD=='WEIGHT',]
@@ -1031,26 +1148,95 @@ browser(expr=is.null(.ESSBP.[["@2@"]]));##:ess-bp-end:##
           ## line <- as.data.frame(line)
                                         #Remove NA values (fit cannot have them)
           line <- stats::na.omit(line)
+          line_mean <- colMeans(line)
           ## no_col <- length(colnames(line))
           ## no_row <- nrow(line)
-
+## browser()
           ll <- unique(OMDATAs$OMSPEC)
+
           ## ll <- ll[which(!ll %in% 'GLOBUL')]
 
-          for (test in ll){
+##           organ <- c("BRAIN", "LIVER", "KIDNEY", "HEART", "UTERUS/CERVIX", "SPLEEN",
+## "TESTIS", "THYMUS", "EPIDIDYMIS", "GLAND, PROSTATE", "GLAND, ADRENAL",
+## "GLAND, THYROID/GLAND, PARATHYROID", "OVARY", "GLAND, PITUITARY"
+## )
+          ## big_org <- c("BRAIN", "LIVER", "KIDNEY", "HEART", "UTERUS/CERVIX")
+          ## big_org <- grep('BRAIN|LIVER|KIDNEY,HEART,UTERUS',
+          ##                 ll, ignore.case = TRUE,
+          ##                  value = TRUE)
+          ## small_org <- setdiff(ll,big_org)
+##           small_org <- c("SPLEEN", "TESTIS", "THYMUS", "EPIDIDYMIS", "GLAND, PROSTATE", "GLAND, ADRENAL",
+## "GLAND, THYROID/GLAND, PARATHYROID", "OVARY", "GLAND, PITUITARY"
+## )
 
+          for (test in ll){
+            ## test <- 'BRAIN'
+## line_mean
+            close_vars <- setdiff(names(line_mean), test)
+            rest_line <-  line_mean[names(line_mean) %in% close_vars]
+            ## print(rest_line)
+
+            test_val <- line_mean[names(line_mean) %in% test]
+            ## print(test_val)
+            close_two <- names(sort(abs(rest_line - test_val))[1:2])
+            ## print(close_two)
+
+            ## closest<-function(rl,tv){
+            ##   two_close <- c()
+            ##  first_one <- names(which.min(abs(rest_line-test_val)))
+
+            ##   two_close <- c(two_close, first_one)
+            ##   secod <- setdiff(rest_line, first_one)
+
+            ##   first_one
+
+
+
+            ##   xv[which(abs(xv-sv)==min(abs(xv-sv)))] }
+
+
+            
             tryCatch({
-              Vars <- setdiff(colnames(line),test)
-              print(length(Vars))
-                            if (length(Vars) > 10){ #limit Vars to 2 random variables for computation time
-                              Vars <- sample(Vars, 2)
-                            }
+
+##               Vars <- setdiff(colnames(line),test)
+
+##               all_vars <- setdiff(colnames(line),test)
+## with_test <- colnames(line)
+
+##           big_org <- grep('BRAIN$|LIVER$|KIDNEY$|HEART$|LUNG$',
+##                           with_test, ignore.case = TRUE,
+##                            value = TRUE)
+##           small_org <- setdiff(with_test,big_org)
+
+          ## big_org <- ll[which(big_org %in% all_vars)]
+          ## small_org <- ll[which(small_org %in% all_vars)]
+
+              ## print(length(Vars))
+                            ## if (length(Vars) > 5){ #limit Vars to 2 random variables for computation time
+                            ##   if(test %in% big_org){
+                            ##     Vars <- setdiff(big_org,test)
+                            ##   Vars <- sample(Vars, 2)
+                            ##   }else if(test %in% small_org){
+                            ##     Vars <- setdiff(small_org,test)
+                            ##   Vars <- sample(Vars, 2)
+                            ##   }else{
+
+                            ##   Vars <- sample(all_vars, 2)
+                            ##   }
+                            ## } else{Vars <- all_vars}
+              if(length(close_vars)> 1){
+
+                Vars <- close_two
+
+              } else{ stop('Can\'t build MCMC model in OM')}
               #Repeating fit PER test with interaction from other tests in that omspec
               ## equation <- paste0(Vars, collapse = " + ")
               kl <- paste0('`', paste0(Vars, collapse = '`+`'),'`')
               ## kl <- paste0('`', Vars[1],'`',' + ','`',  Vars[2],'`' )
               equation  <- paste0('`', test,'`' , ' ~ ', kl)
+              ## print(sort(line_mean))
               ## print(equation)
+              ## cat('\n \n')
               formula_om <- stats::as.formula(equation)
               ## print(formula_om)
 
@@ -1089,7 +1275,7 @@ browser(expr=is.null(.ESSBP.[["@2@"]]));##:ess-bp-end:##
                               var2 <- sub_res[sub_res$OMSPEC==Vars[2], 'OMSTRESN']
                              val <- intercept_val + OMFit[2] * var1 + OMFit[3] * var2
                               ## print(test)
-                              ## print(val)
+                              ## print(vals.
                               ## print('original__')
                               ## print(paste0('original value: ', as.character(sub_res[sub_res$OMSPEC==test, 'OMSTRESN'])))
                                   ## val <- OMTESTVAR + OMFit[2] * line[sn,..var1]+ OMFit[3]*line[sn, ..var2]
@@ -1101,7 +1287,7 @@ browser(expr=is.null(.ESSBP.[["@2@"]]));##:ess-bp-end:##
                               ##                                           mean = 0, sd = (stdev$ARMstdev)))
 ##                               if(test=='BRAIN'){
 ## browser()
-##                               }
+                              ##                               }
 
                               k <- as.data.frame(line[, test])
                               k_sd <- sd(k[,1])
@@ -1109,12 +1295,57 @@ browser(expr=is.null(.ESSBP.[["@2@"]]));##:ess-bp-end:##
                               final_val <- val + noise
                               indx <- which(SENDstudy$om$USUBJID==Subj & SENDstudy$om$OMTESTCD==omspec &
                                             SENDstudy$om$OMSPEC==test)
+
+                              indx <- which(SENDstudy$om$USUBJID==Subj & SENDstudy$om$OMSPEC==test)
 ##                               if(length(indx)<1) {
 ## browser()
 ## print('stop')
 ##                               }
-                              SENDstudy$om[indx,'OMSTRESN_new'] <- final_val
+                              ##
+                              ## print(final_val)
+                              ## if(length(final_val)==0){
+                              ## browser()}
+                              if(final_val< 0){
 
+
+get_pos_val <- function(OMfit,om_study,Subj,Vars,line,test,SENDstudy){
+
+## browser()
+  OMFit <- OMfit[sample(1:nrow(OMfit), 1),]
+
+
+  sub_res <- om_study[om_study$USUBJID %in% Subj,]
+  OMTESTVAR <- OMFit[1]
+                              intercept_val <- OMFit[1]
+
+  var1 <- sub_res[sub_res$OMSPEC==Vars[1], 'OMSTRESN']
+  var2 <- sub_res[sub_res$OMSPEC==Vars[2], 'OMSTRESN']
+  val <- intercept_val + OMFit[2] * var1 + OMFit[3] * var2
+
+  k <- as.data.frame(line[, test])
+  k_sd <- sd(k[,1])
+  noise <- stats::rnorm(1, mean=0, sd=k_sd)
+  final_val <- val + noise
+  indx <- which(SENDstudy$om$USUBJID==Subj & SENDstudy$om$OMTESTCD==omspec &
+                SENDstudy$om$OMSPEC==test)
+
+  indx <- which(SENDstudy$om$USUBJID==Subj & SENDstudy$om$OMSPEC==test)
+  final_val
+}
+
+
+                                for (i in 1:10){
+
+final_val <- get_pos_val(OMfit,om_study,Subj,Vars,line,test,SENDstudy)
+if(final_val> 0){
+break}
+                                }
+                              }
+                               SENDstudy$om[indx,'OMSTRESN_new'] <- final_val
+                              SENDstudy$om[indx,'OMSTRESN_org'] <- final_val
+
+                              ## print(final_val)
+                              ## print(SENDstudy$om[indx,'OMSTRESN'])
 
 
                                         #Fill DataFrame to allocate to fake individual based on Day once variance is added
@@ -1145,9 +1376,9 @@ browser(expr=is.null(.ESSBP.[["@2@"]]));##:ess-bp-end:##
             }, error=function(e) {
 
               print(e)
-                          print(test)
-              print(formula_om)
-              print(line)
+              ##             print(test)
+              ## print(formula_om)
+              ## print(line)
             }
                           )
           }
@@ -1155,6 +1386,93 @@ browser(expr=is.null(.ESSBP.[["@2@"]]));##:ess-bp-end:##
       }
     }
   }
+
+
+  # ratio
+## browser()
+om_df <- data.table::copy(SENDstudy$om)
+data.table::setDT(om_df)
+
+bw_df <- data.table::copy(SENDstudy$bw)
+data.table::setDT(bw_df)
+
+  usubs <- unique(om_df$USUBJID)
+  df_term <- bw_df[USUBJID %in% usubs & BWTESTCD=='TERMBW']
+  usubs <- unique(df_term$USUBJID)
+  for (i in 1:length(usubs)){
+    sub <- usubs[i]
+bw_wgt <- bw_df[USUBJID==sub & BWTESTCD=='TERMBW', .(BWTESTCD,BWSTRESN,BWSTRESU)]
+sub_bw <- bw_wgt[['BWSTRESN']]
+sub_bw_u <- tolower(as.character(bw_wgt[['BWSTRESU']]))
+    ## print(i)
+    ## print(sub_bw_u)
+    ## if(length(sub_bw_u)==0){
+    ## browser()}
+if (sub_bw_u == 'kg'){
+  sub_bw <- sub_bw * 1000
+
+}
+
+
+sub_df <- om_df[USUBJID==sub,]
+sub_testcd <- unique(sub_df[['OMTESTCD']])
+organ_ratio <- grep('^OW|^BW', sub_testcd,value=T, ignore.case = T)
+    for(testcd in 1:length(organ_ratio)){
+      ratio <- organ_ratio[testcd]
+      if(ratio=='OWBR'){
+brain <- sub_df[OMSPEC=='BRAIN' & OMTESTCD=='WEIGHT', OMSTRESN]
+om_df[USUBJID==sub & OMTESTCD=='OWBR', `:=`(new_c=(OMSTRESN_new/brain)*100)]
+
+      }else if(ratio=='OWHT') {
+
+heart <- sub_df[OMSPEC=='HEART' & OMTESTCD=='WEIGHT', OMSTRESN]
+om_df[USUBJID==sub & OMTESTCD=='OWHT', `:=`(new_c=(OMSTRESN_new/heart)*100)]
+      } else if(ratio=='OWBROB'){
+
+bulb <- sub_df[OMSPEC=='BRAIN, OLFACTORY BULB' & OMTESTCD=='WEIGHT', OMSTRESN]
+om_df[USUBJID==sub & OMTESTCD=='OWBROB', `:=`(new_c=(OMSTRESN_new/bulb)*100)]
+      }
+##       else if(ratio=='OWRATIO') {
+
+## brain <- sub_df[OMSPEC=='BRAIN' & OMTESTCD=='WEIGHT', OMSTRESN]
+## om_df[USUBJID==sub & OMTESTCD=='OWBR', `:=`(new_c=(OMSTRESN_new/brain)*100)]
+##       }
+
+      else if(ratio=='OWBW'){
+        # what is value is in kg?
+
+om_df[USUBJID==sub & OMTESTCD=='OWBW', `:=`(new_c=(OMSTRESN_new/sub_bw)*100)]
+
+      }else if(ratio=='BWBR'){
+
+brain <- sub_df[OMSPEC=='BRAIN' & OMTESTCD=='WEIGHT', OMSTRESN]
+om_df[USUBJID==sub & OMTESTCD=='BWBR', `:=`(new_c=(sub_bw/brain)*100)]
+
+
+      }
+
+
+
+}
+
+
+
+
+  }
+
+
+  dd <- om_df[, c("STUDYID", "USUBJID","OMTESTCD", "OMSPEC", "OMSTRESN",
+                  "OMSTRESN_new",'new_c', "OMSTRESU")]
+  dk <- data.table::copy(dd)
+
+  ## dk[, `:=`(dif=round(((abs(OMSTRESN-OMSTRESN_new))/OMSTRESN) * 100,3))]
+  dk[, `:=`(dif= round((abs(OMSTRESN - OMSTRESN_new)/OMSTRESN)*100, 3))]
+
+  ## dk[, `:=`(dif=round(((abs(OMSTRESN-OMSTRESN_new))/OMSTRESN) * 100,3))]
+dl <-   dk[OMTESTCD=="WEIGHT", c(3,4,5,6,9)][order(OMTESTCD,OMSPEC)]
+  kk <- dd[OMTESTCD=='WEIGHT' & OMSPEC %in% c('BRAIN','HEART','LIVER', 'KIDNEY')][order(OMSPEC)]
+## have to change om_df to SENDstudy$om
+##
 
 # ratio calculation
     ## for(Dose in unique(Doses$Dose)){
@@ -1230,12 +1548,13 @@ browser(expr=is.null(.ESSBP.[["@2@"]]));##:ess-bp-end:##
     ## SENDstudy$om$OMMETHOD <- as.character(SENDstudy$om$OMMETHOD)
     SENDstudy$om$OMSPEC <- as.character(SENDstudy$om$OMSPEC)
     SENDstudy$om$OMSTRESU <- as.character(SENDstudy$om$OMSTRESU)
-  ## browser()
 
-                                        #MI
-                                        #Generate MI Data
-            #Keeps: MISPEC, MIDY, MISTESTCD, MITEST,
-                                        #Replaces: STUDYID, USUBJID, MIDTC, MISTRESC, MIORRES, MISEV
+  print('OM DONE')
+
+  #MI
+  #Generate MI Data
+  #Keeps: MISPEC, MIDY, MISTESTCD, MITEST,
+  #Replaces: STUDYID, USUBJID, MIDTC, MISTRESC, MIORRES, MISEV
                                         #Removes: MIREASND, MISPCCND,MISPCUFL, MIDTHREL and MIREASND
 
 
@@ -1334,7 +1653,8 @@ browser(expr=is.null(.ESSBP.[["@2@"]]));##:ess-bp-end:##
             SENDstudy$mi$MISPEC <- as.character(SENDstudy$mi$MISPEC)
             SENDstudy$mi$MISTRESC <- as.character(SENDstudy$mi$MISTRESC)
             SENDstudy$mi$MISEV <- as.character(SENDstudy$mi$MISEV)
-
+print('MI DONE')
+  cat('\n \n \n \n ')
             ##### Save Generated Study for Tables ####
             GeneratedSEND[[j]] <- SENDstudy
 
@@ -1356,9 +1676,9 @@ browser(expr=is.null(.ESSBP.[["@2@"]]));##:ess-bp-end:##
                   
                     ## printpath <- paste0(path,"/FAKE",studyID,"/",domain,".xpt")
                     printpath <- fs::path(dir_to_save, domain, ext= 'xpt')
-                    haven::write_xpt(SENDstudy[[domain]],path = printpath, version = 5)
+                    ## haven::write_xpt(SENDstudy[[domain]],path = printpath, version = 5)
 
-                  print(paste0('file saved in: ',printpath))
+                  ## print(paste0('file saved in: ',printpath))
                 }
             } else {
 
@@ -1382,6 +1702,5 @@ browser(expr=is.null(.ESSBP.[["@2@"]]));##:ess-bp-end:##
 
 
             }
-
 
         }
