@@ -127,6 +127,10 @@ stop('Check TKDESC parameter value in TXVAL of TX domain')
             recv_group <- c(recv_group, set_cd)
           } else if (tolower("TERMINAL SACRIFICE") %in% dsdecod){
             trtm_group <- c(trtm_group, set_cd)
+          } else{
+            print(paste0(as.character(set_cd),
+                         ' : no recovery or terminally sacrifice',
+                         ' animal in this group'))
           }
         }
       }
