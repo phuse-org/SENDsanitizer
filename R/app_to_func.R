@@ -190,23 +190,25 @@ sanitize <- function(path, number=1, recovery=FALSE,
         MITests <- unique(Example$mi$MISPEC)
 
         #Find out Animal USUBJIDs for Control and Treated Animals
-        if (Recovery == FALSE){
+        ## if (Recovery == FALSE){
             #Remove Recovery Dose ARMCDs/Doses
-            Doses <- Doses[which(grepl("R",Doses$ARMCD) == FALSE),]
-        }
+            ## Doses <- Doses[which(grepl("R",Doses$ARMCD) == FALSE),]
+        ## }
         #Replace Dose Levels with Control, LD, MD and HD
-        ARMS <- unique(Doses$ARMCD) #Find ARMS levels
-        if (Recovery == TRUE){
+        ## ARMS <- unique(Doses$ARMCD) #Find ARMS levels
+        ## if (Recovery == TRUE){
             #Make MaxDose and Account for "R" doses
-            NonrecovArm <- ARMS[which(grepl("R",ARMS) == FALSE)]
-            Maxdose <- max(as.numeric(as.character(NonrecovArm)))
-            Doses$Dose[which(Doses$ARMCD=="1R")] <- "Control R"
-            Doses$Dose[which(Doses$ARMCD=="2R")] <- "LD R"
-            Doses$Dose[which(Doses$ARMCD== paste0(Maxdose,"R"))] <- "HD R"
-        } else {
-          ## browser()
-            Maxdose <- max(as.numeric(as.character(ARMS)))
-        }
+            ## NonrecovArm <- ARMS[which(grepl("R",ARMS) == FALSE)]
+            ## ## Maxdose <- max(as.numeric(as.character(NonrecovArm)))
+            ## Doses$Dose[which(Doses$ARMCD=="1R")] <- "Control R"
+            ## Doses$Dose[which(Doses$ARMCD=="2R")] <- "LD R"
+            ## Doses$Dose[which(Doses$ARMCD== paste0(Maxdose,"R"))] <- "HD R"
+        ## } else {
+        ##   ## browser()
+        ##     ## Maxdose <- max(as.numeric(as.character(ARMS)))
+        ## }
+
+  # remove later
 
 ########################
 
@@ -231,8 +233,8 @@ sanitize <- function(path, number=1, recovery=FALSE,
 
   ## }
   maxdose <- max(trt$dose)
-  maxdose
-  trt
+  ## maxdose
+  ## trt
 
   trt <- trt[dose==maxdose, `:=`(cat='HD')]
 
@@ -274,7 +276,6 @@ sanitize <- function(path, number=1, recovery=FALSE,
     }
 
   }
-  print(trt)
 
   if(!Recovery){
 
@@ -343,28 +344,32 @@ trt[SETCD %in% get_setcd[[1]][['recovery_group']],`:=`(dose_order=paste0(dose_or
 
 
 #########################################################################################
-        Doses$Dose[which(Doses$ARMCD=="1")] <- "Control"
-         Doses$Dose[which(Doses$ARMCD==Maxdose)] <- "HD"
-        Doses$Dose[which(Doses$ARMCD=="2")] <- "LD"
-  if (length(ARMS) > 3){
-    tryCatch({
+  Doses <- trt[,c('SETCD','cat')]
+  Doses$ARMCD <- Doses$SETCD
+  Doses$Dose <- Doses$cat
 
-            for (i in  3:(max(as.numeric(ARMS)) - 1)){
-                j <- i-2
-                if (j == 1){
-                    Doses$Dose[Doses$ARMCD== as.character(i)] <- "MD"
-                } else {
-                    Doses$Dose[Doses$ARMCD== as.character(i)] <- paste0("MD", j)
-                }
-            }
-    }, error=function(e){
-print(ARMS)
-stop('Non numeric ARM')
+##         Doses$Dose[which(Doses$ARMCD=="1")] <- "Control"
+##          Doses$Dose[which(Doses$ARMCD==Maxdose)] <- "HD"
+##         Doses$Dose[which(Doses$ARMCD=="2")] <- "LD"
+##   if (length(ARMS) > 3){
+##     tryCatch({
 
-    })
-        }
-        Doses <- Doses[, c("ARMCD","Dose")]
-        Doses <- Doses[!duplicated(Doses),]
+##             for (i in  3:(max(as.numeric(ARMS)) - 1)){
+##                 j <- i-2
+##                 if (j == 1){
+##                     Doses$Dose[Doses$ARMCD== as.character(i)] <- "MD"
+##                 } else {
+##                     Doses$Dose[Doses$ARMCD== as.character(i)] <- paste0("MD", j)
+##                 }
+##             }
+##     }, error=function(e){
+## print(ARMS)
+## stop('Non numeric ARM')
+
+##     })
+##         }
+##         Doses <- Doses[, c("ARMCD","Dose")]
+##         Doses <- Doses[!duplicated(Doses),]
 
 
 #########################################################################################
@@ -372,8 +377,8 @@ stop('Non numeric ARM')
         #Correlate USUBJID with Dose Group
 
   Subjects <- merge(Example$dm[,c("USUBJID","ARMCD","SEX")], Doses[, c("ARMCD","Dose")], by = "ARMCD")
-  Subjects_2 <- merge(Example$dm[,c('USUBJID','SETCD','SEX','ARMCD','ARM')], trt[,c('SETCD','cat')], by = 'SETCD')
-  Subjects_2 <- Subjects_2[, c('USUBJID','SEX','ARMCD','ARM','SETCD','cat')]
+  Subjects_2 <- merge(Example$dm[,c('USUBJID','SETCD','SEX','ARMCD','ARM')], trt[,c('SETCD','cat','dose_order')], by = 'SETCD')
+  Subjects_2 <- Subjects_2[, c('USUBJID','SEX','ARMCD','ARM','SETCD','cat','dose_order')]
   ## Subjects_2 <- Subjects_2[,c('USUBJID','SEX','SETCD','cat')]
   Subjects_2$Dose <- Subjects_2$cat
   Subjects_2$cat <- NULL
@@ -508,8 +513,9 @@ ind <- which(Example$mi$MISEV=='')
                 SENDstudy$ts$TSVAL[idx] <- ""
             }
 
+    print('TS DONE')
 #2           #Generate DM Data
-#dm
+    #dm
             #Keeps: Number of each gender animals in each treatment group
             #Replaces: StudyID, USUBJID, Dates
 
@@ -545,17 +551,26 @@ ind <- which(Example$mi$MISEV=='')
             ## if (Recovery == FALSE){
             ##     SENDstudy$dm <- SENDstudy$dm[which(grepl("R",SENDstudy$dm$ARMCD) == FALSE),]
             ## }
-            for (arms in unique(SENDstudy$dm$ARMCD)){
-                row <- which(arms == Doses$ARMCD)
-                Dosein <- unique(Doses$Dose[row])
-                rows <- which(arms == SENDstudy$dm$ARMCD)
-                SENDstudy$dm[rows,"ARM"] <- rep(Dosein, length(rows))
-            }
+
+    Doses2 <- trt[,c('SETCD','cat','dose_order')]
+    dm2 <- merge(SENDstudy$dm,Doses2, by = 'SETCD')
+    dm2 <- data.table::as.data.table(dm2)
+    dm2 <- dm2[, `:=`(ARMCD=dose_order,ARM=cat,dose_order=NULL,cat=NULL)]
+    SENDstudy$dm <- dm2
+
+
+            ## for (arms in unique(SENDstudy$dm$ARMCD)){
+            ##     row <- which(arms == Doses$ARMCD)
+            ##     Dosein <- unique(Doses$Dose[row])
+            ##     rows <- which(arms == SENDstudy$dm$ARMCD)
+            ##     SENDstudy$dm[rows,"ARM"] <- rep(Dosein, length(rows))
+            ## }
             ExampleSubjects <- SENDstudy$dm[,c("USUBJID", "ARM","SUBJID","SEX")]
 
             #Make Factors Characters for Correct .xpt creation
             SENDstudy$dm$SEX <- as.character(SENDstudy$dm$SEX)
             SENDstudy$dm$AGEU <- as.character(SENDstudy$dm$AGEU)
+    print('DM DONE')
 #3
 #ds
 #Generate DS Data
@@ -563,51 +578,48 @@ ind <- which(Example$mi$MISEV=='')
             #Replaces: StudyID, USUBJID, USUBJID, Dates
 
             #Account for discrepancies possible in ds
-            SENDstudy$ds <- SENDstudy$ds[which(SENDstudy$ds$USUBJID %in% Subjects$USUBJID),]
+          #########
+            ## SENDstudy$ds <- SENDstudy$ds[which(SENDstudy$ds$USUBJID %in% Subjects_2$USUBJID),]
 
-            #Account for VISITDY for Recovery Animals
-            if (Recovery == FALSE){
-                SENDstudy$ds <- SENDstudy$ds[which(grepl("Recovery",SENDstudy$ds$DSTERM) == FALSE),]
-            }
+            ## SENDstudy$ds$USUBJID <- SENDstudy$dm$USUBJID
 
-            #ADD Generated USUJIDs and terminal VISITDY to new DS
-            SENDstudy$ds$USUBJID <- SENDstudy$dm$USUBJID
+            ## #Calculate percentage of Terminal Sacrifice in each ARM
+            ## TerminalSac <- merge(Example$ds, Subjects, by = "USUBJID")
+            ## TerminalSac <- TerminalSac %>%
+            ##     dplyr::group_by(Dose) %>%
+            ##     dplyr::count(DSDECOD) %>%
+            ##     dplyr::mutate(percent = n/sum(n)) %>%
+            ##     dplyr::select(-n)
 
-            #Calculate percentage of Terminal Sacrifice in each ARM
-            TerminalSac <- merge(Example$ds, Subjects, by = "USUBJID")
-            TerminalSac <- TerminalSac %>%
-                dplyr::group_by(Dose) %>%
-                dplyr::count(DSDECOD) %>%
-                dplyr::mutate(percent = n/sum(n)) %>%
-                dplyr::select(-n)
+            ## #Replace StudyID
+            ## SENDstudy$ds$STUDYID <- rep(studyID, nrow(SENDstudy$ds))
 
-            #Replace StudyID
-            SENDstudy$ds$STUDYID <- rep(studyID, nrow(SENDstudy$ds))
+            ## #Replace Dates
+            ## cols <- grep("DTC", colnames(SENDstudy$ds))
+            ## SENDstudy$ds[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$ds$STUDYID))
 
-            #Replace Dates
-            cols <- grep("DTC", colnames(SENDstudy$ds))
-            SENDstudy$ds[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$ds$STUDYID))
+            ## #Make Generated DS Terminal Sacrifice percentage match expectation
+            ## for(Dose in unique(Doses$Dose)){
+            ##     Percen <- TerminalSac[which(TerminalSac$Dose == Dose & TerminalSac$DSDECOD == 'TERMINAL SACRIFICE'), 'percent']
+            ##     Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose)]
+            ##     Gendata <- sample(c("TERMINAL SACRIFICE", "FOUND DEAD"),length(Subjs), replace = TRUE, prob = c(Percen, (1-Percen)))
+            ##     #Add in Randomized Data to Subjects in Each Group
+            ##     SENDstudy$ds[which(SENDstudy$ds$USUBJID %in% Subjs), "DSDECOD"] <- Gendata
+            ##     #Make VISITDY Appropriate
+            ##     if('VISITDY' %in% colnames(SENDstudy$ds)){
 
-            #Make Generated DS Terminal Sacrifice percentage match expectation
-            for(Dose in unique(Doses$Dose)){
-                Percen <- TerminalSac[which(TerminalSac$Dose == Dose & TerminalSac$DSDECOD == 'TERMINAL SACRIFICE'), 'percent']
-                Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose)]
-                Gendata <- sample(c("TERMINAL SACRIFICE", "FOUND DEAD"),length(Subjs), replace = TRUE, prob = c(Percen, (1-Percen)))
-                #Add in Randomized Data to Subjects in Each Group
-                SENDstudy$ds[which(SENDstudy$ds$USUBJID %in% Subjs), "DSDECOD"] <- Gendata
-                #Make VISITDY Appropriate
-                if('VISITDY' %in% colnames(SENDstudy$ds)){
+            ##     VISTDY <- max(SENDstudy$ds[which(SENDstudy$ds$USUBJID %in% Subjs), "VISITDY"], na.rm = TRUE)
+            ##     SENDstudy$ds[which(SENDstudy$ds$USUBJID %in% Subjs), "VISITDY"] <- VISTDY
 
-                VISTDY <- max(SENDstudy$ds[which(SENDstudy$ds$USUBJID %in% Subjs), "VISITDY"], na.rm = TRUE)
-                SENDstudy$ds[which(SENDstudy$ds$USUBJID %in% Subjs), "VISITDY"] <- VISTDY
-
-            SENDstudy$ds <-SENDstudy$ds %>%
-                dplyr::mutate(DSTERM = ifelse(DSDECOD == 'FOUND DEAD','Found Dead','Terminal necropsy')) %>%
-                dplyr::mutate(VISITDY = ifelse(DSDECOD == 'FOUND DEAD',NA,VISITDY))
-                }
-            }
+            ## SENDstudy$ds <-SENDstudy$ds %>%
+            ##     dplyr::mutate(DSTERM = ifelse(DSDECOD == 'FOUND DEAD','Found Dead','Terminal necropsy')) %>%
+            ##     dplyr::mutate(VISITDY = ifelse(DSDECOD == 'FOUND DEAD',NA,VISITDY))
+            ##     }
+            ## }
+    #################
 
             #Ensure DSTERM/VISITDY is APPROPRIATE
+            print('DS DONE')
 #4
 #tx
             #Generate TX data
@@ -619,9 +631,11 @@ ind <- which(Example$mi$MISEV=='')
             SENDstudy$tx$STUDYID <- rep(studyID, nrow(SENDstudy$tx))
 
             #Account for Recovery Animals
-            if (Recovery == FALSE){
-                SENDstudy$tx <- SENDstudy$tx[which(grepl("R",SENDstudy$tx$SETCD) == FALSE),]
-            }
+            ## if (Recovery == FALSE){
+            ##     SENDstudy$tx <- SENDstudy$tx[which(grepl("R",SENDstudy$tx$SETCD) == FALSE),]
+            ## }
+##:ess-bp-start::browser@nil:##
+browser(expr=is.null(.ESSBP.[["@13@"]]));##:ess-bp-end:##
 
     #attn
     # how to handle SET SETCD TXVAL
@@ -630,7 +644,27 @@ ind <- which(Example$mi$MISEV=='')
             SETS <- SENDstudy$tx$SET[which(SENDstudy$tx$TXPARM == 'Arm Code')]
             ARMtoset <- data.frame('Arm' = ARMS, 'Set' = SETS)
             SENDstudy$tx$TXVAL <- as.character(SENDstudy$tx$TXVAL)
-            SENDstudy$tx$SET <- as.character(SENDstudy$tx$SET)
+    SENDstudy$tx$SET <- as.character(SENDstudy$tx$SET)
+
+    tx_f <- data.table::copy(SENDstudy$tx)
+    data.table::setDT(tx_f)
+    uniq_setcd <- unique(tx_f$SETCD)
+    for (i in 1:length(uniq_setcd)){
+      setcd <- uniq_setcd[i]
+      val <- trt[SETCD==setcd,dose_order]
+      cat <- trt[SETCD==setcd,cat]
+
+    tx_f[TXPARMCD=='ARMCD' & SETCD==setcd,`:=`(TXVAL=val)]
+    tx_f[TXPARMCD=='GRPLBL' & SETCD==setcd,`:=`(TXVAL= paste0('Group: ', val, ', ' , cat))]
+    tx_f[TXPARMCD=='SPGRPCD' & SETCD==setcd,`:=`(TXVAL=val)]
+    tx_f[TXPARMCD=='TRTDOS' & SETCD==setcd,`:=`(TXVAL=cat)]
+    ## tx_f[TXPARMCD=='TRTDOSU' & SETCD==setcd,`:=`(TXVAL=cat)]
+
+    }
+
+  tx_f <- tx_f[TXPARMCD %in% c('ARMCD','GRPLBL','SPGRPCD','TRTDOS','TRTDOSU'),]
+
+
             for (i in 1:nrow(ARMtoset)){
                 ARMCD <- as.character(ARMtoset$Arm[i])
                 SETCD <- as.character(ARMtoset$Set[i])
@@ -650,6 +684,7 @@ ind <- which(Example$mi$MISEV=='')
             #Remove Identifying Group Names
             idx <- which(grepl("GRPLBL",SENDstudy$tx$TXPARMCD) == TRUE)
             SENDstudy$tx$TXVAL[idx] <- paste0("GROUP: ", SENDstudy$tx$SET[idx])
+    print('TX DONE')
 
 #bw
             #Generates BW Data
@@ -1447,7 +1482,7 @@ print('MI DONE')
                     printpath <- fs::path(dir_to_save, domain, ext= 'xpt')
                     ## haven::write_xpt(SENDstudy[[domain]],path = printpath, version = 5)
 
-                  ## print(paste0('file saved in: ',printpath))
+                  print(paste0('file saved in: ',printpath))
                 }
             } else {
 
