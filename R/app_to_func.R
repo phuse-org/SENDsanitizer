@@ -240,9 +240,9 @@ sanitize <- function(path, number=1, recovery=FALSE,
   if(length(unique(trt$dose)) > 1){
     if (0 %in% unique(trt$dose)){
 
-      trt <- trt[dose==0, `:=`(cat='Control')]
+      trt <- trt[dose==0, `:=`(cat='Control',dose_order=1)]
     } else{
-      trt <- trt[dose %in% min(dose),`:=`(cat='Control')]
+      trt <- trt[dose %in% min(dose),`:=`(cat='Control',dose_order=1)]
 
     }
   }else{
@@ -253,26 +253,30 @@ sanitize <- function(path, number=1, recovery=FALSE,
 
   if(length(unique(trt$dose)) > 2){
     low <- min(trt[!cat %in% c('Control', 'HD'),dose])
-    trt <- trt[dose %in% low, `:=`(cat='LD')]
+    trt <- trt[dose %in% low, `:=`(cat='LD',dose_order=2)]
   } else {
     print('There is only 2 dose group')
   }
 
-  if(length(unique(trt$dose)) >= 3){
+  if(length(unique(trt$dose)) > 3){
 
     mid  <- unique(trt[is.na(cat),dose])
 
     if(length(mid) > 1) {
+      n=3
       for (i in 1:length(mid)){
         mdose <- mid[i]
-        trt <- trt[dose %in% mdose, `:=`(cat=paste0('MD','_', as.character(i)))]
+        trt <- trt[dose %in% mdose, `:=`(cat=paste0('MD','_', as.character(i)),dose_order=n)]
+        n <- n+1
       }
     } else{
-      trt <- trt[dose %in% mid, `:=`(cat='MD')]
+      trt <- trt[dose %in% mid, `:=`(cat='MD',dose_order=3)]
     }
 
   }
   print(trt)
+
+  if(!Recovery){
 
   if(length(unique(trt[cat=='Control',SETCD]))>1){
 
@@ -290,6 +294,28 @@ sanitize <- function(path, number=1, recovery=FALSE,
     stop('There are more than one HD group. This is probably a combination study.')
 
   }
+  }else {
+
+
+  if(length(unique(trt[cat=='Control',SETCD]))>2){
+
+    stop('There are more than one control group. This is probably a combination study.')
+
+  }
+  if(length(unique(trt[cat=='LD',SETCD]))>2){
+
+    stop('There are more than one LD group. This is probably a combination study.')
+
+  }
+
+  if(length(unique(trt[cat=='HD',SETCD]))>2){
+
+    stop('There are more than one HD group. This is probably a combination study.')
+
+  }
+
+  }
+
 
 
   if(Recovery){
@@ -299,6 +325,21 @@ trt[SETCD %in% get_setcd[[1]][['recovery_group']],`:=`(trt_rc=paste0(cat,'_Rec')
     trt[, `:=`(cat=trt_rc,trt_rc=NULL)]
 
   }
+
+  if(!Recovery){
+
+  high_num <- length(unique(trt$cat))
+  trt <- trt[cat=='HD',`:=`(dose_order=high_num)]
+    trt$dose_order <- as.character(trt$dose_order)
+
+  }else {
+max_d <- max(trt$dose_order,na.rm = TRUE) +1
+trt <- trt[cat %in% c('HD','HD_Rec'),`:=`(dose_order=max_d)]
+trt$dose_order <- as.character(trt$dose_order)
+trt[SETCD %in% get_setcd[[1]][['recovery_group']],`:=`(dose_order=paste0(dose_order,'_R'))]
+    ## trt[, `:=`(cat=trt_rc,trt_rc=NULL)]
+  }
+
 
 
 #########################################################################################
@@ -331,8 +372,9 @@ stop('Non numeric ARM')
         #Correlate USUBJID with Dose Group
 
   Subjects <- merge(Example$dm[,c("USUBJID","ARMCD","SEX")], Doses[, c("ARMCD","Dose")], by = "ARMCD")
-  Subjects_2 <- merge(Example$dm[,c('USUBJID','SETCD','SEX')], trt[,c('SETCD','cat')], by = 'SETCD')
-  Subjects_2 <- Subjects_2[,c('USUBJID','SEX','SETCD','cat')]
+  Subjects_2 <- merge(Example$dm[,c('USUBJID','SETCD','SEX','ARMCD','ARM')], trt[,c('SETCD','cat')], by = 'SETCD')
+  Subjects_2 <- Subjects_2[, c('USUBJID','SEX','ARMCD','ARM','SETCD','cat')]
+  ## Subjects_2 <- Subjects_2[,c('USUBJID','SEX','SETCD','cat')]
   Subjects_2$Dose <- Subjects_2$cat
   Subjects_2$cat <- NULL
 
@@ -405,7 +447,7 @@ ind <- which(Example$mi$MISEV=='')
                                         #Create StudyID and Compound Name for generated study
     studyID <- floor(stats::runif(1, min = 10000, max = 100000))
     Compound <- paste0("Fake-Drug ", floor(stats::runif(1, min = 1, max = 100000)))
-#0
+#1
 #ts
 #Generate TS Data
 #Keeps: Study design, GLP flag and type, duration, species, age, vehicle, dosing duration
@@ -465,9 +507,6 @@ ind <- which(Example$mi$MISEV=='')
                 #Remove Term
                 SENDstudy$ts$TSVAL[idx] <- ""
             }
-#1
-#ta
-
 
 #2           #Generate DM Data
 #dm
@@ -475,12 +514,15 @@ ind <- which(Example$mi$MISEV=='')
             #Replaces: StudyID, USUBJID, Dates
 
             #Account for discrepancies possible in dm with recovery
-            SENDstudy$dm <- SENDstudy$dm[which(SENDstudy$dm$USUBJID %in% Subjects$USUBJID),] ## MAY BE CAUSING PROBLEMS WITH ZYT-779
+            ## SENDstudy$dm <- SENDstudy$dm[which(SENDstudy$dm$USUBJID %in% Subjects$USUBJID),] ## MAY BE CAUSING PROBLEMS WITH ZYT-779
+            SENDstudy$dm <- SENDstudy$dm[which(SENDstudy$dm$USUBJID %in% Subjects_2$USUBJID),] ## MAY BE CAUSING PROBLEMS WITH ZYT-779
 
             #Find number of subjects in each group of each gender
     #attn
     # filter out from control of Subjects
-            ControlAnimals <- SENDstudy$dm[which(SENDstudy$dm$ARMCD == 1),]
+            ## ControlAnimals <- SENDstudy$dm[which(SENDstudy$dm$ARMCD == 1),]
+            control_animals <- Subjects_2[Subjects_2$Dose=='Control', c('USUBJID')]
+            ControlAnimals <- SENDstudy$dm[SENDstudy$dm$USUBJID %in% control_animals,]
 
             Gendersplit <- table(ControlAnimals$SEX)
 
@@ -495,14 +537,14 @@ ind <- which(Example$mi$MISEV=='')
 
             #Replace Dates
             cols <- grep("DTC", colnames(SENDstudy$dm))
-            SENDstudy$dm[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$dm$STUDYID))
+    SENDstudy$dm[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$dm$STUDYID))
     #attn
     # should we replace ARMCD, ARM, SETCD with SETCD?
             #Replace ARM
             SENDstudy$dm$ARM <- as.character(SENDstudy$dm$ARM)
-            if (Recovery == FALSE){
-                SENDstudy$dm <- SENDstudy$dm[which(grepl("R",SENDstudy$dm$ARMCD) == FALSE),]
-            }
+            ## if (Recovery == FALSE){
+            ##     SENDstudy$dm <- SENDstudy$dm[which(grepl("R",SENDstudy$dm$ARMCD) == FALSE),]
+            ## }
             for (arms in unique(SENDstudy$dm$ARMCD)){
                 row <- which(arms == Doses$ARMCD)
                 Dosein <- unique(Doses$Dose[row])
