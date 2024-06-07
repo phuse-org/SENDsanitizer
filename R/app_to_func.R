@@ -35,8 +35,7 @@ sanitize <- function(path, number=1, recovery=FALSE,
         PRINT <- FALSE
         Recovery <- recovery
         ExampleStudies <- path
-        print('study path provided')
-        print(basename(ExampleStudies))
+        ## print(paste0('path ', ': ', basename(ExampleStudies))
         NumData <- length(ExampleStudies)
         ## print(NumData)
 
@@ -202,7 +201,7 @@ sanitize <- function(path, number=1, recovery=FALSE,
 }
 
 
-
+## no needed
 
         #Get SEND Species, LB TESTCDs and MI Tests from Example Study
         Species <- unique(getFieldValue(Example$ts, "TSVAL", "TSPARMCD", "SPECIES"))
@@ -227,6 +226,8 @@ sanitize <- function(path, number=1, recovery=FALSE,
           ## browser()
             Maxdose <- max(as.numeric(as.character(ARMS)))
         }
+
+########################
 
  # dose categorization
   get_setcd <- get_trt_group(ExampleStudy1 = Example)
@@ -268,31 +269,6 @@ sanitize <- function(path, number=1, recovery=FALSE,
 
   }
 
-  ## if(length(unique(trt$dose)) > 1){
-  ##   if (0 %in% unique(trt$dose)){
-  ##     if(length(trt[dose==0, SETCD]) > 1){
-  ##       ind <- which(trt$dose==0)
-  ##       for(i in 1:length(trt[dose==0,SETCD])){
-  ##       trt <- trt[ind[i], `:=`(cat=paste0('Control','_', as.character(i)))]
-
-  ##       }
-
-  ##     } else {
-
-  ##     trt <- trt[dose==0, `:=`(cat='Control')]
-  ##     }
-
-
-
-  ##   } else{
-  ##     trt <- trt[dose %in% min(dose),`:=`(cat='Control')]
-
-  ##   }
-  ## }else{
-  ##   stop('there is only one dose group')
-
-  ## }
-
 
   if(length(unique(trt$dose)) > 2){
     low <- min(trt[!cat %in% c('Control', 'HD'),dose])
@@ -315,8 +291,6 @@ sanitize <- function(path, number=1, recovery=FALSE,
     }
 
   }
-  ## print(trt)
-  ## print(treatment_doses)
   print(trt)
 
   if(length(unique(trt[cat=='Control',SETCD]))>1){
@@ -345,14 +319,8 @@ trt[SETCD %in% get_setcd[[1]][['recovery_group']],`:=`(trt_rc=paste0(cat,'_Rec')
 
   }
 
-##:ess-bp-start::browser@nil:##
-browser(expr=is.null(.ESSBP.[["@12@"]]));##:ess-bp-end:##
 
-  ## trt <- trt[, `:=`(Dose=cat, cat=NULL)]
-  ## trt <- trt[, c('USUBJID', 'SEX','SETCD','Dose')]
-
-  ## stop('stopped')
-
+#########################################################################################
         Doses$Dose[which(Doses$ARMCD=="1")] <- "Control"
          Doses$Dose[which(Doses$ARMCD==Maxdose)] <- "HD"
         Doses$Dose[which(Doses$ARMCD=="2")] <- "LD"
@@ -375,7 +343,12 @@ stop('Non numeric ARM')
         }
         Doses <- Doses[, c("ARMCD","Dose")]
         Doses <- Doses[!duplicated(Doses),]
+
+
+#########################################################################################
+#########################################################################################
         #Correlate USUBJID with Dose Group
+
   Subjects <- merge(Example$dm[,c("USUBJID","ARMCD","SEX")], Doses[, c("ARMCD","Dose")], by = "ARMCD")
   Subjects_2 <- merge(Example$dm[,c('USUBJID','SETCD','SEX')], trt[,c('SETCD','cat')], by = 'SETCD')
   Subjects_2 <- Subjects_2[,c('USUBJID','SEX','SETCD','cat')]
@@ -521,13 +494,21 @@ ind <- which(Example$mi$MISEV=='')
     # Subjets (control , HD etc)
             #Replace StudyID
             SENDstudy$ta$STUDYID <- rep(studyID, nrow(SENDstudy$ta))
-
+#delete
             #Replace ARM
             SENDstudy$ta$ARM <- as.character(SENDstudy$ta$ARM)
             if (Recovery == FALSE){
                 SENDstudy$ta <- SENDstudy$ta[which(grepl("R",SENDstudy$ta$ARMCD) == FALSE),]
             }
+
+ta_or <- SENDstudy$ta
+    ##:ess-bp-start::browser@nil:##
+browser(expr=is.null(.ESSBP.[["@3@"]]));##:ess-bp-end:##
+
+#delete
+#attn how to keep in ARMCD ARM ELEMENT
             for (arms in unique(as.character(SENDstudy$ta$ARMCD))){
+
                 row <- which(arms == Doses$ARMCD)
                 Dosein <- unique(Doses$Dose[row])
                 rows <- which(arms == SENDstudy$ta$ARMCD)
@@ -1429,39 +1410,36 @@ stop('No observation for Clinical Chemistry in this study')
                               ## if(length(final_val)==0){
                               ## browser()}
                               if(final_val< 0){
+                                get_pos_val <- function(OMfit,om_study,Subj,Vars,line,test,SENDstudy){
+                                  OMFit <- OMfit[sample(1:nrow(OMfit), 1),]
+                                  sub_res <- om_study[om_study$USUBJID %in% Subj,]
+                                  OMTESTVAR <- OMFit[1]
+                                  intercept_val <- OMFit[1]
+                                  var1 <- sub_res[sub_res$OMSPEC==Vars[1], 'OMSTRESN']
+                                  var2 <- sub_res[sub_res$OMSPEC==Vars[2], 'OMSTRESN']
+                                  val <- intercept_val + OMFit[2] * var1 + OMFit[3] * var2
 
-
-get_pos_val <- function(OMfit,om_study,Subj,Vars,line,test,SENDstudy){
-
-## browser()
-  OMFit <- OMfit[sample(1:nrow(OMfit), 1),]
-
-
-  sub_res <- om_study[om_study$USUBJID %in% Subj,]
-  OMTESTVAR <- OMFit[1]
-                              intercept_val <- OMFit[1]
-
-  var1 <- sub_res[sub_res$OMSPEC==Vars[1], 'OMSTRESN']
-  var2 <- sub_res[sub_res$OMSPEC==Vars[2], 'OMSTRESN']
-  val <- intercept_val + OMFit[2] * var1 + OMFit[3] * var2
-
-  k <- as.data.frame(line[, test])
-  k_sd <- sd(k[,1])
-  noise <- stats::rnorm(1, mean=0, sd=k_sd)
-  final_val <- val + noise
-  indx <- which(SENDstudy$om$USUBJID==Subj & SENDstudy$om$OMTESTCD==omspec &
-                SENDstudy$om$OMSPEC==test)
-
-  indx <- which(SENDstudy$om$USUBJID==Subj & SENDstudy$om$OMSPEC==test)
-  final_val
-}
+                                  k <- as.data.frame(line[, test])
+                                  k_sd <- sd(k[,1])
+                                  noise <- stats::rnorm(1, mean=0, sd=k_sd)
+                                  final_val <- val + noise
+                                  indx <- which(SENDstudy$om$USUBJID==Subj & SENDstudy$om$OMTESTCD==omspec &
+                                                SENDstudy$om$OMSPEC==test)
+                                  indx <- which(SENDstudy$om$USUBJID==Subj & SENDstudy$om$OMSPEC==test)
+                                  final_val
+                                }
 
 
                                 for (i in 1:10){
 
-final_val <- get_pos_val(OMfit,om_study,Subj,Vars,line,test,SENDstudy)
-if(final_val> 0){
-break}
+                                  final_val <- get_pos_val(OMfit,om_study,Subj,Vars,line,test,SENDstudy)
+                                  if(final_val> 0){
+                                    break}
+
+                                }
+
+                                if(final_val < 0){
+                                  final_val <- abs(final_val)
                                 }
                               }
                                SENDstudy$om[indx,'OMSTRESN_new'] <- final_val
