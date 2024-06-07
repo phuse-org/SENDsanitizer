@@ -25,7 +25,10 @@
 #' @importFrom magrittr  %>%
 
 # what will happen when visitday not present but dsnomdy present
-
+#current domain
+#ts,tx,dm,ds
+#bw,lb,om,mi
+#whether ds include or not
 
 sanitize <- function(path, number=1, recovery=FALSE,
                      where_to_save=NULL) {
@@ -413,11 +416,11 @@ ind <- which(Example$mi$MISEV=='')
     SENDstudy <- list( 'dm' = data.frame(Example$dm[which(Example$dm$STUDYID == onestudy),]),
                       'bw' = data.frame(Example$bw[which(Example$bw$STUDYID == onestudy),]),
                       'ds' = data.frame(Example$ds[which(Example$ds$STUDYID == onestudy),]),
-                      'ex' = data.frame(Example$ex[which(Example$ex$STUDYID == onestudy),]),
+                      ## 'ex' = data.frame(Example$ex[which(Example$ex$STUDYID == onestudy),]),
                       'lb' = data.frame(Example$lb[which(Example$lb$STUDYID == onestudy),]),
                       'om' = data.frame(Example$om[which(Example$om$STUDYID == onestudy),]),
                       'mi' = data.frame(Example$mi[which(Example$mi$STUDYID == onestudy),]),
-                      'ta' = data.frame(Example$ta[which(Example$ta$STUDYID == onestudy),]),
+                      ## 'ta' = data.frame(Example$ta[which(Example$ta$STUDYID == onestudy),]),
                       'ts' = data.frame(Example$ts[which(Example$ts$STUDYID == onestudy),]),
                       'tx' = data.frame(Example$tx[which(Example$tx$STUDYID == onestudy),]))
 
@@ -425,6 +428,7 @@ ind <- which(Example$mi$MISEV=='')
     studyID <- floor(stats::runif(1, min = 10000, max = 100000))
     Compound <- paste0("Fake-Drug ", floor(stats::runif(1, min = 1, max = 100000)))
 #0
+#ts
 #Generate TS Data
 #Keeps: Study design, GLP flag and type, duration, species, age, vehicle, dosing duration
             #Replaces: dates, study title, study facility, study compound, primary treatment
@@ -493,27 +497,25 @@ ind <- which(Example$mi$MISEV=='')
     ######  element should taken care of. probably element replaced with Dose in
     # Subjets (control , HD etc)
             #Replace StudyID
-            SENDstudy$ta$STUDYID <- rep(studyID, nrow(SENDstudy$ta))
+            ## SENDstudy$ta$STUDYID <- rep(studyID, nrow(SENDstudy$ta))
 #delete
             #Replace ARM
-            SENDstudy$ta$ARM <- as.character(SENDstudy$ta$ARM)
-            if (Recovery == FALSE){
-                SENDstudy$ta <- SENDstudy$ta[which(grepl("R",SENDstudy$ta$ARMCD) == FALSE),]
-            }
+            ## SENDstudy$ta$ARM <- as.character(SENDstudy$ta$ARM)
+            ## if (Recovery == FALSE){
+                ## SENDstudy$ta <- SENDstudy$ta[which(grepl("R",SENDstudy$ta$ARMCD) == FALSE),]
+            ## }
 
-ta_or <- SENDstudy$ta
-    ##:ess-bp-start::browser@nil:##
-browser(expr=is.null(.ESSBP.[["@3@"]]));##:ess-bp-end:##
+## ta_or <- SENDstudy$ta
 
 #delete
 #attn how to keep in ARMCD ARM ELEMENT
-            for (arms in unique(as.character(SENDstudy$ta$ARMCD))){
+            ## for (arms in unique(as.character(SENDstudy$ta$ARMCD))){
 
-                row <- which(arms == Doses$ARMCD)
-                Dosein <- unique(Doses$Dose[row])
-                rows <- which(arms == SENDstudy$ta$ARMCD)
-                SENDstudy$ta[rows,"ARM"] <- rep(Dosein, length(rows))
-            }
+            ##     row <- which(arms == Doses$ARMCD)
+            ##     Dosein <- unique(Doses$Dose[row])
+            ##     rows <- which(arms == SENDstudy$ta$ARMCD)
+            ##     SENDstudy$ta[rows,"ARM"] <- rep(Dosein, length(rows))
+            ## }
 
 #2           #Generate DM Data
 #dm
@@ -661,53 +663,53 @@ browser(expr=is.null(.ESSBP.[["@3@"]]));##:ess-bp-end:##
             #Replaces: EXTRT, EXLOT, EXSTDTC, EXVAMT, EXDOSE, USUBJID, STUDYID
 
             #ADD Generated USUBJID, EXTRT name, and STUDYID
-            SENDstudy$ex$STUDYID <- rep(studyID, nrow(SENDstudy$ex))
-            SENDstudy$ex$EXTRT <- rep(Compound, length(SENDstudy$ex$EXTRT))
+            ## SENDstudy$ex$STUDYID <- rep(studyID, nrow(SENDstudy$ex))
+            ## SENDstudy$ex$EXTRT <- rep(Compound, length(SENDstudy$ex$EXTRT))
             #Remove Recovery if Needed
-            if (Recovery == FALSE){
-                NonRecovSub <- Example$dm$USUBJID[which(grepl("R",Example$dm$ARMCD) == FALSE)]
-                SENDstudy$ex <- SENDstudy$ex[which(SENDstudy$ex$USUBJID %in% NonRecovSub),]
-            }
-            SENDstudy$ex$USUBJID <- as.character(SENDstudy$ex$USUBJID)
-            SENDstudy$ex <- merge( USUBJIDTable,SENDstudy$ex, by = "USUBJID")
-            SENDstudy$ex <- SENDstudy$ex[,!(names(SENDstudy$ex) %in% "USUBJID")]
-            names(SENDstudy$ex)[names(SENDstudy$ex) == "NEWUSUBJID"] <- "USUBJID"
+            ## if (Recovery == FALSE){
+            ##     NonRecovSub <- Example$dm$USUBJID[which(grepl("R",Example$dm$ARMCD) == FALSE)]
+            ##     SENDstudy$ex <- SENDstudy$ex[which(SENDstudy$ex$USUBJID %in% NonRecovSub),]
+            ## }
+            ## SENDstudy$ex$USUBJID <- as.character(SENDstudy$ex$USUBJID)
+            ## SENDstudy$ex <- merge( USUBJIDTable,SENDstudy$ex, by = "USUBJID")
+            ## SENDstudy$ex <- SENDstudy$ex[,!(names(SENDstudy$ex) %in% "USUBJID")]
+            ## names(SENDstudy$ex)[names(SENDstudy$ex) == "NEWUSUBJID"] <- "USUBJID"
 
             #Generate Fake EXLOT
-            Lotnum <- length(levels(SENDstudy$ex$EXLOT))
-            Lot <- paste0("Fake", floor(stats::runif(Lotnum, min = 1, max = 100000)))
-            for (i in 1:Lotnum){
-                levels(SENDstudy$ex$EXLOT)[i] <-Lot[i]
-            }
+            ## Lotnum <- length(levels(SENDstudy$ex$EXLOT))
+            ## Lot <- paste0("Fake", floor(stats::runif(Lotnum, min = 1, max = 100000)))
+            ## for (i in 1:Lotnum){
+            ##     levels(SENDstudy$ex$EXLOT)[i] <-Lot[i]
+            ## }
 
             #Remove Dates
-            cols <- grep("DTC", colnames(SENDstudy$ex))
-            SENDstudy$ex[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$ex$STUDYID))
+            ## cols <- grep("DTC", colnames(SENDstudy$ex))
+            ## SENDstudy$ex[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$ex$STUDYID))
 
             #Find Distribution of Dose to Vehicle (EXDOSE) to (EXVAMT)
-            Dist <- SENDstudy$ex$EXDOSE/SENDstudy$ex$EXVAMT
+            ## Dist <- SENDstudy$ex$EXDOSE/SENDstudy$ex$EXVAMT
             #Generate EXDOSE and EXVAMT Numbers based on expectation
-            Gen <- round(stats::runif(length(Dist),min=min(SENDstudy$ex$EXVAMT), max = max(SENDstudy$ex$EXVAMT)),2)
-            SENDstudy$ex$EXVAMT <- Gen
-            SENDstudy$ex$EXDOSE <- Gen*Dist
+            ## Gen <- round(stats::runif(length(Dist),min=min(SENDstudy$ex$EXVAMT), max = max(SENDstudy$ex$EXVAMT)),2)
+            ## SENDstudy$ex$EXVAMT <- Gen
+            ## SENDstudy$ex$EXDOSE <- Gen*Dist
 
             #Make Factors as Characters
-            SENDstudy$ex$EXDOSU <- as.character(SENDstudy$ex$EXDOSU)
-            SENDstudy$ex$EXROUTE <- as.character(SENDstudy$ex$EXROUTE)
-            SENDstudy$ex$EXVAMTU <- as.character(SENDstudy$ex$EXVAMTU)
-            SENDstudy$ex$EXTRTV <- as.character(SENDstudy$ex$EXTRTV)
-            SENDstudy$ex$EXDOSFRQ <- as.character(SENDstudy$ex$EXDOSFRQ)
-            SENDstudy$ex$EXDOSFRM <- as.character(SENDstudy$ex$EXDOSFRM)
+            ## SENDstudy$ex$EXDOSU <- as.character(SENDstudy$ex$EXDOSU)
+            ## SENDstudy$ex$EXROUTE <- as.character(SENDstudy$ex$EXROUTE)
+            ## SENDstudy$ex$EXVAMTU <- as.character(SENDstudy$ex$EXVAMTU)
+            ## SENDstudy$ex$EXTRTV <- as.character(SENDstudy$ex$EXTRTV)
+            ## SENDstudy$ex$EXDOSFRQ <- as.character(SENDstudy$ex$EXDOSFRQ)
+            ## SENDstudy$ex$EXDOSFRM <- as.character(SENDstudy$ex$EXDOSFRM)
 
             #Remove Identifying Terms
-            RemoveTerms <- c("SPLRNAM","SSPONSOR","SPREFID", "SPLRLOC")
-            for (term in RemoveTerms){
+            ## RemoveTerms <- c("SPLRNAM","SSPONSOR","SPREFID", "SPLRLOC")
+            ## for (term in RemoveTerms){
                 #Check index for Term
-                idx <- which(SENDstudy$tx$TXPARMCD == term)
+                ## idx <- which(SENDstudy$tx$TXPARMCD == term)
                 #Remove Term
-                SENDstudy$tx$TXVAL[idx] <- ""
-            }
-print('TS TA DM DS EX domain DONE.....')
+                ## SENDstudy$tx$TXVAL[idx] <- ""
+            ## }
+## print('TS TA DM DS EX domain DONE.....')
 
 #bw
             #Generates BW Data
