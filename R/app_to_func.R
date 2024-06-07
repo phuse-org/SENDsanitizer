@@ -34,34 +34,21 @@ sanitize <- function(path, number=1, recovery=FALSE,
                      where_to_save=NULL) {
 
         number  <- as.numeric(number)
-        ## print(paste0("study to generate: ", as.character(number)))
         PRINT <- FALSE
         Recovery <- recovery
         ExampleStudies <- path
-        ## print(paste0('path ', ': ', basename(ExampleStudies))
         NumData <- length(ExampleStudies)
-        ## print(NumData)
-
-
-        ## Make Loop for Loading in the SEND Data per Example Study
   for (i in 1:NumData){
             Name <- paste0('ExampleStudy',as.character(i))
             assign(Name,load.xpt.files(ExampleStudies[i]))
-            ## print(Name)
         }
         Domains <- c("bw","dm","ds","ex","lb","mi","ta","ts","tx","om","pooldef","pc")
-
             Species <- getFieldValue(ExampleStudy1$ts, "TSVAL", "TSPARMCD", "SPECIES")
           print(paste0('Species: ',Species$TSVAL))
-
   #Check that Example Studies are Similar and Consolidate
   if (NumData > 1){
     #Generate Names of number of Example Study and concatenate
-
           Example <- ExampleStudy1
-          ## Example$dm <- Example$dm[, dm_col]
-
-
             for (j in 2:NumData){
                 Name <- paste0('ExampleStudy',as.character(j))
                 #Combine BW, DM, DS, EX, LB, MI, TA, TS, and TX
@@ -191,18 +178,9 @@ sanitize <- function(path, number=1, recovery=FALSE,
             Example$bw <- Example$bw[which(Example$bw$USUBJID %in% Example$dm$USUBJID),]
             Example$ex <- Example$ex[which(Example$ex$USUBJID %in% Example$dm$USUBJID),]
             Example$ta <- Example$ta[which(Example$ta$ARMCD %in% Example$dm$ARMCD),]
-
     }
-
-
-
-
   }
-
-
-
 }
-
 
 ## no needed
 
@@ -490,32 +468,6 @@ ind <- which(Example$mi$MISEV=='')
 #1
 #ta
 
-#Generate TA Data
-            #Keeps: EPOCH, ELEMEND, ETCD, TAETORD, DOMAIN
-            #Replaces: StudyID, ARM
-#attn
-    ######  element should taken care of. probably element replaced with Dose in
-    # Subjets (control , HD etc)
-            #Replace StudyID
-            ## SENDstudy$ta$STUDYID <- rep(studyID, nrow(SENDstudy$ta))
-#delete
-            #Replace ARM
-            ## SENDstudy$ta$ARM <- as.character(SENDstudy$ta$ARM)
-            ## if (Recovery == FALSE){
-                ## SENDstudy$ta <- SENDstudy$ta[which(grepl("R",SENDstudy$ta$ARMCD) == FALSE),]
-            ## }
-
-## ta_or <- SENDstudy$ta
-
-#delete
-#attn how to keep in ARMCD ARM ELEMENT
-            ## for (arms in unique(as.character(SENDstudy$ta$ARMCD))){
-
-            ##     row <- which(arms == Doses$ARMCD)
-            ##     Dosein <- unique(Doses$Dose[row])
-            ##     rows <- which(arms == SENDstudy$ta$ARMCD)
-            ##     SENDstudy$ta[rows,"ARM"] <- rep(Dosein, length(rows))
-            ## }
 
 #2           #Generate DM Data
 #dm
@@ -656,60 +608,6 @@ ind <- which(Example$mi$MISEV=='')
             #Remove Identifying Group Names
             idx <- which(grepl("GRPLBL",SENDstudy$tx$TXPARMCD) == TRUE)
             SENDstudy$tx$TXVAL[idx] <- paste0("GROUP: ", SENDstudy$tx$SET[idx])
-#5
-#ex
-            #Generate EX data
-            #Keeps: ESDOSFRM, EXDOSFRQ, EXROUTE, EXTRTV, EXSTDY, EXDOSEU, EXVATMU, EXSTDY
-            #Replaces: EXTRT, EXLOT, EXSTDTC, EXVAMT, EXDOSE, USUBJID, STUDYID
-
-            #ADD Generated USUBJID, EXTRT name, and STUDYID
-            ## SENDstudy$ex$STUDYID <- rep(studyID, nrow(SENDstudy$ex))
-            ## SENDstudy$ex$EXTRT <- rep(Compound, length(SENDstudy$ex$EXTRT))
-            #Remove Recovery if Needed
-            ## if (Recovery == FALSE){
-            ##     NonRecovSub <- Example$dm$USUBJID[which(grepl("R",Example$dm$ARMCD) == FALSE)]
-            ##     SENDstudy$ex <- SENDstudy$ex[which(SENDstudy$ex$USUBJID %in% NonRecovSub),]
-            ## }
-            ## SENDstudy$ex$USUBJID <- as.character(SENDstudy$ex$USUBJID)
-            ## SENDstudy$ex <- merge( USUBJIDTable,SENDstudy$ex, by = "USUBJID")
-            ## SENDstudy$ex <- SENDstudy$ex[,!(names(SENDstudy$ex) %in% "USUBJID")]
-            ## names(SENDstudy$ex)[names(SENDstudy$ex) == "NEWUSUBJID"] <- "USUBJID"
-
-            #Generate Fake EXLOT
-            ## Lotnum <- length(levels(SENDstudy$ex$EXLOT))
-            ## Lot <- paste0("Fake", floor(stats::runif(Lotnum, min = 1, max = 100000)))
-            ## for (i in 1:Lotnum){
-            ##     levels(SENDstudy$ex$EXLOT)[i] <-Lot[i]
-            ## }
-
-            #Remove Dates
-            ## cols <- grep("DTC", colnames(SENDstudy$ex))
-            ## SENDstudy$ex[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$ex$STUDYID))
-
-            #Find Distribution of Dose to Vehicle (EXDOSE) to (EXVAMT)
-            ## Dist <- SENDstudy$ex$EXDOSE/SENDstudy$ex$EXVAMT
-            #Generate EXDOSE and EXVAMT Numbers based on expectation
-            ## Gen <- round(stats::runif(length(Dist),min=min(SENDstudy$ex$EXVAMT), max = max(SENDstudy$ex$EXVAMT)),2)
-            ## SENDstudy$ex$EXVAMT <- Gen
-            ## SENDstudy$ex$EXDOSE <- Gen*Dist
-
-            #Make Factors as Characters
-            ## SENDstudy$ex$EXDOSU <- as.character(SENDstudy$ex$EXDOSU)
-            ## SENDstudy$ex$EXROUTE <- as.character(SENDstudy$ex$EXROUTE)
-            ## SENDstudy$ex$EXVAMTU <- as.character(SENDstudy$ex$EXVAMTU)
-            ## SENDstudy$ex$EXTRTV <- as.character(SENDstudy$ex$EXTRTV)
-            ## SENDstudy$ex$EXDOSFRQ <- as.character(SENDstudy$ex$EXDOSFRQ)
-            ## SENDstudy$ex$EXDOSFRM <- as.character(SENDstudy$ex$EXDOSFRM)
-
-            #Remove Identifying Terms
-            ## RemoveTerms <- c("SPLRNAM","SSPONSOR","SPREFID", "SPLRLOC")
-            ## for (term in RemoveTerms){
-                #Check index for Term
-                ## idx <- which(SENDstudy$tx$TXPARMCD == term)
-                #Remove Term
-                ## SENDstudy$tx$TXVAL[idx] <- ""
-            ## }
-## print('TS TA DM DS EX domain DONE.....')
 
 #bw
             #Generates BW Data
@@ -785,19 +683,6 @@ ind <- which(Example$mi$MISEV=='')
                             GenerData <- data.frame(BWSTRESN = exp(posterior[SubFit,1]+posterior[SubFit,2]*BWDYs),
                                                     BWDY = BWDYs)
                         }
-
-                        #Add in noise to fit
-##                         tryCatch({
-
-##                         stdev <- unique(BWSummary$ARMstdev[which(BWSummary$Dose == Dose & BWSummary$SEX == gender)])
-##                         GenerData$BWSTRESN <- GenerData$BWSTRESN + stats::rnorm(length(GenerData$BWSTRESN), mean = 0, sd = (stdev/2))
-##                         },warning=function(e){
-
-##                          ## print(e)
-##                           browser()
-
-
-##                         })
                         stdev <- unique(BWSummary$ARMstdev[which(BWSummary$Dose == Dose & BWSummary$SEX == gender)])
                         GenerData$BWSTRESN <- GenerData$BWSTRESN + stats::rnorm(length(GenerData$BWSTRESN), mean = 0, sd = (stdev/2))
                         #Fill into SENDstudy being generated
@@ -816,42 +701,6 @@ ind <- which(Example$mi$MISEV=='')
             #Convert all BW into data.frame
             Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == "HD" & ExampleSubjects$SEX == "M")]
              TEST <- SENDstudy$bw[which(SENDstudy$bw$USUBJID %in% Subjs), c("BWDY","BWSTRESN","USUBJID")]
-            #Add Average of BWSummary
-              ## TEST <- merge(TEST, unique(BWSummary[which(BWSummary$Dose == "HD" & BWSummary$SEX == "M"), c("BWDY","ARMavg")]), by = c("BWDY"))
-              ## p <- ggplot2::ggplot(data= TEST, aes(x=BWDY,y = BWSTRESN, group=USUBJID, color = "Simulated Animal Data"))+ geom_line()+
-              ##       geom_line(aes(y = ARMavg, label="Average of Source Data", color = "Average of Source Data")) +
-              ##       ggtitle("HD M Weight Distribution Comparison")+
-              ##        labs(x='BWDY (Days)', y="Weight") + scale_color_manual(name = "Legend",
-              ##                                                               values = c("darkred","steelblue"),
-              ##                                                               breaks = c("Simulated Animal Data",
-              ##                                                                          "Average of Source Data"))
-              ## print(p)
-
-            #Generate New Data Based on Example >>> rnorm method option, replaces MCMCregress with more averaged values
-            # for (Dose in unique(Doses$Dose)){
-            #     for (gender in unique(ExampleSubjects$SEX)){
-            #         Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose & ExampleSubjects$SEX == gender)]
-            #         Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose & Subjects$SEX == gender)]
-            #         GroupTests <- SENDstudy$bw$BWTESTCD[which(SENDstudy$bw$USUBJID %in% Subjs)]
-            #         for (Test in unique(GroupTests)){
-            #             Days <- unique(BWSummary$BWDY[which(BWSummary$USUBJID %in% Sub & BWSummary$BWTESTCD %in% Test)])
-            #             for (day in Days){
-            #                 #make indexs
-            #                 idx <-which(SENDstudy$bw$USUBJID %in% Subjs & SENDstudy$bw$BWTESTCD %in% Test &
-            #                                 SENDstudy$bw$BWDY %in% day)
-            #                 idxs <-which(BWSummary$USUBJID %in% Sub & BWSummary$BWTESTCD %in% Test &
-            #                                  BWSummary$BWDY %in% day)
-            #                 #Filter Group mean and stdev
-            #                 Testavg <- unique(BWSummary$ARMavg[idxs])
-            #                 Teststdev <- unique(BWSummary$ARMstdev[idxs])
-            #                 #use rnorm() to generate data
-            #                 GenerData <- suppressWarnings(round(rnorm(n=length(idx), mean = Testavg, sd = Teststdev),2))
-            #                 #Fill tests properly with created values
-            #                 SENDstudy$bw$BWSTRESN[idx] <- GenerData
-            #             }
-            #         }
-            #     }
-            # }
 
             #Make BWSTRESC and BWORRES match
             SENDstudy$bw$BWSTRESC <- as.character(SENDstudy$bw$BWSTRESN)
@@ -1061,93 +910,11 @@ stop('No observation for Clinical Chemistry in this study')
                     }
                 }
             }
-                ## print(Dose)
-            ## print('exiting loop')
 }
             #Testing code to graph fit compared to average of that ARM (HD, M, Selected LB tests)
             Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == "HD" & ExampleSubjects$SEX == "M")]
             TEST <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjs), c("LBDY","LBSTRESN","LBTESTCD","USUBJID")]
 
-            for (SampleTests in c("RBC","ALB","SPGRAV") ){
-                #Add Average of LBSummary
-                ## TEST2 <- TEST[which(TEST$LBTESTCD %in% SampleTests),]
-                ## TEST2 <- merge(TEST2, unique(LBSummary[which(LBSummary$Dose == "HD" & LBSummary$LBTESTCD == SampleTests & LBSummary$SEX == "M"), c("LBDY","ARMavg")]), by = c("LBDY"))
-                #Make plot per test
-                ## p <- ggplot2::ggplot(data= TEST2, aes(x=factor(LBDY),y = LBSTRESN, group=USUBJID, color = "Simulated Animal Data"))+ geom_line()+
-                ##     geom_point(aes(x=factor(LBDY),y = LBSTRESN, group=USUBJID, color = "Simulated Animal Data"))+
-                ##     geom_line(aes(y = ARMavg, label="Average of Source Data", color = "Average of Source Data")) +
-              ##     geom_point(aes(y = ARMavg, label="Average of Source Data", color = "Average of Source Data"))+
-                ##     scale_x_discrete()+
-                ##     ggtitle(paste0("HD M Distribution Comparison ", SampleTests))+
-                ##     labs(x='LBDY (Days)', y=paste0(SampleTests, " Values")) + scale_color_manual(name = "Legend",
-                ##                                                            values = c("darkred","steelblue"),
-                ##                                                            breaks = c("Simulated Animal Data",
-                ##                                                                       "Average of Source Data"))
-                ## print(p)
-            }
-
-            # #Create distributions of values for LBSTRESN >>> rnorm method option, replaces MCMCregress with more averaged values
-            # for (Dose in unique(Doses$Dose)){
-            #     for (gender in unique(ExampleSubjects$SEX)){
-            #         Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose & ExampleSubjects$SEX == gender)]
-            #         Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose & Subjects$SEX == gender)]
-            #         GroupTests <- SENDstudy$lb$LBTESTCD[which(SENDstudy$lb$USUBJID %in% Subjs)]
-            #         for (lbtest in unique(GroupTests)){
-            #             Days <- unique(LBSummary$LBDY[which(LBSummary$USUBJID %in% Sub & LBSummary$LBTESTCD %in% lbtest)])
-            #             for (day in Days){
-            #                 idx <-which(SENDstudy$lb$USUBJID %in% Subjs & SENDstudy$lb$LBTESTCD %in% lbtest &
-            #                                 SENDstudy$lb$LBDY %in% day)
-            #                 idxs <-which(LBSummary$USUBJID %in% Sub & LBSummary$LBTESTCD %in% lbtest &
-            #                                  LBSummary$LBDY %in% day)
-            #                 #Filter Group mean and stdev
-            #                 Testavg <- unique(LBSummary$ARMavg[idxs])
-            #                 Teststdev <- unique(LBSummary$ARMstdev[idxs])
-            #                 #use rnorm to generate new test values based around normal distribution
-            #                 GenerData <- suppressWarnings(round(rnorm(n=length(idx), mean = Testavg, sd = Teststdev),2))
-            #                 #Fill tests properly with created values
-            #                 SENDstudy$lb$LBSTRESN[idx] <- GenerData
-            #             }
-            #         }
-            #     }
-            # }
-
-            #Plot to look at correlation between Urine SPGRAV and Urine Volume
-
-            ## Subjs <- ExampleSubjects$USUBJID
-            ## TEST <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjs), c("LBDY","LBSTRESN","LBTESTCD","USUBJID")]
-            ## Test3 <- TEST[which(TEST$LBTESTCD %in% c("SPGRAV","VOLUME")),]
-            ## for (day in unique(Test3$LBDY)){
-            ##     Test4 <- Test3[which(Test3$LBDY == day), c("USUBJID","LBTESTCD","LBSTRESN")]
-            ##     Test4 <- reshape(Test4, idvar = "USUBJID", timevar = "LBTESTCD", direction = "wide")
-            ##     #Model of relationship
-            ##     newx <- seq(min(Test4$LBSTRESN.SPGRAV), max(Test4$LBSTRESN.SPGRAV), by = 0.001)
-            ##     ydata <- seq(min(Test4$LBSTRESN.VOLUME), max(Test4$LBSTRESN.VOLUME),
-            ##                  by = (max(Test4$LBSTRESN.VOLUME)-min(Test4$LBSTRESN.VOLUME))/length(newx))
-            ##     ydata <- sort(ydata, decreasing = TRUE)
-            ##     if (length(ydata)>length(newx)){
-            ##         ydata <- ydata[1:length(newx)]
-            ##     }
-            ##     #Model attempt 1 - linear
-            ##     # modelline <- lm(ydata ~ exp(-1/newx))
-            ##     # newxy <- list(newx)
-            ##     # modeltest <- predict(modelline)
-            ##     # modeldata <- data.frame(y = modeltest, x = newx)
-            ##     #model attempt 2 - nonlinear
-            ##     fo3 <- y ~ 1/(x^c)
-            ##     data <- data.frame(y = ydata, x = newx)
-            ##     fm3 <- nls(fo3, data=data, start = list(c=1))
-            ##     modeltest <- predict(fm3)
-            ##     modeldata <- data.frame(y = sort(modeltest,decreasing = TRUE), x = newx)
-
-            ##     #add in gender
-            ##     Test4 <- merge(Test4, ExampleSubjects[,c("USUBJID","SEX","ARM")], by = "USUBJID")
-            ##     ## q <- ggplot2::ggplot() +
-            ##     ##     geom_point(data = Test4, aes(x=LBSTRESN.SPGRAV, y=LBSTRESN.VOLUME, shape = SEX, color = ARM)) +
-            ##     ##     geom_line(data = modeldata, aes(x=x, y=y, color = 'Model of Relationship'))+
-            ##     ##     labs(x='Urine Specific Gravity (SPGRAV)', y="Urine Volume (mL)") +
-            ##     ##     ggtitle(paste0("Generated Volume and SPGRAV for day ", day, " of collection"))
-            ##     ## print(q)
-            ## }
 
 
             #Coordinate LBORRES and LBSTRESC
@@ -1173,14 +940,9 @@ stop('No observation for Clinical Chemistry in this study')
     print('LB DONE')
 #8
 #OM
-
-
-
             ######### Generates NUMERICAL OM Data #############
 ## generate OM data
-
             SENDstudy$om <- SENDstudy$om[which(SENDstudy$om$USUBJID %in% Subjects$USUBJID),]
-
             SENDstudy$om$STUDYID <- rep(studyID, nrow(SENDstudy$om))
             SENDstudy$om <- merge( USUBJIDTable,SENDstudy$om, by = "USUBJID")
             SENDstudy$om <- SENDstudy$om[,!(names(SENDstudy$om) %in% "USUBJID")]
@@ -1227,25 +989,12 @@ stop('No observation for Clinical Chemistry in this study')
                                         #Remove Tests that have a ARMstev of 0 (meaning they likely don't have enough data)
           OMDATAs <- OMDATAs[which(OMDATAs$ARMstdev != 0),]
                                         #Remove tests that do not have enough data (i.e. all days)
-          ## Testspread <- table(OMDATAs$OMTESTCD, OMDATAs$OMDY)
-          ## rowsub <- apply(Testspread,1, function(row) all(row !=0))
-          ## highDataTests <- rownames(Testspread)[rowsub]
-          ## if (length(highDataTests) <= 1){
-          ##   ToRemove <- which(GroupTests$OMSPEC %in% c(lbspec))
-          ##   SENDstudy$om <- SENDstudy$om[-ToRemove,]
-          ##   next #Too little data; SKips loop
-          ## }
-          ## OMDATAs <- OMDATAs[which(OMDATAs$OMTESTCD %in% highDataTests),]
-                                        # how to make line with varying amount of variables
 
           line <- data.frame(USUBJID= OMDATAs$USUBJID, OMSTRESN = OMDATAs$OMSTRESN,
                               OMTEST = OMDATAs$OMSPEC)
           line <- dplyr::distinct(line) #check for and remove duplicate rows
           line <- tidyr::pivot_wider(line, values_from = 'OMSTRESN',
                                      names_from = 'OMTEST')
-          ## line <- stats::reshape(line, idvar = c("USUBJID","Day"),
-          ##                        timevar = 'OMTEST', direction = "wide")
-          ## line <- sapply(line[,2:ncol(line)], as.numeric)
 
           line <- line[, 2:length(colnames(line))]
 
@@ -1260,21 +1009,6 @@ stop('No observation for Clinical Chemistry in this study')
 ## browser()
           ll <- unique(OMDATAs$OMSPEC)
 
-          ## ll <- ll[which(!ll %in% 'GLOBUL')]
-
-##           organ <- c("BRAIN", "LIVER", "KIDNEY", "HEART", "UTERUS/CERVIX", "SPLEEN",
-## "TESTIS", "THYMUS", "EPIDIDYMIS", "GLAND, PROSTATE", "GLAND, ADRENAL",
-## "GLAND, THYROID/GLAND, PARATHYROID", "OVARY", "GLAND, PITUITARY"
-## )
-          ## big_org <- c("BRAIN", "LIVER", "KIDNEY", "HEART", "UTERUS/CERVIX")
-          ## big_org <- grep('BRAIN|LIVER|KIDNEY,HEART,UTERUS',
-          ##                 ll, ignore.case = TRUE,
-          ##                  value = TRUE)
-          ## small_org <- setdiff(ll,big_org)
-##           small_org <- c("SPLEEN", "TESTIS", "THYMUS", "EPIDIDYMIS", "GLAND, PROSTATE", "GLAND, ADRENAL",
-## "GLAND, THYROID/GLAND, PARATHYROID", "OVARY", "GLAND, PITUITARY"
-## )
-
           for (test in ll){
             ## test <- 'BRAIN'
 ## line_mean
@@ -1287,49 +1021,11 @@ stop('No observation for Clinical Chemistry in this study')
             close_two <- names(sort(abs(rest_line - test_val))[1:2])
             ## print(close_two)
 
-            ## closest<-function(rl,tv){
-            ##   two_close <- c()
-            ##  first_one <- names(which.min(abs(rest_line-test_val)))
-
-            ##   two_close <- c(two_close, first_one)
-            ##   secod <- setdiff(rest_line, first_one)
-
-            ##   first_one
-
-
-
-            ##   xv[which(abs(xv-sv)==min(abs(xv-sv)))] }
 
 
             
             tryCatch({
 
-##               Vars <- setdiff(colnames(line),test)
-
-##               all_vars <- setdiff(colnames(line),test)
-## with_test <- colnames(line)
-
-##           big_org <- grep('BRAIN$|LIVER$|KIDNEY$|HEART$|LUNG$',
-##                           with_test, ignore.case = TRUE,
-##                            value = TRUE)
-##           small_org <- setdiff(with_test,big_org)
-
-          ## big_org <- ll[which(big_org %in% all_vars)]
-          ## small_org <- ll[which(small_org %in% all_vars)]
-
-              ## print(length(Vars))
-                            ## if (length(Vars) > 5){ #limit Vars to 2 random variables for computation time
-                            ##   if(test %in% big_org){
-                            ##     Vars <- setdiff(big_org,test)
-                            ##   Vars <- sample(Vars, 2)
-                            ##   }else if(test %in% small_org){
-                            ##     Vars <- setdiff(small_org,test)
-                            ##   Vars <- sample(Vars, 2)
-                            ##   }else{
-
-                            ##   Vars <- sample(all_vars, 2)
-                            ##   }
-                            ## } else{Vars <- all_vars}
               if(length(close_vars)> 1){
 
                 Vars <- close_two
@@ -1338,13 +1034,8 @@ stop('No observation for Clinical Chemistry in this study')
               #Repeating fit PER test with interaction from other tests in that omspec
               ## equation <- paste0(Vars, collapse = " + ")
               kl <- paste0('`', paste0(Vars, collapse = '`+`'),'`')
-              ## kl <- paste0('`', Vars[1],'`',' + ','`',  Vars[2],'`' )
               equation  <- paste0('`', test,'`' , ' ~ ', kl)
-              ## print(sort(line_mean))
-              ## print(equation)
-              ## cat('\n \n')
               formula_om <- stats::as.formula(equation)
-              ## print(formula_om)
 
                             OMfit <- MCMCpack::MCMCregress(formula = formula_om, b0=0, B0 = 0.1, data = line)
                             #Sample Model 'Per Individual animal'
@@ -1362,38 +1053,10 @@ stop('No observation for Clinical Chemistry in this study')
                               OMTESTVAR <- OMFit[1]
                               intercept_val <- OMFit[1]
                                 #Then it will be individual Variable coeff*their variables (including Day)
-                              ## for (num in 2:(InteractionVars[1]-1)){
-                              ##   testnm <- names(OMFit[num])
-                              ##   OMTESTVAR <- OMTESTVAR + OMFit[num]*line[,testnm]
-                              ##   }
-                                        #Then interaction variables coeff * their variables will be added
-                              ## for (num2 in InteractionVars){
-                              ##   testnm <- unlist(strsplit(names(OMFit[num2]),":"))[2]
-                              ##     OMTESTVAR <- OMTESTVAR + OMFit[num2]*line[,"Day"]*line[,testnm]
-                              ## }
-                                        #Add Variance using stdev/rnorm
-
-     ##  (Intercept)  `GLAND, ADRENAL` `GLAND, PROSTATE`            sigma2
-     ## -0.611473773       0.744040081       1.044457963       0.008144425
-                                ## OMTESTVAR <- OMTESTVAR +
 
                               var1 <- sub_res[sub_res$OMSPEC==Vars[1], 'OMSTRESN']
                               var2 <- sub_res[sub_res$OMSPEC==Vars[2], 'OMSTRESN']
                              val <- intercept_val + OMFit[2] * var1 + OMFit[3] * var2
-                              ## print(test)
-                              ## print(vals.
-                              ## print('original__')
-                              ## print(paste0('original value: ', as.character(sub_res[sub_res$OMSPEC==test, 'OMSTRESN'])))
-                                  ## val <- OMTESTVAR + OMFit[2] * line[sn,..var1]+ OMFit[3]*line[sn, ..var2]
-
-                              ## stdev <- unique(OMSummary[which(OMSummary$Dose == Dose &
-                              ##                                 OMSummary$SEX == gender & OMSummary$OMTESTCD == test),
-                              ##                           c('ARMstdev','OMDY')])
-                              ## OMTESTVAR <- abs(OMTESTVAR + stats::rnorm(length(OMTESTVAR),
-                              ##                                           mean = 0, sd = (stdev$ARMstdev)))
-##                               if(test=='BRAIN'){
-## browser()
-                              ##                               }
 
                               k <- as.data.frame(line[, test])
                               k_sd <- sd(k[,1])
@@ -1403,14 +1066,6 @@ stop('No observation for Clinical Chemistry in this study')
                                             SENDstudy$om$OMSPEC==test)
 
                               indx <- which(SENDstudy$om$USUBJID==Subj & SENDstudy$om$OMSPEC==test)
-##                               if(length(indx)<1) {
-## browser()
-## print('stop')
-##                               }
-                              ##
-                              ## print(final_val)
-                              ## if(length(final_val)==0){
-                              ## browser()}
                               if(final_val< 0){
                                 get_pos_val <- function(OMfit,om_study,Subj,Vars,line,test,SENDstudy){
                                   OMFit <- OMfit[sample(1:nrow(OMfit), 1),]
@@ -1446,31 +1101,6 @@ stop('No observation for Clinical Chemistry in this study')
                               }
                                SENDstudy$om[indx,'OMSTRESN_new'] <- final_val
                               SENDstudy$om[indx,'OMSTRESN_org'] <- final_val
-
-                              ## print(final_val)
-                              ## print(SENDstudy$om[indx,'OMSTRESN'])
-
-
-                                        #Fill DataFrame to allocate to fake individual based on Day once variance is added
-                              ## GenerOMData <- data.frame(OMSTRESN = 0,
-                              ##                             OMDy = 0,
-                              ##                           OMTESTCD = test)
-                              ## avrgs <- unique(OMSummary[which(OMSummary$Dose == Dose &
-                              ##                                 OMSummary$SEX == gender & OMSummary$OMTESTCD == test)
-                              ##                          ,c('ARMavg','OMDY')])
-                                        #rein in values to the days
-                                ## for (Dayz in Days){
-                                ##   Val <- OMTESTVAR[which.min(abs(OMTESTVAR -avrgs$ARMavg[which(avrgs$OMDY == Dayz)]))]
-                                ##   GenerOMData[nrow(GenerOMData)+1,] <- c(Val ,Dayz, test)
-                                ## }
-                                ## GenerOMData <- GenerOMData[2:nrow(GenerOMData),]
-                                        # For each day store the value in generated dataset SENDstudy
-                              ## for (day in Days){
-                              ##   idx <-which(SENDstudy$om$USUBJID %in% Subj & SENDstudy$om$OMTESTCD %in% test &
-                              ##                       SENDstudy$om$OMDY %in% day)
-                              ##   idx2 <- which(GenerOMData$OMDy %in% day)
-                              ##   SENDstudy$om$OMSTRESN[idx] <- round(as.numeric(GenerOMData$OMSTRESN[idx2]),3)
-                              ## }
                                 #add to subject count before new subject done
                               sn <- sn+1
                             }
@@ -1743,12 +1373,6 @@ dl <-   dk[OMTESTCD=="WEIGHT", c(3,4,5,6,9)][order(OMTESTCD,OMSPEC)]
             SENDstudy$mi$MIRESCAT <- NA
             SENDstudy$mi$MIRESCAT[which(grepl("UNREMARKABLE",SENDstudy$mi$MISTRESC) == FALSE)] <- "NON-NEOPLASTIC"
 
-            #Remove MISTAT, MIRESCAT, MIDTHREL, and MISPCCND
-            ## SENDstudy$mi$MISTAT <- NA
-            ## SENDstudy$mi$MIREASND <- NA
-            ## SENDstudy$mi$MISPCCND <- NA
-            ## SENDstudy$mi$MISPCUFL <- NA
-            ## SENDstudy$mi$MIDTHREL <- NA
 
             #Make Factors as Characters
             SENDstudy$mi$MITESTCD <- as.character(SENDstudy$mi$MITESTCD)
