@@ -38,39 +38,71 @@ sanitize <- function(path, number=1, recovery=FALSE,
         Recovery <- recovery
         ExampleStudies <- path
         NumData <- length(ExampleStudies)
-  for (i in 1:NumData){
-            Name <- paste0('ExampleStudy',as.character(i))
-            assign(Name,load.xpt.files(ExampleStudies[i]))
-        }
-        Domains <- c("bw","dm","ds","ex","lb","mi","ta","ts","tx","om","pooldef","pc")
-            Species <- getFieldValue(ExampleStudy1$ts, "TSVAL", "TSPARMCD", "SPECIES")
-          print(paste0('Species: ',Species$TSVAL))
-  #Check that Example Studies are Similar and Consolidate
-  if (NumData > 1){
-    #Generate Names of number of Example Study and concatenate
-          Example <- ExampleStudy1
-            for (j in 2:NumData){
-                Name <- paste0('ExampleStudy',as.character(j))
-                #Combine BW, DM, DS, EX, LB, MI, TA, TS, and TX
+  if(NumData > 1){
+    multi_study <- TRUE
+  }else{
 
-                Example$bw <- data.table::rbindlist(list(Example$bw, get(Name)$bw),fill = T,use.names = TRUE)
-                Example$dm <- data.table::rbindlist(list(Example$dm, get(Name)$dm),fill = T,use.names = TRUE)
-                Example$ds <- data.table::rbindlist(list(Example$ds, get(Name)$ds),fill = T,use.names = TRUE)
-                Example$ex <- data.table::rbindlist(list(Example$ex, get(Name)$ex),fill = T,use.names = TRUE)
-                Example$lb <- data.table::rbindlist(list(Example$lb, get(Name)$lb),fill = T,use.names = TRUE)
-                Example$mi <- data.table::rbindlist(list(Example$mi, get(Name)$mi),fill = T,use.names = TRUE)
-                Example$ta <- data.table::rbindlist(list(Example$ta, get(Name)$ta),fill = T,use.names = TRUE)
-                Example$ts <- data.table::rbindlist(list(Example$ts, get(Name)$ts),fill = T,use.names = TRUE)
-                Example$tx <- data.table::rbindlist(list(Example$tx, get(Name)$tx),fill = T,use.names = TRUE)
-                Example$om <- data.table::rbindlist(list(Example$om, get(Name)$om),fill = T,use.names = TRUE)
+    multi_study <- FALSE
+  }
+  #######################
+  if(!multi_study){
 
-            }
-          ## print(Example['bw'])
+   Example  <- load_xpt_files(path,domains=c("bw","dm","ds","ex","lb",
+                                                 "mi","ta","ts","tx",
+                                                 "om","pooldef","pc"))
 
-            #remove unused domains
-            Example <- Example[Domains]
-            #Check Species are the same
-            Species <- getFieldValue(Example$ts, "TSVAL", "TSPARMCD", "SPECIES")
+    Example_2 <- filter_tk_rec(Example=Example,recovery=Recovery)
+
+    all_setcd <- list()
+
+
+    get_data  <- filter_tk_rec(Example=Example,recovery=Recovery)
+    Example <- get_data$data
+    all_setcd[[1]] <- get_data$setcd
+# multi_study
+  }else{
+
+    all_setcd <- list()
+    num_of_study <- length(path)
+
+   Example  <- load_xpt_files(path[1],domains=c("bw","dm","ds","ex","lb",
+                                                 "mi","ta","ts","tx",
+                                                 "om","pooldef","pc"))
+
+    get_data  <- filter_tk_rec(Example=Example,recovery=Recovery)
+    Example <- get_data$data
+    all_setcd[[1]] <- get_data$setcd
+    # remove tk group
+
+    for(i in 2:num_of_study){
+
+   exp_more  <- load_xpt_files(path[i],domains=c("bw","dm","ds","ex","lb",
+                                                 "mi","ta","ts","tx",
+                                                 "om","pooldef","pc"))
+
+    get_clean_data <- filter_tk_rec(Example=exp_more,recovery=Recovery)
+
+    ## all_setcd <- get_clean_data$get_setcd_tk
+
+    all_setcd[[i]] <- get_clean_data$setcd
+
+
+    bind_to_exp <- get_clean_data$data
+
+      Example$bw <- data.table::rbindlist(list(Example$bw, bind_to_exp$bw),fill = T,use.names = TRUE)
+      ## Example$ex <- data.table::rbindlist(list(Example$ex, bind_to_exp$ex),fill = T,use.names = TRUE)
+      Example$lb <- data.table::rbindlist(list(Example$lb, bind_to_exp$lb),fill = T,use.names = TRUE)
+      Example$om <- data.table::rbindlist(list(Example$om, bind_to_exp$om),fill = T,use.names = TRUE)
+      Example$mi <- data.table::rbindlist(list(Example$mi, bind_to_exp$mi),fill = T,use.names = TRUE)
+      ## Example$ta <- data.table::rbindlist(list(Example$ta, bind_to_exp$ta),fill = T,use.names = TRUE)
+      Example$ts <- data.table::rbindlist(list(Example$ts, bind_to_exp$ts),fill = T,use.names = TRUE)
+      Example$tx <- data.table::rbindlist(list(Example$tx, bind_to_exp$tx),fill = T,use.names = TRUE)
+      Example$dm <- data.table::rbindlist(list(Example$dm, bind_to_exp$dm),fill = T,use.names = TRUE)
+      Example$ds <- data.table::rbindlist(list(Example$ds, bind_to_exp$ds),fill = T,use.names = TRUE)
+    }
+
+
+           Species <- Example$ts[TSPARMCD=='SPECIES',TSVAL]
           print(Species)
             if (length(unique(Species)) >1){
               tab_pr <- Example$ts[Example$ts$TSPARMCD=="SPECIES",]
@@ -78,150 +110,29 @@ sanitize <- function(path, number=1, recovery=FALSE,
                 stop("ERROR:Species are not the same between SEND Example Studies. Pick one Species.")
             }
             #CHeck Study Type is the same
-            SSTYP <- getFieldValue(Example$ts, "TSVAL", "TSPARMCD", "SSTYP")
+           SSTYP <- Example$ts[TSPARMCD=='SSTYP',TSVAL]
+            ## SSTYP <- getFieldValue(Example$ts, "TSVAL", "TSPARMCD", "SSTYP")
+            ## SSTYP <- getFieldValue(Example$ts, "TSVAL", "TSPARMCD", "SSTYP")
             if (length(unique(SSTYP)) >1){
                 stop("ERROR:Study Types are not the same between SEND Example Studies. Pick one SSTYP.")
             }
             #Check if SEND version is the same
-            SNDIGVER <- getFieldValue(Example$ts,"TSVAL", "TSPARMCD", "SNDIGVER")
+
+           SNDIGVER <- Example$ts[TSPARMCD=='SNDIGVER',TSVAL]
+            ## SNDIGVER <- getFieldValue(Example$ts,"TSVAL", "TSPARMCD", "SNDIGVER")
             if (length(unique(SNDIGVER)) >1){
                 stop("ERROR:SEND versions are not the same between SEND Example Studies. Pick one SNDIGVER.")
             }
 
-
-            #Remove TK SETCDs
-            Example$dm <- Example$dm[which(grepl("TK",Example$dm$SETCD) ==FALSE),]
-            Example$ta <- Example$ta[which(grepl("Toxicokinetic", Example$ta$ARM) == FALSE),]
-            Example$tx <- Example$tx[which(Example$tx$SETCD %in% Example$dm$SETCD),]
-            Example$lb <- Example$lb[which(Example$lb$USUBJID %in% Example$dm$USUBJID),]
-            Example$om <- Example$om[which(Example$om$USUBJID %in% Example$dm$USUBJID),]
-            Example$mi <- Example$mi[which(Example$mi$USUBJID %in% Example$dm$USUBJID),]
-            Example$bw <- Example$bw[which(Example$bw$USUBJID %in% Example$dm$USUBJID),]
-            Example$ex <- Example$ex[which(Example$ex$USUBJID %in% Example$dm$USUBJID),]
-            Example$ta <- Example$ta[which(Example$ta$ARMCD %in% Example$dm$ARMCD),]
-
-            #Check Dose Levels are equivalent
-            if (Recovery == FALSE){
-                #Remove Recovery Dose ARMCDs
-                doses <- Example$ta[which(grepl("R",Example$ta$ARMCD) == FALSE),c("STUDYID","ARMCD")]
-                doses$ARMCD <- as.character(doses$ARMCD)
-            }else {
-                doses <- Example$ta[,c("STUDYID","ARMCD")]
-                doses$ARMCD <- as.character(doses$ARMCD)
-            }
-            DoseTable <- table(doses)
-            if (any(DoseTable == 0)){
-              ind <- which(DoseTable==0)
-          dd <- data.frame(DoseTable)
-          studyid_remove <- unique(dd[which(dd$Freq==0),c('STUDYID')])
-            print('please remove following studyid')
-              print(studyid_remove)
-              print('ERROR:ARMCD line 147 ')
-                stop("ERROR:ARMCD for Dosing is not equavalent between SEND Example Studies. Try removing Recovery Animals.")
-            }
-
-            ##Create ARMCD and DOSE Correlation
-            Doses <-Example$ta[,c("ARMCD","ARM")]
-            Doses <- Doses[!duplicated(Doses$ARM),]
-            Doses$Dose <- NA
-
-
-} else {
-
-            #remove unused domains
-             Example <- ExampleStudy1 #First study loaded will always be ExampleStudy1
-            Example <- Example[Domains]
-# remove TK animal
-  get_setcd_tk <- get_trt_group(ExampleStudy1 = Example)
-
-  if(is.null(get_setcd_tk[[1]][['treatment_group']])){
-
-    print(get_setcd_tk)
-    stop('there is no treatment group in the study')
-
-  }
-  print(get_setcd_tk)
-  if(!is.null(get_setcd_tk[[1]][['TK_group']])){
-    tk_g <- get_setcd_tk[[1]][['TK_group']]
-
-    Example$dm <- Example$dm[!Example$dm$SETCD %in% tk_g,]
-
-            ## Example$dm <- Example$dm[which(grepl("TK",Example$dm$SETCD) ==FALSE),]
-            ## Example$ta <- Example$ta[which(grepl("Toxicokinetic", Example$ta$ARM) == FALSE),]
-            Example$tx <- Example$tx[which(Example$tx$SETCD %in% Example$dm$SETCD),]
-            Example$lb <- Example$lb[which(Example$lb$USUBJID %in% Example$dm$USUBJID),]
-            Example$om <- Example$om[which(Example$om$USUBJID %in% Example$dm$USUBJID),]
-            Example$mi <- Example$mi[which(Example$mi$USUBJID %in% Example$dm$USUBJID),]
-            Example$bw <- Example$bw[which(Example$bw$USUBJID %in% Example$dm$USUBJID),]
-            Example$ex <- Example$ex[which(Example$ex$USUBJID %in% Example$dm$USUBJID),]
-            Example$ta <- Example$ta[which(Example$ta$ARMCD %in% Example$dm$ARMCD),]
-            #Create ARMCD and DOSE Correlation
-            Doses <-data.frame("ARMCD" = as.character(unique(Example$ta$ARMCD)),
-                               "Dose" = as.character(unique(Example$ta$ARM)))
-
   }
 
-  if(!Recovery) {
 
 
-  get_setcd_rc <- get_trt_group(ExampleStudy1 = Example)
 
-  if(!is.null(get_setcd_rc[[1]][['recovery_group']])){
-    tk_rc <- get_setcd_rc[[1]][['recovery_group']]
 
-    Example$dm <- Example$dm[!Example$dm$SETCD %in% tk_rc,]
-
-            Example$tx <- Example$tx[which(Example$tx$SETCD %in% Example$dm$SETCD),]
-            Example$lb <- Example$lb[which(Example$lb$USUBJID %in% Example$dm$USUBJID),]
-            Example$om <- Example$om[which(Example$om$USUBJID %in% Example$dm$USUBJID),]
-            Example$mi <- Example$mi[which(Example$mi$USUBJID %in% Example$dm$USUBJID),]
-            Example$bw <- Example$bw[which(Example$bw$USUBJID %in% Example$dm$USUBJID),]
-            Example$ex <- Example$ex[which(Example$ex$USUBJID %in% Example$dm$USUBJID),]
-            Example$ta <- Example$ta[which(Example$ta$ARMCD %in% Example$dm$ARMCD),]
-    }
-  }
-}
-
-## no needed
-
-        #Get SEND Species, LB TESTCDs and MI Tests from Example Study
-        Species <- unique(getFieldValue(Example$ts, "TSVAL", "TSPARMCD", "SPECIES"))
-      LBTestCDs <- unique(Example$lb$LBTESTCD)
-        MITests <- unique(Example$mi$MISPEC)
-
-        #Find out Animal USUBJIDs for Control and Treated Animals
-        ## if (Recovery == FALSE){
-            #Remove Recovery Dose ARMCDs/Doses
-            ## Doses <- Doses[which(grepl("R",Doses$ARMCD) == FALSE),]
-        ## }
-        #Replace Dose Levels with Control, LD, MD and HD
-        ## ARMS <- unique(Doses$ARMCD) #Find ARMS levels
-        ## if (Recovery == TRUE){
-            #Make MaxDose and Account for "R" doses
-            ## NonrecovArm <- ARMS[which(grepl("R",ARMS) == FALSE)]
-            ## ## Maxdose <- max(as.numeric(as.character(NonrecovArm)))
-            ## Doses$Dose[which(Doses$ARMCD=="1R")] <- "Control R"
-            ## Doses$Dose[which(Doses$ARMCD=="2R")] <- "LD R"
-            ## Doses$Dose[which(Doses$ARMCD== paste0(Maxdose,"R"))] <- "HD R"
-        ## } else {
-        ##   ## browser()
-        ##     ## Maxdose <- max(as.numeric(as.character(ARMS)))
-        ## }
-
-  # remove later
-
-########################
 
  # dose categorization
-  get_setcd <- get_trt_group(ExampleStudy1 = Example)
-  if(is.null(get_setcd[[1]][['treatment_group']])){
-
-    print(head(tx))
-    print(get_setcd[[1]][['setcd']])
-    print('there is no treatment group in the study')
-
-  }
-
+#############################################################################################################
   tx_doses <- get_doses(Example$tx)
   ## treatment_doses <- tx_doses[SETCD %in% get_setcd[[1]][['treatment_group']]]
   treatment_doses <- tx_doses
@@ -300,18 +211,18 @@ sanitize <- function(path, number=1, recovery=FALSE,
 
   if(length(unique(trt[cat=='Control',SETCD]))>2){
 
-    stop('There are more than one control group. This is probably a combination study.')
+    stop('There are more than two control group. This is probably a combination study.')
 
   }
   if(length(unique(trt[cat=='LD',SETCD]))>2){
 
-    stop('There are more than one LD group. This is probably a combination study.')
+    stop('There are more than two LD group. This is probably a combination study.')
 
   }
 
   if(length(unique(trt[cat=='HD',SETCD]))>2){
 
-    stop('There are more than one HD group. This is probably a combination study.')
+    stop('There are more than two HD group. This is probably a combination study.')
 
   }
 
@@ -348,30 +259,6 @@ trt[SETCD %in% get_setcd[[1]][['recovery_group']],`:=`(dose_order=paste0(dose_or
   Doses$ARMCD <- Doses$SETCD
   Doses$Dose <- Doses$cat
 
-##         Doses$Dose[which(Doses$ARMCD=="1")] <- "Control"
-##          Doses$Dose[which(Doses$ARMCD==Maxdose)] <- "HD"
-##         Doses$Dose[which(Doses$ARMCD=="2")] <- "LD"
-##   if (length(ARMS) > 3){
-##     tryCatch({
-
-##             for (i in  3:(max(as.numeric(ARMS)) - 1)){
-##                 j <- i-2
-##                 if (j == 1){
-##                     Doses$Dose[Doses$ARMCD== as.character(i)] <- "MD"
-##                 } else {
-##                     Doses$Dose[Doses$ARMCD== as.character(i)] <- paste0("MD", j)
-##                 }
-##             }
-##     }, error=function(e){
-## print(ARMS)
-## stop('Non numeric ARM')
-
-##     })
-##         }
-##         Doses <- Doses[, c("ARMCD","Dose")]
-##         Doses <- Doses[!duplicated(Doses),]
-
-
 #########################################################################################
 #########################################################################################
         #Correlate USUBJID with Dose Group
@@ -383,18 +270,6 @@ trt[SETCD %in% get_setcd[[1]][['recovery_group']],`:=`(dose_order=paste0(dose_or
   Subjects_2$Dose <- Subjects_2$cat
   Subjects_2$cat <- NULL
 
-                                        #Double Check Recovery Coding
-  RecoveryAnimals <- Example$ds$USUBJID[which(grepl("Recovery",Example$ds$DSTERM) == TRUE)]
-  if (Recovery == FALSE){
-          if (length(RecoveryAnimals)==0){
-
-         } else if (identical(integer(0),which(Subjects$USUBJID %in% RecoveryAnimals)) == TRUE) {
-
-         }
-         else {
-           Subjects <- Subjects[-which(Subjects$USUBJID %in% RecoveryAnimals),]
-         }
-        }
                                         #Consolidate Severity Methods
   Example$mi$MISEV <- as.character(Example$mi$MISEV)
 
@@ -634,8 +509,6 @@ ind <- which(Example$mi$MISEV=='')
             ## if (Recovery == FALSE){
             ##     SENDstudy$tx <- SENDstudy$tx[which(grepl("R",SENDstudy$tx$SETCD) == FALSE),]
             ## }
-##:ess-bp-start::browser@nil:##
-browser(expr=is.null(.ESSBP.[["@13@"]]));##:ess-bp-end:##
 
     #attn
     # how to handle SET SETCD TXVAL

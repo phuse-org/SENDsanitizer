@@ -49,3 +49,31 @@ load.xpt.files <- function(path=getwd(),domainsOfInterest=NULL) {
   return(dataFrames)
 }
 
+
+load_xpt_files <- function(path,domains=NULL) {
+  # xptFiles <- Sys.glob(paste(path,"*.xpt",sep='/'))
+  xptFiles_all <- fs::dir_ls(path = path, glob = '*.xpt')
+
+  if (!is.null(domains)) {
+    ext_name <- tools::file_path_sans_ext(basename(xptFiles_all))
+    xptFiles <- xptFiles_all
+    if(!all(tolower(domains) %in% tolower(ext_name))){
+ind <- which(!tolower(domains) %in% tolower(ext_name))
+miss_dom <- domains[ind]
+stop('missing xpt file for',': ', paste(miss_dom,collapse = ', '))
+    }
+
+    xptFiles <- xptFiles_all[which(tolower(ext_name) %in% tolower(domains))]
+  }else {
+
+  xptFiles <- xptFiles_all
+  }
+  dataFrames <- list()
+  for (xptFile in xptFiles) {
+    xptData <- haven::read_xpt(xptFile)
+    names_domain <- tools::file_path_sans_ext(basename(xptFile))
+    dataFrames[[names_domain]] <- xptData
+  }
+  dataFrames <- lapply(dataFrames,data.table::as.data.table)
+  return(dataFrames)
+}

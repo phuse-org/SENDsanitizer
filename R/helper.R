@@ -16,33 +16,43 @@ get_trt_group <- function(ExampleStudy1) {
     ## print(study)
   tx <- ExampleStudy1$tx
   tx <- data.table::as.data.table(tx)
-  tx <- tx[,.(STUDYID,SETCD,TXPARMCD,TXVAL)]
+  tx_df <- tx[,.(STUDYID,SETCD,TXPARMCD,TXVAL)]
   ts <- ExampleStudy1$ts
   ts <- data.table::as.data.table(ts)
-  ts <- ts[,.(STUDYID,TSPARMCD,TSVAL)]
+  ts_df <- ts[,.(STUDYID,TSPARMCD,TSVAL)]
   ds <- ExampleStudy1$ds
   ds <- data.table::as.data.table(ds)
-  ds <- ds[, .(STUDYID,USUBJID,DSDECOD)]
+  ds_df <- ds[, .(STUDYID,USUBJID,DSDECOD)]
   dm <- ExampleStudy1$dm
   dm <- data.table::as.data.table(dm)
-  dm <- dm[, .(STUDYID,USUBJID,SETCD)]
+  dm_df <- dm[, .(STUDYID,USUBJID,SETCD)]
   pc <- ExampleStudy1$pc
   pc <- data.table::as.data.table(pc)
   # to match with database.
   if(!'POOLID' %in% names(pc)){
 pc$POOLID <- ''
   }
-  pc <- pc[, .(STUDYID,USUBJID,POOLID)]
+  pc_df <- pc[, .(STUDYID,USUBJID,POOLID)]
 
 
   pooldef <- ExampleStudy1$pooldef
   pooldef <- data.table::as.data.table(pooldef)
-  pooldef <- pooldef[, .(STUDYID,USUBJID,POOLID)]
+  pooldef_df <- pooldef[, .(STUDYID,USUBJID,POOLID)]
+num_study <- unique(dm_df$STUDYID)
+
+  for(i in 1:length(num_study)){
 
 
-  study <- dm[1,STUDYID]
+  ## study <- dm[1,STUDYID]
+  study <- num_study[i]
+  dm <- dm_df[STUDYID==study,]
+  ds <- ds_df[STUDYID==study,]
+  tx <- tx_df[STUDYID==study,]
+  ts <- ts_df[STUDYID==study,]
+  pc <- pc_df[STUDYID==study,]
+  pooldef <- pooldef_df[STUDYID==study,]
     number_of_setcd <- unique(dm[['SETCD']])
-    st_species <- ts[TSPARMCD=='SPECIES'][, TSVAL]
+    st_species <- unique(ts[TSPARMCD=='SPECIES'][, TSVAL])
 
     list_return[[study]][['species']] <- st_species
 
@@ -152,18 +162,18 @@ stop('Check TKDESC parameter value in TXVAL of TX domain')
     }
     }
 
-    if( length(trtm_group) == 4) {
+    ## if( length(trtm_group) == 4) {
 
-      four <- c(four,study)
-      ## print(four)
-    }
+    ##   four <- c(four,study)
+    ##   ## print(four)
+    ## }
 
     ## print(trtm_group)
     list_return[[study]][['treatment_group']] <- trtm_group
     list_return[[study]][['recovery_group']] <- recv_group
-  ## }
+  }
 
-list_return[['four_trtm_group']] <- four
+## list_return[['four_trtm_group']] <- four
   list_return
 }
 
