@@ -51,14 +51,11 @@ sanitize <- function(path, number=1, recovery=FALSE,
                                                  "mi","ta","ts","tx",
                                                  "om","pooldef","pc"))
 
-    Example_2 <- filter_tk_rec(Example=Example,recovery=Recovery)
-
     all_setcd <- list()
-
-
     get_data  <- filter_tk_rec(Example=Example,recovery=Recovery)
     Example <- get_data$data
     all_setcd[[1]] <- get_data$setcd
+    Species <- Example$ts[TSPARMCD=='SPECIES',TSVAL]
 # multi_study
   }else{
 
@@ -141,53 +138,29 @@ sanitize <- function(path, number=1, recovery=FALSE,
   trt <- data.table::copy(treatment_doses)
   trt$dose  <- clean_dose
   ## if(length(trt$dose) < 3) {
-
+study_numbers <- unique(Example$dm$STUDYID)
   ## }
-  maxdose <- max(trt$dose)
-  ## maxdose
-  ## trt
+  if(multi_study){
+    first_study <- trt[STUDYID==study_numbers[1],]
+    fs_cat <- dose_categorize(first_study)
+    for(i in 2:length(study_numbers)){
+      dose_cat <- dose_categorize(trt[STUDYID==study_numbers[i]])
 
-  trt <- trt[dose==maxdose, `:=`(cat='HD')]
+      fs_cat  <- data.table::rbindlist(list(first_study,dose_cat))
+      fs_cat
 
-
-  if(length(unique(trt$dose)) > 1){
-    if (0 %in% unique(trt$dose)){
-
-      trt <- trt[dose==0, `:=`(cat='Control',dose_order=1)]
-    } else{
-      trt <- trt[dose %in% min(dose),`:=`(cat='Control',dose_order=1)]
 
     }
+    trt <- fs_cat
+
   }else{
-    stop('there is only one dose group')
 
+trt <- dose_categorize(trt)
   }
 
 
-  if(length(unique(trt$dose)) > 2){
-    low <- min(trt[!cat %in% c('Control', 'HD'),dose])
-    trt <- trt[dose %in% low, `:=`(cat='LD',dose_order=2)]
-  } else {
-    print('There is only 2 dose group')
-  }
 
-  if(length(unique(trt$dose)) > 3){
-
-    mid  <- unique(trt[is.na(cat),dose])
-
-    if(length(mid) > 1) {
-      n=3
-      for (i in 1:length(mid)){
-        mdose <- mid[i]
-        trt <- trt[dose %in% mdose, `:=`(cat=paste0('MD','_', as.character(i)),dose_order=n)]
-        n <- n+1
-      }
-    } else{
-      trt <- trt[dose %in% mid, `:=`(cat='MD',dose_order=3)]
-    }
-
-  }
-
+  # check
   if(!Recovery){
 
   if(length(unique(trt[cat=='Control',SETCD]))>1){
@@ -233,7 +206,7 @@ sanitize <- function(path, number=1, recovery=FALSE,
   if(Recovery){
 
     trt$trt_rc <- trt$cat
-trt[SETCD %in% get_setcd[[1]][['recovery_group']],`:=`(trt_rc=paste0(cat,'_Rec'))]
+trt[SETCD %in% all_setcd[[1]][[1]][['recovery_group']],`:=`(trt_rc=paste0(cat,'_Rec'))]
     trt[, `:=`(cat=trt_rc,trt_rc=NULL)]
 
   }
@@ -248,7 +221,7 @@ trt[SETCD %in% get_setcd[[1]][['recovery_group']],`:=`(trt_rc=paste0(cat,'_Rec')
 max_d <- max(trt$dose_order,na.rm = TRUE) +1
 trt <- trt[cat %in% c('HD','HD_Rec'),`:=`(dose_order=max_d)]
 trt$dose_order <- as.character(trt$dose_order)
-trt[SETCD %in% get_setcd[[1]][['recovery_group']],`:=`(dose_order=paste0(dose_order,'_R'))]
+trt[SETCD %in% all_setcd[[1]][[1]][['recovery_group']],`:=`(dose_order=paste0(dose_order,'_R'))]
     ## trt[, `:=`(cat=trt_rc,trt_rc=NULL)]
   }
 
