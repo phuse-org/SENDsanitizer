@@ -519,18 +519,18 @@ ind <- which(Example$mi$MISEV=='')
                           ##  BWSTRESN <- intercept + Day * BWDYs
                         } else {
                             #Log Fit
-                            GenerData <- data.frame(BWSTRESN = exp(posterior[SubFit,1]+posterior[SubFit,2]*BWDYs),
-                                                    BWDY = BWDYs)
+                          GenerData <- data.frame(BWSTRESN = exp(posterior[SubFit,1]+posterior[SubFit,2]*BWDYs),
+                                                  BWDY = BWDYs)
                         }
                         stdev <- unique(BWSummary$ARMstdev[which(BWSummary$Dose == Dose & BWSummary$SEX == gender)])
                         GenerData$BWSTRESN <- GenerData$BWSTRESN + stats::rnorm(length(GenerData$BWSTRESN),
                                                                                 mean = 0, sd = (stdev/2))
                         #Fill into SENDstudy being generated
                         for (day in BWDYs){
-                            idx <-which(SENDstudy$bw$USUBJID %in% Subj &
-                                            SENDstudy$bw$BWDY %in% day)
-                            idx2 <- which(GenerData$BWDY %in% day)
-                            SENDstudy$bw$BWSTRESN[idx] <- round(GenerData$BWSTRESN[idx2],2)
+                          idx <-which(SENDstudy$bw$USUBJID %in% Subj &
+                                      SENDstudy$bw$BWDY %in% day)
+                          idx2 <- which(GenerData$BWDY %in% day)
+                          SENDstudy$bw$BWSTRESN[idx] <- round(GenerData$BWSTRESN[idx2],2)
                         }
                         sn <- sn+1
                     }
@@ -712,7 +712,10 @@ stop('No observation for Clinical Chemistry in this study')
                                 GenerLBData <- data.frame(LBSTRESN = 0,
                                                           LBDy = 0,
                                                           LBTESTCD = test)
-                                avrgs <- unique(LBSummary[which(LBSummary$Dose == Dose & LBSummary$SEX == gender & LBSummary$LBTESTCD == test),c('ARMavg','LBDY')])
+                                avrgs <- unique(LBSummary[which(LBSummary$Dose == Dose &
+                                                                LBSummary$SEX == gender &
+                                                                LBSummary$LBTESTCD == test),
+                                                          c('ARMavg','LBDY')])
                                 #rein in values to the days
                                 for (Dayz in Days){
                                     Val <- LBTESTVAR[which.min(abs(LBTESTVAR -avrgs$ARMavg[which(avrgs$LBDY == Dayz)]))]
