@@ -53,7 +53,6 @@ sanitize <- function(path, number=1, recovery=FALSE,
    Example  <- load_xpt_files(path,domains=c("bw","dm","ds","ex","lb",
                                                  "mi","ta","ts","tx",
                                                  "om","pooldef","pc"))
-
     all_setcd <- list()
     get_data  <- filter_tk_rec(Example=Example,recovery=Recovery)
     Example <- get_data$data
@@ -61,82 +60,69 @@ sanitize <- function(path, number=1, recovery=FALSE,
     Species <- Example$ts[TSPARMCD=='SPECIES',TSVAL]
 # multi_study
   }else{
-
     all_setcd <- list()
     num_of_study <- length(path)
-
    Example  <- load_xpt_files(path[1],domains=c("bw","dm","ds","ex","lb",
                                                  "mi","ta","ts","tx",
                                                  "om","pooldef","pc"))
-
     get_data  <- filter_tk_rec(Example=Example,recovery=Recovery)
     Example <- get_data$data
     all_setcd[[1]] <- get_data$setcd
     # remove tk group
-
     for(i in 2:num_of_study){
-
    exp_more  <- load_xpt_files(path[i],domains=c("bw","dm","ds","ex","lb",
                                                  "mi","ta","ts","tx",
                                                  "om","pooldef","pc"))
-
     get_clean_data <- filter_tk_rec(Example=exp_more,recovery=Recovery)
-
     ## all_setcd <- get_clean_data$get_setcd_tk
-
     all_setcd[[i]] <- get_clean_data$setcd
-
-
     bind_to_exp <- get_clean_data$data
-
-      Example$bw <- data.table::rbindlist(list(Example$bw, bind_to_exp$bw),fill = T,use.names = TRUE)
-      ## Example$ex <- data.table::rbindlist(list(Example$ex, bind_to_exp$ex),fill = T,use.names = TRUE)
-      Example$lb <- data.table::rbindlist(list(Example$lb, bind_to_exp$lb),fill = T,use.names = TRUE)
-      Example$om <- data.table::rbindlist(list(Example$om, bind_to_exp$om),fill = T,use.names = TRUE)
-      Example$mi <- data.table::rbindlist(list(Example$mi, bind_to_exp$mi),fill = T,use.names = TRUE)
-      ## Example$ta <- data.table::rbindlist(list(Example$ta, bind_to_exp$ta),fill = T,use.names = TRUE)
-      Example$ts <- data.table::rbindlist(list(Example$ts, bind_to_exp$ts),fill = T,use.names = TRUE)
-      Example$tx <- data.table::rbindlist(list(Example$tx, bind_to_exp$tx),fill = T,use.names = TRUE)
-      Example$dm <- data.table::rbindlist(list(Example$dm, bind_to_exp$dm),fill = T,use.names = TRUE)
-      Example$ds <- data.table::rbindlist(list(Example$ds, bind_to_exp$ds),fill = T,use.names = TRUE)
+   Example$bw <- data.table::rbindlist(list(Example$bw, bind_to_exp$bw),
+                                       fill = T,use.names = TRUE)
+   Example$lb <- data.table::rbindlist(list(Example$lb, bind_to_exp$lb),
+                                       fill = T,use.names = TRUE)
+   Example$om <- data.table::rbindlist(list(Example$om, bind_to_exp$om),
+                                       fill = T,use.names = TRUE)
+   Example$mi <- data.table::rbindlist(list(Example$mi, bind_to_exp$mi),
+                                       fill = T,use.names = TRUE)
+   Example$ts <- data.table::rbindlist(list(Example$ts, bind_to_exp$ts),
+                                       fill = T,use.names = TRUE)
+   Example$tx <- data.table::rbindlist(list(Example$tx, bind_to_exp$tx),
+                                       fill = T,use.names = TRUE)
+   Example$dm <- data.table::rbindlist(list(Example$dm, bind_to_exp$dm),
+                                       fill = T,use.names = TRUE)
+   Example$ds <- data.table::rbindlist(list(Example$ds, bind_to_exp$ds),
+                                       fill = T,use.names = TRUE)
     }
-
-
            Species <- Example$ts[TSPARMCD=='SPECIES',TSVAL]
           print(Species)
             if (length(unique(Species)) >1){
               tab_pr <- Example$ts[Example$ts$TSPARMCD=="SPECIES",]
               print(tab_pr)
-                stop("ERROR:Species are not the same between SEND Example Studies. Pick one Species.")
+              stop(paste0("ERROR:Species are not the same between",
+                          " SEND Example Studies. Pick one Species."))
             }
             #CHeck Study Type is the same
            SSTYP <- Example$ts[TSPARMCD=='SSTYP',TSVAL]
             ## SSTYP <- getFieldValue(Example$ts, "TSVAL", "TSPARMCD", "SSTYP")
             ## SSTYP <- getFieldValue(Example$ts, "TSVAL", "TSPARMCD", "SSTYP")
             if (length(unique(SSTYP)) >1){
-                stop("ERROR:Study Types are not the same between SEND Example Studies. Pick one SSTYP.")
+              stop(paste0("ERROR:Study Types are not the same between",
+                          " SEND Example Studies. Pick one SSTYP."))
             }
             #Check if SEND version is the same
-
            SNDIGVER <- Example$ts[TSPARMCD=='SNDIGVER',TSVAL]
             ## SNDIGVER <- getFieldValue(Example$ts,"TSVAL", "TSPARMCD", "SNDIGVER")
             if (length(unique(SNDIGVER)) >1){
-                stop("ERROR:SEND versions are not the same between SEND Example Studies. Pick one SNDIGVER.")
+              stop(paste0("ERROR:SEND versions are not the same between",
+                           " SEND Example Studies. Pick one SNDIGVER."))
             }
-
   }
-
-
-
-
-
-
  # dose categorization
-#############################################################################################################
+###############################################################################
   tx_doses <- get_doses(Example$tx)
   ## treatment_doses <- tx_doses[SETCD %in% get_setcd[[1]][['treatment_group']]]
   treatment_doses <- tx_doses
-
   clean_dose <- SENDsanitizer:::clean_txval_dose(treatment_doses$TXVAL)
   trt <- data.table::copy(treatment_doses)
   trt$dose  <- clean_dose
@@ -148,90 +134,63 @@ study_numbers <- unique(Example$dm$STUDYID)
     fs_cat <- dose_categorize(first_study)
     for(i in 2:length(study_numbers)){
       dose_cat <- dose_categorize(trt[STUDYID==study_numbers[i]])
-
       fs_cat  <- data.table::rbindlist(list(first_study,dose_cat))
       fs_cat
-
-
     }
     trt <- fs_cat
-
   }else{
-
 trt <- dose_categorize(trt)
   }
-
-
-
   # check
   if(!Recovery){
-
-  if(length(unique(trt[cat=='Control',SETCD]))>1){
-    print(trt)
-
-    stop('There are more than one control group. This is probably a combination study.')
-
-  }
-  if(length(unique(trt[cat=='LD',SETCD]))>1){
-
-    stop('There are more than one LD group. This is probably a combination study.')
-
-  }
-
-  if(length(unique(trt[cat=='HD',SETCD]))>1){
-
-    stop('There are more than one HD group. This is probably a combination study.')
-
-  }
+    if(length(unique(trt[cat=='Control',SETCD]))>1){
+      print(trt)
+      stop(paste0('There are more than one control group.',
+                  ' This is probably a combination study.'))
+    }
+    if(length(unique(trt[cat=='LD',SETCD]))>1){
+      stop(paste0('There are more than one LD group.',
+                  ' This is probably a combination study.'))
+    }
+    if(length(unique(trt[cat=='HD',SETCD]))>1){
+      stop(paste0('There are more than one HD group.',
+                  ' This is probably a combination study.'))
+    }
   }else {
-
-
-  if(length(unique(trt[cat=='Control',SETCD]))>2){
-
-    print(trt)
-    stop('There are more than two control group. This is probably a combination study.')
-
+    if(length(unique(trt[cat=='Control',SETCD]))>2){
+      print(trt)
+      stop(paste0('There are more than two control group.',
+                  ' This is probably a combination study.'))
+    }
+    if(length(unique(trt[cat=='LD',SETCD]))>2){
+      stop(paste0('There are more than two LD group.',
+                  ' This is probably a combination study.'))
+    }
+    if(length(unique(trt[cat=='HD',SETCD]))>2){
+      stop(paste0('There are more than two HD group.',
+                  ' This is probably a combination study.'))
+    }
   }
-  if(length(unique(trt[cat=='LD',SETCD]))>2){
-
-    stop('There are more than two LD group. This is probably a combination study.')
-
-  }
-
-  if(length(unique(trt[cat=='HD',SETCD]))>2){
-
-    stop('There are more than two HD group. This is probably a combination study.')
-
-  }
-
-  }
-
-
 
   if(Recovery){
-
     trt$trt_rc <- trt$cat
-trt[SETCD %in% all_setcd[[1]][[1]][['recovery_group']],`:=`(trt_rc=paste0(cat,'_Rec'))]
+    trt[SETCD %in% all_setcd[[1]][[1]][['recovery_group']],
+        `:=`(trt_rc=paste0(cat,'_Rec'))]
     trt[, `:=`(cat=trt_rc,trt_rc=NULL)]
-
   }
 
   if(!Recovery){
-
-  high_num <- length(unique(trt$cat))
-  trt <- trt[cat=='HD',`:=`(dose_order=high_num)]
+    high_num <- length(unique(trt$cat))
+    trt <- trt[cat=='HD',`:=`(dose_order=high_num)]
     trt$dose_order <- as.character(trt$dose_order)
-
   }else {
-max_d <- max(trt$dose_order,na.rm = TRUE) +1
-trt <- trt[cat %in% c('HD','HD_Rec'),`:=`(dose_order=max_d)]
-trt$dose_order <- as.character(trt$dose_order)
-trt[SETCD %in% all_setcd[[1]][[1]][['recovery_group']],`:=`(dose_order=paste0(dose_order,'_R'))]
+    max_d <- max(trt$dose_order,na.rm = TRUE) +1
+    trt <- trt[cat %in% c('HD','HD_Rec'),`:=`(dose_order=max_d)]
+    trt$dose_order <- as.character(trt$dose_order)
+    trt[SETCD %in% all_setcd[[1]][[1]][['recovery_group']],
+        `:=`(dose_order=paste0(dose_order,'_R'))]
     ## trt[, `:=`(cat=trt_rc,trt_rc=NULL)]
   }
-
-
-
 #########################################################################################
   Doses <- trt[,c('SETCD','cat')]
   Doses$ARMCD <- Doses$SETCD
@@ -240,16 +199,17 @@ trt[SETCD %in% all_setcd[[1]][[1]][['recovery_group']],`:=`(dose_order=paste0(do
 #########################################################################################
 #########################################################################################
         #Correlate USUBJID with Dose Group
-Doses_m <- Doses[, c('ARMCD','Dose')]
-Doses_m <- Doses_m[!duplicated(Doses_m)]
-trt_m <- trt[,c('SETCD','cat','dose_order')]
-trt_m <- trt_m[!duplicated(trt_m)]
+  Doses_m <- Doses[, c('ARMCD','Dose')]
+  Doses_m <- Doses_m[!duplicated(Doses_m)]
+  trt_m <- trt[,c('SETCD','cat','dose_order')]
+  trt_m <- trt_m[!duplicated(trt_m)]
 
-
-
-  Subjects <- merge(Example$dm[,c("USUBJID","ARMCD","SEX")], Doses_m, by = "ARMCD")
-  Subjects_2 <- merge(Example$dm[,c('USUBJID','SETCD','SEX','ARMCD','ARM')], trt_m, by = 'SETCD')
-  Subjects_2 <- Subjects_2[, c('USUBJID','SEX','ARMCD','ARM','SETCD','cat','dose_order')]
+  Subjects <- merge(Example$dm[,c("USUBJID","ARMCD","SEX")], Doses_m,
+                    by = "ARMCD")
+  Subjects_2 <- merge(Example$dm[,c('USUBJID','SETCD','SEX','ARMCD','ARM')],
+                      trt_m, by = 'SETCD')
+  Subjects_2 <- Subjects_2[, c('USUBJID','SEX','ARMCD','ARM',
+                               'SETCD','cat','dose_order')]
   ## Subjects_2 <- Subjects_2[,c('USUBJID','SEX','SETCD','cat')]
   Subjects_2$Dose <- Subjects_2$cat
   Subjects_2$cat <- NULL
@@ -277,10 +237,7 @@ ind <- which(Example$mi$MISEV=='')
   ## Example$mi$MISEV[is.na(Example$mi$MISEV)]  <- '0'
   ## Example$mi$MISEV <- tidyr::replace_na(Example$mi$MISEV, "0")
   Example$mi$MISEV <- ordered(Example$mi$MISEV, levels= c("0","1", "2", "3", "4","5"))
-
-
                                         #Set number of subjects to create based on Example(s)
-  #
   ## SubjectDet <- all_sub[, ]
   SubjectDet <- Subjects %>%
           dplyr::group_by(Dose) %>%
@@ -289,14 +246,11 @@ ind <- which(Example$mi$MISEV=='')
           dplyr::select(-n)
   SubjectDet <- SubjectDet[!duplicated(SubjectDet$Dose),]
         GeneratedSEND <- list()
-
   ## print(GeneratedSEND)
-
   for (j in 1:number ){
-                                        #Make SENDstudy length of one example study
-    ##
+    #Make SENDstudy length of one example study
     onestudy <- as.character(Example$dm$STUDYID[1])
-                                        #Generate base for study to fill with proper SEND format
+    #Generate base for study to fill with proper SEND format
     SENDstudy <- list( 'dm' = data.frame(Example$dm[which(Example$dm$STUDYID == onestudy),]),
                       'bw' = data.frame(Example$bw[which(Example$bw$STUDYID == onestudy),]),
                       'ds' = data.frame(Example$ds[which(Example$ds$STUDYID == onestudy),]),
@@ -307,8 +261,7 @@ ind <- which(Example$mi$MISEV=='')
                       ## 'ta' = data.frame(Example$ta[which(Example$ta$STUDYID == onestudy),]),
                       'ts' = data.frame(Example$ts[which(Example$ts$STUDYID == onestudy),]),
                       'tx' = data.frame(Example$tx[which(Example$tx$STUDYID == onestudy),]))
-
-                                        #Create StudyID and Compound Name for generated study
+    #Create StudyID and Compound Name for generated study
     studyID <- floor(stats::runif(1, min = 10000, max = 100000))
     Compound <- paste0("Fake-Drug ", floor(stats::runif(1, min = 1, max = 100000)))
 #1
@@ -319,108 +272,102 @@ ind <- which(Example$mi$MISEV=='')
             #Removes: Study Director, Animal Purchasing Location, and Test Facility Country
 
             #Replace StudyID
-            SENDstudy$ts$STUDYID <- rep(studyID, nrow(SENDstudy$ts))
+    SENDstudy$ts$STUDYID <- rep(studyID, nrow(SENDstudy$ts))
 
-            #Find Date TSPARMCDs and replace
-            daterows <- grep("DTC", SENDstudy$ts$TSPARMCD)
-            SENDstudy$ts[daterows, "TSVAL"] <- rep("XXXX-XX-XX",length(daterows))
+    #Find Date TSPARMCDs and replace
+    daterows <- grep("DTC", SENDstudy$ts$TSPARMCD)
+    SENDstudy$ts[daterows, "TSVAL"] <- rep("XXXX-XX-XX",length(daterows))
+    #Replace Study Facility Name and Location
+    rows <- grep("TSTF", SENDstudy$ts$TSPARMCD)
+    SENDstudy$ts[rows, "TSVAL"] <- rep("FAKE FACILITY", length(rows))
+    #Replace Study Compound/Primary Treatment CAS number, name, and unique ingredient ID
+    rows <- grep("TRT",SENDstudy$ts$TSPARMCD)
+    SENDstudy$ts[rows, "TSVAL"] <- rep(Compound, length(rows))
+    if (NumData > 1){
+      Vehicles <- Example$ts[grep("TRTV",Example$ts$TSPARMCD),"TSVAL"]
+      print(Vehicles)
+      str(Vehicles)
+      #Remove any N/A or "NOT AVAILABLE"
+      ## Vehicles <- Vehicles[grep('NOT AVAILABLE',Vehicles$TSVAL,ignore.case = T,invert = T)]
+      ## Vehicles <- Vehicles[grep('NA',Vehicles$TSVAL,invert = T)]
+      Vehicles <- Vehicles[which(stringr::str_detect(Vehicles,"NOT AVAILABLE") == FALSE)]
+      Vehicles <- Vehicles[which(stringr::str_detect(Vehicles,"NA") == FALSE)]
+      #Check if values are the same for vehicle and concatinate if not
+      if (length(unique(Vehicles)) == 1){
+        SENDstudy$ts[grep("TRTV",SENDstudy$ts$TSPARMCD),"TSVAL"] <- Vehicles
+      } else {
+        Vehicles <- paste(Vehicles, collapse = " / ")
+        SENDstudy$ts[grep("TRTV",SENDstudy$ts$TSPARMCD),"TSVAL"] <- Vehicles
+      }
+    } else {
+      SENDstudy$ts[grep("TRTV",SENDstudy$ts$TSPARMCD),"TSVAL"] <- Example$ts[grep("TRTV",Example$ts$TSPARMCD),"TSVAL"]
+    }
 
-            #Replace Study Facility Name and Location
-            rows <- grep("TSTF", SENDstudy$ts$TSPARMCD)
-            SENDstudy$ts[rows, "TSVAL"] <- rep("FAKE FACILITY", length(rows))
+    #Replace Study Title
+    rows <- grep("STITLE", SENDstudy$ts$TSPARMCD)
+    duration <- getFieldValue(SENDstudy$ts, "TSVAL", "TSPARMCD", "DOSDUR")
+    SENDstudy$ts[rows, "TSVAL"] <- paste0(Compound, ": A ",
+                                          duration," Fake Study in ",
+                                          unique(Species))
+    #Clean up Vehicle
+    idx <- which(grepl("TRTV",SENDstudy$ts$TSPARMCD)==TRUE)
+    SENDstudy$ts[idx,"TSVAL"] <- paste0("VEHICLE")
 
-            #Replace Study Compound/Primary Treatment CAS number, name, and unique ingredient ID
-            rows <- grep("TRT",SENDstudy$ts$TSPARMCD)
-            SENDstudy$ts[rows, "TSVAL"] <- rep(Compound, length(rows))
-            if (NumData > 1){
-                Vehicles <- Example$ts[grep("TRTV",Example$ts$TSPARMCD),"TSVAL"]
-                print(Vehicles)
-                str(Vehicles)
-                #Remove any N/A or "NOT AVAILABLE"
-                ## Vehicles <- Vehicles[grep('NOT AVAILABLE',Vehicles$TSVAL,ignore.case = T,invert = T)]
-                ## Vehicles <- Vehicles[grep('NA',Vehicles$TSVAL,invert = T)]
-                Vehicles <- Vehicles[which(stringr::str_detect(Vehicles,"NOT AVAILABLE") == FALSE)]
-                Vehicles <- Vehicles[which(stringr::str_detect(Vehicles,"NA") == FALSE)]
-                #Check if values are the same for vehicle and concatinate if not
-                if (length(unique(Vehicles)) == 1){
-                    SENDstudy$ts[grep("TRTV",SENDstudy$ts$TSPARMCD),"TSVAL"] <- Vehicles
-                } else {
-                    Vehicles <- paste(Vehicles, collapse = " / ")
-                    SENDstudy$ts[grep("TRTV",SENDstudy$ts$TSPARMCD),"TSVAL"] <- Vehicles
-                }
-            } else {
-                SENDstudy$ts[grep("TRTV",SENDstudy$ts$TSPARMCD),"TSVAL"] <- Example$ts[grep("TRTV",Example$ts$TSPARMCD),"TSVAL"]
-            }
-
-            #Replace Study Title
-            rows <- grep("STITLE", SENDstudy$ts$TSPARMCD)
-            duration <- getFieldValue(SENDstudy$ts, "TSVAL", "TSPARMCD", "DOSDUR")
-            SENDstudy$ts[rows, "TSVAL"] <- paste0(Compound, ": A ",  duration," Fake Study in ",
-                                                  unique(Species))
-            #Clean up Vehicle
-            idx <- which(grepl("TRTV",SENDstudy$ts$TSPARMCD)==TRUE)
-            SENDstudy$ts[idx,"TSVAL"] <- paste0("VEHICLE")
-
-            #Remove Identifying Information
-            RemoveTerms <- c("TFCNTRY","STDIR","SPLRNAM","TFCNTRY","TRMSAC","SSPONSOR","SPREFID", "SPLRLOC",
-                             "PINV","STMON","TSLOC","TSCNTRY","DIET","WATER", "PCLASS","TSNAM")
-            for (term in RemoveTerms){
-                #Check index for Term
-                idx <- which(SENDstudy$ts$TSPARMCD == term)
-                #Remove Term
-                SENDstudy$ts$TSVAL[idx] <- ""
-            }
+    #Remove Identifying Information
+    RemoveTerms <- c("TFCNTRY","STDIR","SPLRNAM","TFCNTRY",
+                     "TRMSAC","SSPONSOR","SPREFID", "SPLRLOC",
+                     "PINV","STMON","TSLOC","TSCNTRY","DIET","WATER",
+                     "PCLASS","TSNAM")
+    for (term in RemoveTerms){
+      #Check index for Term
+      idx <- which(SENDstudy$ts$TSPARMCD == term)
+      #Remove Term
+      SENDstudy$ts$TSVAL[idx] <- ""
+    }
 
     print('TS DONE')
-#2
-#dm
+    #2
+    #dm
 #Generate DM Data
-            #Keeps: Number of each gender animals in each treatment group
-            #Replaces: StudyID, USUBJID, Dates
-            ##:ess-bp-start::browser@nil:##
-browser(expr=is.null(.ESSBP.[["@5@"]]));##:ess-bp-end:##
-
-
-            #Account for discrepancies possible in dm with recovery
-            ## SENDstudy$dm <- SENDstudy$dm[which(SENDstudy$dm$USUBJID %in% Subjects$USUBJID),] ## MAY BE CAUSING PROBLEMS WITH ZYT-779
-            SENDstudy$dm <- SENDstudy$dm[which(SENDstudy$dm$USUBJID %in% Subjects_2$USUBJID),] ## MAY BE CAUSING PROBLEMS WITH ZYT-779
-
-            #Find number of subjects in each group of each gender
+    #Keeps: Number of each gender animals in each treatment group
+    #Replaces: StudyID, USUBJID, Dates
+    #Account for discrepancies possible in dm with recovery
+    ## SENDstudy$dm <- SENDstudy$dm[which(SENDstudy$dm$USUBJID %in% Subjects$USUBJID),] ## MAY BE CAUSING PROBLEMS WITH ZYT-779
+    SENDstudy$dm <- SENDstudy$dm[which(SENDstudy$dm$USUBJID %in% Subjects_2$USUBJID),] ## MAY BE CAUSING PROBLEMS WITH ZYT-779
+    #Find number of subjects in each group of each gender
     #attn
     # filter out from control of Subjects
             ## ControlAnimals <- SENDstudy$dm[which(SENDstudy$dm$ARMCD == 1),]
-            control_animals <- Subjects_2[Subjects_2$Dose=='Control', c('USUBJID')]
-            ControlAnimals <- SENDstudy$dm[SENDstudy$dm$USUBJID %in% control_animals$USUBJID,]
+    control_animals <- Subjects_2[Subjects_2$Dose=='Control', c('USUBJID')]
+    ControlAnimals <- SENDstudy$dm[SENDstudy$dm$USUBJID %in% control_animals$USUBJID,]
 
-            Gendersplit <- table(ControlAnimals$SEX)
+    Gendersplit <- table(ControlAnimals$SEX)
 
-            #Replace StudyID
-            SENDstudy$dm$STUDYID <- rep(studyID, nrow(SENDstudy$dm))
+    #Replace StudyID
+    SENDstudy$dm$STUDYID <- rep(studyID, nrow(SENDstudy$dm))
 
-            #Generate new USUBJIDs using SBJID
-            NEWUSUBJID <- paste0(studyID, "-" ,SENDstudy$dm$SUBJID)
+    #Generate new USUBJIDs using SBJID
+    NEWUSUBJID <- paste0(studyID, "-" ,SENDstudy$dm$SUBJID)
             USUBJIDTable <- data.frame(USUBJID = SENDstudy$dm$USUBJID,
                                        NEWUSUBJID = NEWUSUBJID)
-            SENDstudy$dm$USUBJID <- NEWUSUBJID
+    SENDstudy$dm$USUBJID <- NEWUSUBJID
     
-            #Replace Dates
-            cols <- grep("DTC", colnames(SENDstudy$dm))
+    #Replace Dates
+    cols <- grep("DTC", colnames(SENDstudy$dm))
     SENDstudy$dm[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$dm$STUDYID))
     #attn
     # should we replace ARMCD, ARM, SETCD with SETCD?
             #Replace ARM
-            SENDstudy$dm$ARM <- as.character(SENDstudy$dm$ARM)
-            ## if (Recovery == FALSE){
-            ##     SENDstudy$dm <- SENDstudy$dm[which(grepl("R",SENDstudy$dm$ARMCD) == FALSE),]
-            ## }
+    SENDstudy$dm$ARM <- as.character(SENDstudy$dm$ARM)
+    ## if (Recovery == FALSE){
+    ##     SENDstudy$dm <- SENDstudy$dm[which(grepl("R",SENDstudy$dm$ARMCD) == FALSE),]
+    ## }
 
     Doses2 <- trt[,c('SETCD','cat','dose_order')]
     dm2 <- merge(SENDstudy$dm,Doses2, by = 'SETCD')
     dm2 <- data.table::as.data.table(dm2)
     dm2 <- dm2[, `:=`(ARMCD=dose_order,ARM=cat,dose_order=NULL,cat=NULL)]
     SENDstudy$dm <- dm2
-
-
             ## for (arms in unique(SENDstudy$dm$ARMCD)){
             ##     row <- which(arms == Doses$ARMCD)
             ##     Dosein <- unique(Doses$Dose[row])
@@ -434,76 +381,24 @@ browser(expr=is.null(.ESSBP.[["@5@"]]));##:ess-bp-end:##
             SENDstudy$dm$AGEU <- as.character(SENDstudy$dm$AGEU)
     print('DM DONE')
 #3
-#ds
-#Generate DS Data
-            #Keeps: VISITDY
-            #Replaces: StudyID, USUBJID, USUBJID, Dates
-
-            #Account for discrepancies possible in ds
-          #########
-            ## SENDstudy$ds <- SENDstudy$ds[which(SENDstudy$ds$USUBJID %in% Subjects_2$USUBJID),]
-
-            ## SENDstudy$ds$USUBJID <- SENDstudy$dm$USUBJID
-
-            ## #Calculate percentage of Terminal Sacrifice in each ARM
-            ## TerminalSac <- merge(Example$ds, Subjects, by = "USUBJID")
-            ## TerminalSac <- TerminalSac %>%
-            ##     dplyr::group_by(Dose) %>%
-            ##     dplyr::count(DSDECOD) %>%
-            ##     dplyr::mutate(percent = n/sum(n)) %>%
-            ##     dplyr::select(-n)
-
-            ## #Replace StudyID
-            ## SENDstudy$ds$STUDYID <- rep(studyID, nrow(SENDstudy$ds))
-
-            ## #Replace Dates
-            ## cols <- grep("DTC", colnames(SENDstudy$ds))
-            ## SENDstudy$ds[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$ds$STUDYID))
-
-            ## #Make Generated DS Terminal Sacrifice percentage match expectation
-            ## for(Dose in unique(Doses$Dose)){
-            ##     Percen <- TerminalSac[which(TerminalSac$Dose == Dose & TerminalSac$DSDECOD == 'TERMINAL SACRIFICE'), 'percent']
-            ##     Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose)]
-            ##     Gendata <- sample(c("TERMINAL SACRIFICE", "FOUND DEAD"),length(Subjs), replace = TRUE, prob = c(Percen, (1-Percen)))
-            ##     #Add in Randomized Data to Subjects in Each Group
-            ##     SENDstudy$ds[which(SENDstudy$ds$USUBJID %in% Subjs), "DSDECOD"] <- Gendata
-            ##     #Make VISITDY Appropriate
-            ##     if('VISITDY' %in% colnames(SENDstudy$ds)){
-
-            ##     VISTDY <- max(SENDstudy$ds[which(SENDstudy$ds$USUBJID %in% Subjs), "VISITDY"], na.rm = TRUE)
-            ##     SENDstudy$ds[which(SENDstudy$ds$USUBJID %in% Subjs), "VISITDY"] <- VISTDY
-
-            ## SENDstudy$ds <-SENDstudy$ds %>%
-            ##     dplyr::mutate(DSTERM = ifelse(DSDECOD == 'FOUND DEAD','Found Dead','Terminal necropsy')) %>%
-            ##     dplyr::mutate(VISITDY = ifelse(DSDECOD == 'FOUND DEAD',NA,VISITDY))
-            ##     }
-            ## }
-    #################
-
-            #Ensure DSTERM/VISITDY is APPROPRIATE
-            ## print('DS DONE')
-#3
 #tx
-            #Generate TX data
-
-            #Keeps: SETCD
-            #Replaces: SET
-
-            #Replace StudyID
-            SENDstudy$tx$STUDYID <- rep(studyID, nrow(SENDstudy$tx))
-
-            #Account for Recovery Animals
-            ## if (Recovery == FALSE){
-            ##     SENDstudy$tx <- SENDstudy$tx[which(grepl("R",SENDstudy$tx$SETCD) == FALSE),]
-            ## }
+    #Generate TX data
+    #Keeps: SETCD
+    #Replaces: SET
+    #Replace StudyID
+    SENDstudy$tx$STUDYID <- rep(studyID, nrow(SENDstudy$tx))
+    #Account for Recovery Animals
+    ## if (Recovery == FALSE){
+    ##     SENDstudy$tx <- SENDstudy$tx[which(grepl("R",SENDstudy$tx$SETCD) == FALSE),]
+    ## }
 
     #attn
     # how to handle SET SETCD TXVAL
-            #Replace SET with Blinded Notation
-            ARMS <- getFieldValue(SENDstudy$tx,'TXVAL','TXPARM', 'Arm Code')
-            SETS <- SENDstudy$tx$SET[which(SENDstudy$tx$TXPARM == 'Arm Code')]
-            ARMtoset <- data.frame('Arm' = ARMS, 'Set' = SETS)
-            SENDstudy$tx$TXVAL <- as.character(SENDstudy$tx$TXVAL)
+    #Replace SET with Blinded Notation
+    ARMS <- getFieldValue(SENDstudy$tx,'TXVAL','TXPARM', 'Arm Code')
+    SETS <- SENDstudy$tx$SET[which(SENDstudy$tx$TXPARM == 'Arm Code')]
+    ARMtoset <- data.frame('Arm' = ARMS, 'Set' = SETS)
+    SENDstudy$tx$TXVAL <- as.character(SENDstudy$tx$TXVAL)
     SENDstudy$tx$SET <- as.character(SENDstudy$tx$SET)
 
     tx_f <- data.table::copy(SENDstudy$tx)
@@ -514,36 +409,35 @@ browser(expr=is.null(.ESSBP.[["@5@"]]));##:ess-bp-end:##
       val <- trt[SETCD==setcd,dose_order]
       cat <- trt[SETCD==setcd,cat]
 
-    tx_f[TXPARMCD=='ARMCD' & SETCD==setcd,`:=`(TXVAL=val)]
-    tx_f[TXPARMCD=='GRPLBL' & SETCD==setcd,`:=`(TXVAL= paste0('Group: ', val, ', ' , cat))]
-    tx_f[TXPARMCD=='SPGRPCD' & SETCD==setcd,`:=`(TXVAL=val)]
-    tx_f[TXPARMCD=='TRTDOS' & SETCD==setcd,`:=`(TXVAL=cat)]
-    ## tx_f[TXPARMCD=='TRTDOSU' & SETCD==setcd,`:=`(TXVAL=cat)]
-
+      tx_f[TXPARMCD=='ARMCD' & SETCD==setcd,`:=`(TXVAL=val)]
+      tx_f[TXPARMCD=='GRPLBL' & SETCD==setcd,`:=`(TXVAL= paste0('Group: ',
+                                                                val, ', ' , cat))]
+      tx_f[TXPARMCD=='SPGRPCD' & SETCD==setcd,`:=`(TXVAL=val)]
+      tx_f[TXPARMCD=='TRTDOS' & SETCD==setcd,`:=`(TXVAL=cat)]
+      ## tx_f[TXPARMCD=='TRTDOSU' & SETCD==setcd,`:=`(TXVAL=cat)]
     }
 
   tx_f <- tx_f[TXPARMCD %in% c('ARMCD','GRPLBL','SPGRPCD','TRTDOS','TRTDOSU'),]
 
-
-            for (i in 1:nrow(ARMtoset)){
-                ARMCD <- as.character(ARMtoset$Arm[i])
-                SETCD <- as.character(ARMtoset$Set[i])
-                DoseCover <- Doses$Dose[which(Doses$ARMCD == ARMCD)]
-                if(identical(DoseCover, character(0)) == TRUE){
-                DoseCover <- ""
-                }
-                SENDstudy$tx$TXVAL[which(grepl(SETCD,SENDstudy$tx$TXVAL)== TRUE)] <- unique(DoseCover)
-                SENDstudy$tx$SET[which(SENDstudy$tx$SET == SETCD)] <- unique(DoseCover)
-            }
+    for (i in 1:nrow(ARMtoset)){
+      ARMCD <- as.character(ARMtoset$Arm[i])
+      SETCD <- as.character(ARMtoset$Set[i])
+      DoseCover <- Doses$Dose[which(Doses$ARMCD == ARMCD)]
+      if(identical(DoseCover, character(0)) == TRUE){
+        DoseCover <- ""
+      }
+      SENDstudy$tx$TXVAL[which(grepl(SETCD,SENDstudy$tx$TXVAL)== TRUE)] <- unique(DoseCover)
+      SENDstudy$tx$SET[which(SENDstudy$tx$SET == SETCD)] <- unique(DoseCover)
+    }
     ## browser()
-            #Replace Factors with Characters
-            SENDstudy$tx$SETCD <- as.character(SENDstudy$tx$SETCD)
-            SENDstudy$tx$TXPARM <- as.character(SENDstudy$tx$TXPARM)
-            SENDstudy$tx$TXPARMCD <- as.character(SENDstudy$tx$TXPARMCD)
+    #Replace Factors with Characters
+    SENDstudy$tx$SETCD <- as.character(SENDstudy$tx$SETCD)
+    SENDstudy$tx$TXPARM <- as.character(SENDstudy$tx$TXPARM)
+    SENDstudy$tx$TXPARMCD <- as.character(SENDstudy$tx$TXPARMCD)
 
-            #Remove Identifying Group Names
-            idx <- which(grepl("GRPLBL",SENDstudy$tx$TXPARMCD) == TRUE)
-            SENDstudy$tx$TXVAL[idx] <- paste0("GROUP: ", SENDstudy$tx$SET[idx])
+    #Remove Identifying Group Names
+    idx <- which(grepl("GRPLBL",SENDstudy$tx$TXPARMCD) == TRUE)
+    SENDstudy$tx$TXVAL[idx] <- paste0("GROUP: ", SENDstudy$tx$SET[idx])
     print('TX DONE')
 
 #4
@@ -572,7 +466,9 @@ browser(expr=is.null(.ESSBP.[["@5@"]]));##:ess-bp-end:##
             ## SENDstudy$bw$BWBLFL <- NA
 
             #Find average weight behavior by dose and gender in Example
-            BWFindings <- merge(Subjects, Example$bw[,c("USUBJID", "BWTESTCD", "BWSTRESN","BWDY")], by = "USUBJID")
+    BWFindings <- merge(Subjects, Example$bw[,c("USUBJID", "BWTESTCD",
+                                                "BWSTRESN","BWDY")],
+                        by = "USUBJID")
             BWSummary <- BWFindings %>%
                 dplyr::group_by(Dose, BWTESTCD,BWDY,SEX) %>%
                 dplyr::mutate(ARMavg = mean(BWSTRESN, na.rm = TRUE)) %>%
@@ -588,17 +484,21 @@ browser(expr=is.null(.ESSBP.[["@5@"]]));##:ess-bp-end:##
                     Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose & Subjects$SEX == gender)]
                     SubBWFindings <- BWFindings[which(BWFindings$USUBJID %in% Sub),]
                   ## browser()
-                    line <- data.frame(BWSTRESN = SubBWFindings$BWSTRESN, Day= SubBWFindings$BWDY, Dose = SubBWFindings$Dose)
+                  line <- data.frame(BWSTRESN = SubBWFindings$BWSTRESN,
+                                     Day= SubBWFindings$BWDY,
+                                     Dose = SubBWFindings$Dose)
                     #Make model of weight over time per dose group
                     uniq_spc <- unique(Species)
                     if (uniq_spc %in% c("DOG", "MONKEY")){
                       ## print('line 562')
                         #Linear fit
-                        posterior <- MCMCpack::MCMCregress(BWSTRESN~Day, b0=0, B0 = 0.1, data = line)
+                      posterior <- MCMCpack::MCMCregress(BWSTRESN~Day,
+                                                         b0=0, B0 = 0.1, data = line)
                     } else {
                         #Log fit
                       ## print('line 567')
-                        posterior <- MCMCpack::MCMCregress(log(BWSTRESN)~Day, b0=0, B0 = 0.1, data = line)
+                      posterior <- MCMCpack::MCMCregress(log(BWSTRESN)~Day,
+                                                         b0=0, B0 = 0.1, data = line)
                     }
                     #Sample model to fill in Example using Subjs
                     #Per individual, sample from postieror and derive line for their response
@@ -623,7 +523,8 @@ browser(expr=is.null(.ESSBP.[["@5@"]]));##:ess-bp-end:##
                                                     BWDY = BWDYs)
                         }
                         stdev <- unique(BWSummary$ARMstdev[which(BWSummary$Dose == Dose & BWSummary$SEX == gender)])
-                        GenerData$BWSTRESN <- GenerData$BWSTRESN + stats::rnorm(length(GenerData$BWSTRESN), mean = 0, sd = (stdev/2))
+                        GenerData$BWSTRESN <- GenerData$BWSTRESN + stats::rnorm(length(GenerData$BWSTRESN),
+                                                                                mean = 0, sd = (stdev/2))
                         #Fill into SENDstudy being generated
                         for (day in BWDYs){
                             idx <-which(SENDstudy$bw$USUBJID %in% Subj &
@@ -639,7 +540,8 @@ browser(expr=is.null(.ESSBP.[["@5@"]]));##:ess-bp-end:##
             #Testing code to graph fit compared to average of that ARM
             #Convert all BW into data.frame
             Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == "HD" & ExampleSubjects$SEX == "M")]
-             TEST <- SENDstudy$bw[which(SENDstudy$bw$USUBJID %in% Subjs), c("BWDY","BWSTRESN","USUBJID")]
+    TEST <- SENDstudy$bw[which(SENDstudy$bw$USUBJID %in% Subjs),
+                         c("BWDY","BWSTRESN","USUBJID")]
 
             #Make BWSTRESC and BWORRES match
             SENDstudy$bw$BWSTRESC <- as.character(SENDstudy$bw$BWSTRESN)
@@ -658,7 +560,7 @@ browser(expr=is.null(.ESSBP.[["@5@"]]));##:ess-bp-end:##
 
 print('BW DONE')
 #5
-#LB
+    #LB
             ######### Generates NUMERICAL LB Data #############
             #Keeps: DOMAIN, LBTESTs, LBTESTCD, LBDY, LBDY, LBCAT
             #Replaces: STUDYID, USUBJID, LBORRES, LBSTRESC, LBSTRESN, and LBDTC
@@ -707,11 +609,9 @@ stop('No observation for Clinical Chemistry in this study')
     for (Dose in unique(Doses$Dose)){
                 for (gender in unique(ExampleSubjects$SEX)){
                   ## print(paste0(Dose, " - ", gender))
-                    Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose & ExampleSubjects$SEX == gender)]
-                    Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose & Subjects$SEX == gender)]
+                  Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose & ExampleSubjects$SEX == gender)]
+                  Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose & Subjects$SEX == gender)]
                   GroupTests <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjs), c("LBTESTCD","LBSPEC")]
-
-
  ## LBTESTCD LBSPEC
  ##    UREAN  SERUM
  ##     CHOL  SERUM
@@ -742,26 +642,22 @@ stop('No observation for Clinical Chemistry in this study')
 
                         LBDATAs <- LBDATAs[which(LBDATAs$LBTESTCD %in% highDataTests),]
                         # how to make line with varying amount of variables
-                        line <- data.frame(USUBJID= LBDATAs$USUBJID, LBSTRESN = LBDATAs$LBSTRESN, Day= LBDATAs$LBDY, LBTEST = LBDATAs$LBTESTCD)
+                      line <- data.frame(USUBJID= LBDATAs$USUBJID,
+                                         LBSTRESN = LBDATAs$LBSTRESN,
+                                         Day= LBDATAs$LBDY, LBTEST = LBDATAs$LBTESTCD)
                         line <- dplyr::distinct(line) #check for and remove duplicate rows
-                        line <- stats::reshape(line, idvar = c("USUBJID","Day"), timevar = 'LBTEST', direction = "wide")
-                        line <- sapply(line[,2:ncol(line)], as.numeric)
+                      line <- stats::reshape(line, idvar = c("USUBJID","Day"),
+                                             timevar = 'LBTEST', direction = "wide")
+                      line <- sapply(line[,2:ncol(line)], as.numeric)
                         colnames(line) <- gsub("LBSTRESN.","",colnames(line))
                         line <- as.data.frame(line)
                         #Remove NA values (fit cannot have them)
                         line <- stats::na.omit(line)
                         no_col <- length(colnames(line))
                       no_row <- nrow(line)
-                        ## if (no_col > no_row) {
-
-
-
-                        ## }
-                        ## tryCatch({
 
                         ll <- unique(LBDATAs$LBTESTCD)
                         ll <- ll[which(!ll %in% 'GLOBUL')]
-## browser()
                         for (test in ll){
 
                           tryCatch({
@@ -807,7 +703,9 @@ stop('No observation for Clinical Chemistry in this study')
                                   LBTESTVAR <- LBTESTVAR + LBFit[num2]*line[,"Day"]*line[,testnm]
                                 }
                                 #Add Variance using stdev/rnorm
-                                stdev <- unique(LBSummary[which(LBSummary$Dose == Dose & LBSummary$SEX == gender & LBSummary$LBTESTCD == test),c('ARMstdev','LBDY')])
+                                stdev <- unique(LBSummary[which(LBSummary$Dose == Dose &
+                                                                LBSummary$SEX == gender & LBSummary$LBTESTCD == test),
+                                                          c('ARMstdev','LBDY')])
                                 LBTESTVAR <- abs(LBTESTVAR + stats::rnorm(length(LBTESTVAR), mean = 0, sd = (stdev$ARMstdev)))
 
                                 #Fill DataFrame to allocate to fake individual based on Day once variance is added
@@ -835,7 +733,6 @@ stop('No observation for Clinical Chemistry in this study')
                                 #add to subject count before new subject done
                                 sn <- sn+1
                             }
-                        ## }
 
                           }, error=function(e) {
 
@@ -1119,17 +1016,8 @@ om_df[USUBJID==sub & OMTESTCD=='OWBW', `:=`(new_c=(OMSTRESN_new/sub_bw)*100)]
 
 brain <- sub_df[OMSPEC=='BRAIN' & OMTESTCD=='WEIGHT', OMSTRESN]
 om_df[USUBJID==sub & OMTESTCD=='BWBR', `:=`(new_c=(sub_bw/brain)*100)]
-
-
       }
-
-
-
 }
-
-
-
-
   }
 
 
