@@ -23,13 +23,15 @@
 #' @importFrom data.table rbindlist
 #' @importFrom utils tail
 #' @importFrom magrittr  %>%
-
+# test
 # what will happen when visitday not present but dsnomdy present
 #current domain
 #ts,tx,dm,ds
 #bw,lb,om,mi
 #whether ds include or not
-
+# sequence current
+#ts,dm,tx,bw,lb,om,mi
+# start here
 sanitize <- function(path, number=1, recovery=FALSE,
                      where_to_save=NULL) {
 
@@ -44,6 +46,7 @@ sanitize <- function(path, number=1, recovery=FALSE,
 
     multi_study <- FALSE
   }
+
   #######################
   if(!multi_study){
 
@@ -164,6 +167,7 @@ trt <- dose_categorize(trt)
   if(!Recovery){
 
   if(length(unique(trt[cat=='Control',SETCD]))>1){
+    print(trt)
 
     stop('There are more than one control group. This is probably a combination study.')
 
@@ -184,6 +188,7 @@ trt <- dose_categorize(trt)
 
   if(length(unique(trt[cat=='Control',SETCD]))>2){
 
+    print(trt)
     stop('There are more than two control group. This is probably a combination study.')
 
   }
@@ -235,9 +240,15 @@ trt[SETCD %in% all_setcd[[1]][[1]][['recovery_group']],`:=`(dose_order=paste0(do
 #########################################################################################
 #########################################################################################
         #Correlate USUBJID with Dose Group
+Doses_m <- Doses[, c('ARMCD','Dose')]
+Doses_m <- Doses_m[!duplicated(Doses_m)]
+trt_m <- trt[,c('SETCD','cat','dose_order')]
+trt_m <- trt_m[!duplicated(trt_m)]
 
-  Subjects <- merge(Example$dm[,c("USUBJID","ARMCD","SEX")], Doses[, c("ARMCD","Dose")], by = "ARMCD")
-  Subjects_2 <- merge(Example$dm[,c('USUBJID','SETCD','SEX','ARMCD','ARM')], trt[,c('SETCD','cat','dose_order')], by = 'SETCD')
+
+
+  Subjects <- merge(Example$dm[,c("USUBJID","ARMCD","SEX")], Doses_m, by = "ARMCD")
+  Subjects_2 <- merge(Example$dm[,c('USUBJID','SETCD','SEX','ARMCD','ARM')], trt_m, by = 'SETCD')
   Subjects_2 <- Subjects_2[, c('USUBJID','SEX','ARMCD','ARM','SETCD','cat','dose_order')]
   ## Subjects_2 <- Subjects_2[,c('USUBJID','SEX','SETCD','cat')]
   Subjects_2$Dose <- Subjects_2$cat
@@ -345,15 +356,14 @@ ind <- which(Example$mi$MISEV=='')
             rows <- grep("STITLE", SENDstudy$ts$TSPARMCD)
             duration <- getFieldValue(SENDstudy$ts, "TSVAL", "TSPARMCD", "DOSDUR")
             SENDstudy$ts[rows, "TSVAL"] <- paste0(Compound, ": A ",  duration," Fake Study in ",
-                                                  Species)
-
+                                                  unique(Species))
             #Clean up Vehicle
             idx <- which(grepl("TRTV",SENDstudy$ts$TSPARMCD)==TRUE)
             SENDstudy$ts[idx,"TSVAL"] <- paste0("VEHICLE")
 
             #Remove Identifying Information
             RemoveTerms <- c("TFCNTRY","STDIR","SPLRNAM","TFCNTRY","TRMSAC","SSPONSOR","SPREFID", "SPLRLOC",
-                             "PINV","STMON","TSLOC","TSCNTRY","DIET","WATER", "PCLASS")
+                             "PINV","STMON","TSLOC","TSCNTRY","DIET","WATER", "PCLASS","TSNAM")
             for (term in RemoveTerms){
                 #Check index for Term
                 idx <- which(SENDstudy$ts$TSPARMCD == term)
@@ -362,10 +372,14 @@ ind <- which(Example$mi$MISEV=='')
             }
 
     print('TS DONE')
-#2           #Generate DM Data
-    #dm
+#2
+#dm
+#Generate DM Data
             #Keeps: Number of each gender animals in each treatment group
             #Replaces: StudyID, USUBJID, Dates
+            ##:ess-bp-start::browser@nil:##
+browser(expr=is.null(.ESSBP.[["@5@"]]));##:ess-bp-end:##
+
 
             #Account for discrepancies possible in dm with recovery
             ## SENDstudy$dm <- SENDstudy$dm[which(SENDstudy$dm$USUBJID %in% Subjects$USUBJID),] ## MAY BE CAUSING PROBLEMS WITH ZYT-779
@@ -376,7 +390,7 @@ ind <- which(Example$mi$MISEV=='')
     # filter out from control of Subjects
             ## ControlAnimals <- SENDstudy$dm[which(SENDstudy$dm$ARMCD == 1),]
             control_animals <- Subjects_2[Subjects_2$Dose=='Control', c('USUBJID')]
-            ControlAnimals <- SENDstudy$dm[SENDstudy$dm$USUBJID %in% control_animals,]
+            ControlAnimals <- SENDstudy$dm[SENDstudy$dm$USUBJID %in% control_animals$USUBJID,]
 
             Gendersplit <- table(ControlAnimals$SEX)
 
@@ -388,7 +402,7 @@ ind <- which(Example$mi$MISEV=='')
             USUBJIDTable <- data.frame(USUBJID = SENDstudy$dm$USUBJID,
                                        NEWUSUBJID = NEWUSUBJID)
             SENDstudy$dm$USUBJID <- NEWUSUBJID
-
+    
             #Replace Dates
             cols <- grep("DTC", colnames(SENDstudy$dm))
     SENDstudy$dm[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$dm$STUDYID))
@@ -467,8 +481,8 @@ ind <- which(Example$mi$MISEV=='')
     #################
 
             #Ensure DSTERM/VISITDY is APPROPRIATE
-            print('DS DONE')
-#4
+            ## print('DS DONE')
+#3
 #tx
             #Generate TX data
 
@@ -532,6 +546,7 @@ ind <- which(Example$mi$MISEV=='')
             SENDstudy$tx$TXVAL[idx] <- paste0("GROUP: ", SENDstudy$tx$SET[idx])
     print('TX DONE')
 
+#4
 #bw
             #Generates BW Data
             #Keeps: BWORRESU, BWTESTCD, BWSTRESU
@@ -575,7 +590,8 @@ ind <- which(Example$mi$MISEV=='')
                   ## browser()
                     line <- data.frame(BWSTRESN = SubBWFindings$BWSTRESN, Day= SubBWFindings$BWDY, Dose = SubBWFindings$Dose)
                     #Make model of weight over time per dose group
-                    if (Species %in% c("DOG", "MONKEY")){
+                    uniq_spc <- unique(Species)
+                    if (uniq_spc %in% c("DOG", "MONKEY")){
                       ## print('line 562')
                         #Linear fit
                         posterior <- MCMCpack::MCMCregress(BWSTRESN~Day, b0=0, B0 = 0.1, data = line)
@@ -593,7 +609,7 @@ ind <- which(Example$mi$MISEV=='')
                         BWDYs <-SENDstudy$bw$BWDY[which(SENDstudy$bw$USUBJID == Subj)]
                         SubFit <- Fit[sn]
                         #Calculate BWSTRESN per BWDY in Model
-                        if (Species %in% c("DOG", "MONKEY")){
+                        if (uniq_spc %in% c("DOG", "MONKEY")){
                             #Linear fit
                             GenerData <- data.frame(BWSTRESN = posterior[SubFit,1]+posterior[SubFit,2]*BWDYs,
                                                     BWDY = BWDYs)
@@ -641,8 +657,8 @@ ind <- which(Example$mi$MISEV=='')
             }
 
 print('BW DONE')
-#7
-            #LB
+#5
+#LB
             ######### Generates NUMERICAL LB Data #############
             #Keeps: DOMAIN, LBTESTs, LBTESTCD, LBDY, LBDY, LBCAT
             #Replaces: STUDYID, USUBJID, LBORRES, LBSTRESC, LBSTRESN, and LBDTC
@@ -861,7 +877,7 @@ stop('No observation for Clinical Chemistry in this study')
             SENDstudy$lb$LBSPEC <- as.character(SENDstudy$lb$LBSPEC)
             SENDstudy$lb$LBSTRESU <- as.character(SENDstudy$lb$LBSTRESU)
     print('LB DONE')
-#8
+#6
 #OM
             ######### Generates NUMERICAL OM Data #############
 ## generate OM data
@@ -1206,8 +1222,8 @@ dl <-   dk[OMTESTCD=="WEIGHT", c(3,4,5,6,9)][order(OMTESTCD,OMSPEC)]
     SENDstudy$om$OMSTRESU <- as.character(SENDstudy$om$OMSTRESU)
 
   print('OM DONE')
-
-  #MI
+#7
+#MI
   #Generate MI Data
   #Keeps: MISPEC, MIDY, MISTESTCD, MITEST,
   #Replaces: STUDYID, USUBJID, MIDTC, MISTRESC, MIORRES, MISEV
