@@ -401,87 +401,89 @@ ind <- which(Example$mi$MISEV=='')
 
 #4
 #bw
-            #Generates BW Data
-            #Keeps: BWORRESU, BWTESTCD, BWSTRESU
-            #Replaces: STUDYID, USUBJID, BWORRES, BWSTRESC, BWSTRESN, and BWDTC
-            #Removes: BWBLFL
+    #Generates BW Data
+    #Keeps: BWORRESU, BWTESTCD, BWSTRESU
+    #Replaces: STUDYID, USUBJID, BWORRES, BWSTRESC, BWSTRESN, and BWDTC
+    #Removes: BWBLFL
 
-            #Account for TK discrepancies possible in BW
-            SENDstudy$bw <- SENDstudy$bw[which(SENDstudy$bw$USUBJID %in% Subjects$USUBJID),]
+    #Account for TK discrepancies possible in BW
+    SENDstudy$bw <- SENDstudy$bw[which(SENDstudy$bw$USUBJID %in% Subjects$USUBJID),]
 
-            #Add Generated StudyID and USUBJID
-            SENDstudy$bw$STUDYID <- rep(studyID, nrow(SENDstudy$bw))
-            SENDstudy$bw$USUBJID <- as.character(SENDstudy$bw$USUBJID)
-            SENDstudy$bw <- merge( USUBJIDTable,SENDstudy$bw, by = "USUBJID")
-            SENDstudy$bw <- SENDstudy$bw[,!(names(SENDstudy$bw) %in% "USUBJID")]
-            names(SENDstudy$bw)[names(SENDstudy$bw) == "NEWUSUBJID"] <- "USUBJID"
+    #Add Generated StudyID and USUBJID
+    SENDstudy$bw$STUDYID <- rep(studyID, nrow(SENDstudy$bw))
+    SENDstudy$bw$USUBJID <- as.character(SENDstudy$bw$USUBJID)
+    SENDstudy$bw <- merge( USUBJIDTable,SENDstudy$bw, by = "USUBJID")
+    SENDstudy$bw <- SENDstudy$bw[,!(names(SENDstudy$bw) %in% "USUBJID")]
+    names(SENDstudy$bw)[names(SENDstudy$bw) == "NEWUSUBJID"] <- "USUBJID"
 
-            #Remove Dates
-            cols <- grep("DTC", colnames(SENDstudy$bw))
-            SENDstudy$bw[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$bw$STUDYID))
+    #Remove Dates
+    cols <- grep("DTC", colnames(SENDstudy$bw))
+    SENDstudy$bw[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$bw$STUDYID))
 
-            #Remove BWBLFL
+    #Remove BWBLFL
 
-            ## SENDstudy$bw$BWBLFL <- NA
+    ## SENDstudy$bw$BWBLFL <- NA
 
-            #Find average weight behavior by dose and gender in Example
+    #Find average weight behavior by dose and gender in Example
     BWFindings <- merge(Subjects,
                         Example$bw[,c("USUBJID", "BWTESTCD",
                                       "BWSTRESN","BWDY")], by = "USUBJID")
 
     BWFindings_2 <- merge(Subjects_2,
-                        Example$bw[,c("USUBJID", "BWTESTCD",
-                                      "BWSTRESN","BWDY")], by = "USUBJID")
-            BWSummary <- BWFindings %>%
-                dplyr::group_by(Dose, BWTESTCD,BWDY,SEX) %>%
+                          Example$bw[,c("USUBJID", "BWTESTCD",
+                                        "BWSTRESN","BWDY")], by = "USUBJID")
+    BWSummary <- BWFindings %>%
+      dplyr::group_by(Dose, BWTESTCD,BWDY,SEX) %>%
                 dplyr::mutate(ARMavg = mean(BWSTRESN, na.rm = TRUE)) %>%
-                dplyr::mutate(ARMstdev = sd(BWSTRESN,na.rm = TRUE))
+      dplyr::mutate(ARMstdev = sd(BWSTRESN,na.rm = TRUE))
     # when there is only one value in group
     # sd is NA.
     # which later create warning in generdata and stdev
-            #Make Model of weight using MCMCregress
-            for (Dose in unique(Doses$Dose)){
-                for (gender in unique(ExampleSubjects$SEX)){
-                    #Limit to proper gender subjects
-                    Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose & ExampleSubjects$SEX == gender)]
-                    Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose & Subjects$SEX == gender)]
-                    SubBWFindings <- BWFindings[which(BWFindings$USUBJID %in% Sub),]
-                  ## browser()
-                  line <- data.frame(BWSTRESN = SubBWFindings$BWSTRESN,
-                                     Day= SubBWFindings$BWDY,
+    #Make Model of weight using MCMCregress
+    for (Dose in unique(Doses$Dose)){
+      for (gender in unique(ExampleSubjects$SEX)){
+        #Limit to proper gender subjects
+        Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose &
+                                               ExampleSubjects$SEX == gender)]
+        Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose &
+                                      Subjects$SEX == gender)]
+        SubBWFindings <- BWFindings[which(BWFindings$USUBJID %in% Sub),]
+        ## browser()
+        line <- data.frame(BWSTRESN = SubBWFindings$BWSTRESN,
+                           Day= SubBWFindings$BWDY,
                                      Dose = SubBWFindings$Dose)
-                    #Make model of weight over time per dose group
-                    uniq_spc <- unique(Species)
-                    if (uniq_spc %in% c("DOG", "MONKEY")){
-                      ## print('line 562')
-                        #Linear fit
-                      posterior <- MCMCpack::MCMCregress(BWSTRESN~Day,
-                                                         b0=0, B0 = 0.1, data = line)
-                    } else {
-                        #Log fit
-                      ## print('line 567')
-                      posterior <- MCMCpack::MCMCregress(log(BWSTRESN)~Day,
-                                                         b0=0, B0 = 0.1, data = line)
-                    }
+        #Make model of weight over time per dose group
+        uniq_spc <- unique(Species)
+        if (uniq_spc %in% c("DOG", "MONKEY")){
+          ## print('line 562')
+          #Linear fit
+          posterior <- MCMCpack::MCMCregress(BWSTRESN~Day,
+                                             b0=0, B0 = 0.1, data = line)
+        } else {
+          #Log fit
+          ## print('line 567')
+          posterior <- MCMCpack::MCMCregress(log(BWSTRESN)~Day,
+                                             b0=0, B0 = 0.1, data = line)
+        }
                     #Sample model to fill in Example using Subjs
-                    #Per individual, sample from postieror and derive line for their response
-                    Fit <- sample(1:nrow(posterior), size=length(Subjs))
-                    sn <-1
-                    #Use that fit to generate new animal data
-                    for (Subj in Subjs){
+        #Per individual, sample from postieror and derive line for their response
+        Fit <- sample(1:nrow(posterior), size=length(Subjs))
+        sn <-1
+        #Use that fit to generate new animal data
+        for (Subj in Subjs){
                         BWDYs <-SENDstudy$bw$BWDY[which(SENDstudy$bw$USUBJID == Subj)]
                         SubFit <- Fit[sn]
                         #Calculate BWSTRESN per BWDY in Model
                         if (uniq_spc %in% c("DOG", "MONKEY")){
-                            #Linear fit
-                            GenerData <- data.frame(BWSTRESN = posterior[SubFit,1]+posterior[SubFit,2]*BWDYs,
-                                                    BWDY = BWDYs)
+                          #Linear fit
+                          GenerData <- data.frame(BWSTRESN = posterior[SubFit,1]+posterior[SubFit,2]*BWDYs,
+                                                  BWDY = BWDYs)
 
                           ## (Intercept)         Day      sigma2
                           ## 2.683688382 0.002356868 0.024676656
                           ##  BWSTRESN <- intercept + Day * BWDYs
                         } else {
-                            #Log Fit
+                          #Log Fit
                           GenerData <- data.frame(BWSTRESN = exp(posterior[SubFit,1]+posterior[SubFit,2]*BWDYs),
                                                   BWDY = BWDYs)
                         }
@@ -496,33 +498,34 @@ ind <- which(Example$mi$MISEV=='')
                           SENDstudy$bw$BWSTRESN[idx] <- round(GenerData$BWSTRESN[idx2],2)
                         }
                         sn <- sn+1
-                    }
-                }
-            }
+        }
+      }
+    }
 
-            #Testing code to graph fit compared to average of that ARM
-            #Convert all BW into data.frame
-            Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == "HD" & ExampleSubjects$SEX == "M")]
+    #Testing code to graph fit compared to average of that ARM
+    #Convert all BW into data.frame
+    Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == "HD" &
+                                           ExampleSubjects$SEX == "M")]
     TEST <- SENDstudy$bw[which(SENDstudy$bw$USUBJID %in% Subjs),
                          c("BWDY","BWSTRESN","USUBJID")]
 
-            #Make BWSTRESC and BWORRES match
-            SENDstudy$bw$BWSTRESC <- as.character(SENDstudy$bw$BWSTRESN)
-            SENDstudy$bw$BWORRES <- SENDstudy$bw$BWSTRESN
-            SENDstudy$bw$BWORRESU <- SENDstudy$bw$BWSTRESU
+    #Make BWSTRESC and BWORRES match
+    SENDstudy$bw$BWSTRESC <- as.character(SENDstudy$bw$BWSTRESN)
+    SENDstudy$bw$BWORRES <- SENDstudy$bw$BWSTRESN
+    SENDstudy$bw$BWORRESU <- SENDstudy$bw$BWSTRESU
 
-            #Make Factors as Characters
-            SENDstudy$bw$BWORRESU <- as.character(SENDstudy$bw$BWORRESU)
-            SENDstudy$bw$BWSTRESU <- as.character(SENDstudy$bw$BWSTRESU)
-            SENDstudy$bw$BWTESTCD <- as.character(SENDstudy$bw$BWTESTCD)
-            SENDstudy$bw$BWTEST <- as.character(SENDstudy$bw$BWTEST)
-            SENDstudy$bw$BWDY <- as.character(SENDstudy$bw$BWDY)
+    #Make Factors as Characters
+    SENDstudy$bw$BWORRESU <- as.character(SENDstudy$bw$BWORRESU)
+    SENDstudy$bw$BWSTRESU <- as.character(SENDstudy$bw$BWSTRESU)
+    SENDstudy$bw$BWTESTCD <- as.character(SENDstudy$bw$BWTESTCD)
+    SENDstudy$bw$BWTEST <- as.character(SENDstudy$bw$BWTEST)
+    SENDstudy$bw$BWDY <- as.character(SENDstudy$bw$BWDY)
             if (any(grepl('VISITDY',colnames(SENDstudy$bw)) == TRUE)){
-                SENDstudy$bw$VISITDY <- as.character(SENDstudy$bw$VISITDY)
+              SENDstudy$bw$VISITDY <- as.character(SENDstudy$bw$VISITDY)
             }
 
-print('BW DONE')
-#5
+    print('BW DONE')
+    #5
     #LB
             ######### Generates NUMERICAL LB Data #############
             #Keeps: DOMAIN, LBTESTs, LBTESTCD, LBDY, LBDY, LBCAT
