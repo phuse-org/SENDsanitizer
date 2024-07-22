@@ -3,7 +3,7 @@
 #' path where real data/xpt files located, should be a directory that contains
 #' xpt files
 #' @param number mandatory, default 1\cr
-#'   how many studies to generate
+#'   how many studies to generate. Currently only work with 1
 #' @param recovery optional\cr
 #' recovery
 #' @param where_to_save mandatory\cr
@@ -23,19 +23,37 @@
 # test
 # what will happen when visitday not present but dsnomdy present
 # sequence current
-#ts,dm,tx,bw,lb,om,mi
+#ts,dm,tx
+#bw,lb,om,mi
 # start here
 sanitize <- function(path, number=1, recovery=FALSE,
                      where_to_save=NULL) {
-        number  <- as.numeric(number)
-        PRINT <- FALSE
-        Recovery <- recovery
-        ExampleStudies <- path
-        NumData <- length(ExampleStudies)
+  # whether to show original value in table, this
+  # for test only, if true it will not write data
+  test_original <- FALSE
+  ## test_original <- TRUE
+  number  <- as.numeric(number)
+  PRINT <- FALSE
+  Recovery <- recovery
+  ExampleStudies <- path
+  NumData <- length(ExampleStudies)
   if(NumData > 1){
     multi_study <- TRUE
-  }else{
+  } else{
     multi_study <- FALSE
+  }
+  # check if directory given for where to save data
+  if(!is.null(where_to_save)) {
+    if(!fs::is_dir(where_to_save)) {
+      stop("Provide a correct directory where to save data")
+    }
+  } else{
+    stop("Directory for where_to_save is not given. Provide direcotry.")
+  }
+
+  # number of study to generate
+  if(number!=1){
+stop("Currently only work with 1. Please set number to 1")
   }
   #######################
   if(!multi_study){
@@ -228,12 +246,12 @@ ind <- which(Example$mi$MISEV=='')
                                               "2", "3", "4","5"))
         #Set number of subjects to create based on Example(s)
   ## SubjectDet <- all_sub[, ]
-  SubjectDet <- Subjects %>%
-          dplyr::group_by(Dose) %>%
-          dplyr::count(USUBJID) %>%
-          dplyr::mutate(sum = sum(n)) %>%
-          dplyr::select(-n)
-  SubjectDet <- SubjectDet[!duplicated(SubjectDet$Dose),]
+  ## SubjectDet <- Subjects %>%
+  ##         dplyr::group_by(Dose) %>%
+  ##         dplyr::count(USUBJID) %>%
+  ##         dplyr::mutate(sum = sum(n)) %>%
+  ##         dplyr::select(-n)
+  ## SubjectDet <- SubjectDet[!duplicated(SubjectDet$Dose),]
         GeneratedSEND <- list()
   ## print(GeneratedSEND)
   for (j in 1:number ){
@@ -333,8 +351,8 @@ ind <- which(Example$mi$MISEV=='')
     SENDstudy$dm$STUDYID <- rep(studyID, nrow(SENDstudy$dm))
     #Generate new USUBJIDs using SBJID
     NEWUSUBJID <- paste0(studyID, "-" ,SENDstudy$dm$SUBJID)
-            USUBJIDTable <- data.frame(USUBJID = SENDstudy$dm$USUBJID,
-                                       NEWUSUBJID = NEWUSUBJID)
+    USUBJIDTable <- data.frame(USUBJID = SENDstudy$dm$USUBJID,
+                               NEWUSUBJID = NEWUSUBJID)
     SENDstudy$dm$USUBJID <- NEWUSUBJID
     #Replace Dates
     cols <- grep("DTC", colnames(SENDstudy$dm))
@@ -343,8 +361,8 @@ ind <- which(Example$mi$MISEV=='')
     SENDstudy$dm$ARM <- as.character(SENDstudy$dm$ARM)
     # only first study
     onestudy <- as.character(Example$dm$STUDYID[1])
-    Doses2 <- trt[STUDYID==onestudy,c('SETCD','cat','dose_order')]
-    dm2 <- merge(SENDstudy$dm,Doses2, by = 'SETCD')
+    trt_one_st <- trt[STUDYID==onestudy,c('SETCD','cat','dose_order')]
+    dm2 <- merge(SENDstudy$dm,trt_one_st, by = 'SETCD')
     dm2 <- data.table::as.data.table(dm2)
     dm2 <- dm2[, `:=`(ARMCD=dose_order,ARM=cat,dose_order=NULL,cat=NULL)]
     SENDstudy$dm <- dm2
@@ -401,14 +419,22 @@ ind <- which(Example$mi$MISEV=='')
 
 #4
 #bw
+# bw done
     #Generates BW Data
     #Keeps: BWORRESU, BWTESTCD, BWSTRESU
     #Replaces: STUDYID, USUBJID, BWORRES, BWSTRESC, BWSTRESN, and BWDTC
     #Removes: BWBLFL
 
     #Account for TK discrepancies possible in BW
-    SENDstudy$bw <- SENDstudy$bw[which(SENDstudy$bw$USUBJID %in% Subjects$USUBJID),]
+    # remove tk animals
+    SENDstudy$bw <- SENDstudy$bw[which(SENDstudy$bw$USUBJID %in% Subjects_2$USUBJID),]
 
+    #
+    # copied from dm to see how usubjidtable created
+    ## NEWUSUBJID <- paste0(studyID, "-" ,SENDstudy$dm$SUBJID)
+    ## USUBJIDTable <- data.frame(USUBJID = SENDstudy$dm$USUBJID,
+    ##                            NEWUSUBJID = NEWUSUBJID)
+    ## SENDstudy$dm$USUBJID <- NEWUSUBJID
     #Add Generated StudyID and USUBJID
     SENDstudy$bw$STUDYID <- rep(studyID, nrow(SENDstudy$bw))
     SENDstudy$bw$USUBJID <- as.character(SENDstudy$bw$USUBJID)
@@ -423,13 +449,32 @@ ind <- which(Example$mi$MISEV=='')
     #Remove BWBLFL
 
     ## SENDstudy$bw$BWBLFL <- NA
-
+## Subjects <- Subjects_2
     #Find average weight behavior by dose and gender in Example
-    BWFindings <- merge(Subjects,
-                        Example$bw[,c("USUBJID", "BWTESTCD",
-                                      "BWSTRESN","BWDY")], by = "USUBJID")
+    ## BWFindings <- merge(Subjects,
+    ##                     Example$bw[,c("USUBJID", "BWTESTCD",
+    ##                                   "BWSTRESN","BWDY")], by = "USUBJID")
 
-    BWFindings_2 <- merge(Subjects_2,
+    # this all orginal study info
+    # example$bw
+    # copied from up just to see what Subjects_2 mean
+    ## Subjects_2 <- merge(Example$dm[,c('USUBJID','SETCD','SEX','ARMCD','ARM')],
+    ##                     trt_m, by = 'SETCD')
+    ## Subjects_2 <- Subjects_2[, c('USUBJID','SEX','ARMCD','ARM',
+    ##                              'SETCD','cat','dose_order')]
+    ##
+    ##
+    ## ExampleSubjects <- SENDstudy$dm[,c("USUBJID", "ARM","SUBJID","SEX")]
+    ## we are creating new study in SENDstudy$bw
+    ## SENDstudy$ARM is from trt cat or control LD MD HD
+    ##
+    if(test_original){
+      SENDstudy$bw$original <- SENDstudy$bw$BWSTRESN
+
+    }
+    onestudy <- as.character(Example$dm$STUDYID[1])
+    trt_one <- trt[STUDYID==onestudy,]
+    BWFindings <- merge(Subjects_2,
                           Example$bw[,c("USUBJID", "BWTESTCD",
                                         "BWSTRESN","BWDY")], by = "USUBJID")
     BWSummary <- BWFindings %>%
@@ -440,18 +485,25 @@ ind <- which(Example$mi$MISEV=='')
     # sd is NA.
     # which later create warning in generdata and stdev
     #Make Model of weight using MCMCregress
-    for (Dose in unique(Doses$Dose)){
+
+    for (Dose in unique(trt_one$cat)){
       for (gender in unique(ExampleSubjects$SEX)){
         #Limit to proper gender subjects
+        #this from SENDstudy$dm, fake studyid and fake subject id
         Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose &
                                                ExampleSubjects$SEX == gender)]
-        Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose &
-                                      Subjects$SEX == gender)]
+
+        # this `Sub` from original, Example$dm, if multiple studies then
+        # subjects from multiple studies
+        Sub <- Subjects_2$USUBJID[which(Subjects_2$Dose == Dose &
+                                      Subjects_2$SEX == gender)]
+        # original value for group dose and sex
         SubBWFindings <- BWFindings[which(BWFindings$USUBJID %in% Sub),]
         ## browser()
         line <- data.frame(BWSTRESN = SubBWFindings$BWSTRESN,
                            Day= SubBWFindings$BWDY,
                                      Dose = SubBWFindings$Dose)
+
         #Make model of weight over time per dose group
         uniq_spc <- unique(Species)
         if (uniq_spc %in% c("DOG", "MONKEY")){
@@ -523,7 +575,15 @@ ind <- which(Example$mi$MISEV=='')
             if (any(grepl('VISITDY',colnames(SENDstudy$bw)) == TRUE)){
               SENDstudy$bw$VISITDY <- as.character(SENDstudy$bw$VISITDY)
             }
-
+## View(SENDstudy$bw)
+## print(head(Example$bw))
+    if(test_original){
+      df_bw <- data.table::as.data.table(SENDstudy$bw)
+      df_bw <- df_bw[, c(names(df_bw)[!(names(df_bw) %in% c("original","BWSTRESN"))],
+                         c( "original","BWSTRESN")), with = FALSE]
+      df_bw <- df_bw[,`:=`(res_diff=BWSTRESN - original)]
+      View(df_bw,'bw_test')
+    }
     print('BW DONE')
     #5
     #LB
@@ -1008,7 +1068,7 @@ dl <-   dk[OMTESTCD=="WEIGHT", c(3,4,5,6,9)][order(OMTESTCD,OMSPEC)]
     ##   for(gender in unique(ExampleSubjects$SEX)){
 
     ##     Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose & ExampleSubjects$SEX == gender)]
-    ##     Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose & Subjects$SEX == gender)]
+    ##     Sub <- /Subjects$USUBJID[which(Subjects$Dose == Dose & Subjects$SEX == gender)]
     ##     GroupTests <- SENDstudy$om[which(SENDstudy$om$USUBJID %in% Subjs), c("OMTESTCD","OMSPEC")]
     ##     GroupTests <- GroupTests[GroupTests$OMTESTCD %in% c('OWBR','OWHT'),]
 
@@ -1181,8 +1241,9 @@ print('MI DONE')
             ##### Save Generated Study for Tables ####
             GeneratedSEND[[j]] <- SENDstudy
 
-            ############# Export Folder of Generated Data #################
+  ############# Export Folder of Generated Data #################
 
+  if(!test_original){
             if (!is.null(where_to_save)){
                 #Create .xpt files if you can
                 study_fake <- paste0('FAKE',studyID)
@@ -1226,4 +1287,5 @@ print('MI DONE')
 
             }
 
+  }
         }
