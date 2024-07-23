@@ -588,14 +588,28 @@ ind <- which(Example$mi$MISEV=='')
 
 #5
 #lb
+#
+    # this all orginal study info
+    # example$bw
+    # copied from up just to see what Subjects_2 mean
+    ## Subjects_2 <- merge(Example$dm[,c('USUBJID','SETCD','SEX','ARMCD','ARM')],
+    ##                     trt_m, by = 'SETCD')
+    ## Subjects_2 <- Subjects_2[, c('USUBJID','SEX','ARMCD','ARM',
+    ##                              'SETCD','cat','dose_order')]
+    ##
+    ##
+    ## ExampleSubjects <- SENDstudy$dm[,c("USUBJID", "ARM","SUBJID","SEX")]
+    ## we are creating new study in SENDstudy$bw
+    ## SENDstudy$ARM is from trt cat or control LD MD HD
 ######### Generates NUMERICAL LB Data #############
     #Keeps: DOMAIN, LBTESTs, LBTESTCD, LBDY, LBDY, LBCAT
     #Replaces: STUDYID, USUBJID, LBORRES, LBSTRESC, LBSTRESN, and LBDTC
     #Removes: LBBLFL
 
     #Account for TK discrepancies possible in LB
-    SENDstudy$lb <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjects$USUBJID),]
-
+    SENDstudy$lb <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjects_2$USUBJID),]
+##:ess-bp-start::browser@nil:##
+browser(expr=is.null(.ESSBP.[["@4@"]]));##:ess-bp-end:##
     #Replace StudyID and USUBJID
     SENDstudy$lb$STUDYID <- rep(studyID, nrow(SENDstudy$lb))
     SENDstudy$lb <- merge( USUBJIDTable,SENDstudy$lb, by = "USUBJID")
