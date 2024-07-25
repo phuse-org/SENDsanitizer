@@ -34,10 +34,14 @@ pc$POOLID <- ''
   }
   pc_df <- pc[, .(STUDYID,USUBJID,POOLID)]
 
+all_df <- names(ExampleStudy1)
+  if('pooldef' %in% all_df){
 
   pooldef <- ExampleStudy1$pooldef
   pooldef <- data.table::as.data.table(pooldef)
   pooldef_df <- pooldef[, .(STUDYID,USUBJID,POOLID)]
+
+  }
 num_study <- unique(dm_df$STUDYID)
 
   for(i in 1:length(num_study)){
@@ -50,7 +54,10 @@ num_study <- unique(dm_df$STUDYID)
   tx <- tx_df[STUDYID==study,]
   ts <- ts_df[STUDYID==study,]
   pc <- pc_df[STUDYID==study,]
+    if('pooldef' %in% all_df){
+
   pooldef <- pooldef_df[STUDYID==study,]
+    }
     number_of_setcd <- unique(dm[['SETCD']])
     st_species <- unique(ts[TSPARMCD=='SPECIES'][, TSVAL])
 

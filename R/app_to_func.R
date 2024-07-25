@@ -56,10 +56,21 @@ sanitize <- function(path, number=1, recovery=FALSE,
 stop("Currently only work with 1. Please set number to 1")
   }
   #######################
+  ######################
+  all_xpt_files <- fs::dir_ls(path=path, glob = '*.xpt')
+    avl_domains <- tools::file_path_sans_ext(basename(all_xpt_files))
+  if('pooldef' %in% avl_domains){
+
+    domains <-  c("bw","dm","ds","ex","lb","mi",
+                  "ta","ts","tx","om","pooldef","pc")
+  }else {
+
+    domains <-  c("bw","dm","ds","ex","lb","mi",
+                  "ta","ts","tx","om","pc")
+
+  }
   if(!multi_study){
-   Example  <- load_xpt_files(path,domains=c("bw","dm","ds","ex","lb",
-                                                 "mi","ta","ts","tx",
-                                                 "om","pooldef","pc"))
+   Example  <- load_xpt_files(path,domains = domains)
     all_setcd <- list()
     get_data  <- filter_tk_rec(Example=Example,recovery=Recovery)
     Example <- get_data$data
@@ -69,17 +80,13 @@ stop("Currently only work with 1. Please set number to 1")
   }else{
     all_setcd <- list()
     num_of_study <- length(path)
-   Example  <- load_xpt_files(path[1],domains=c("bw","dm","ds","ex","lb",
-                                                 "mi","ta","ts","tx",
-                                                 "om","pooldef","pc"))
+   Example  <- load_xpt_files(path[1],domains=domains)
     get_data  <- filter_tk_rec(Example=Example,recovery=Recovery)
     Example <- get_data$data
     all_setcd[[1]] <- get_data$setcd
     # remove tk group
     for(i in 2:num_of_study){
-   exp_more  <- load_xpt_files(path[i],domains=c("bw","dm","ds","ex","lb",
-                                                 "mi","ta","ts","tx",
-                                                 "om","pooldef","pc"))
+   exp_more  <- load_xpt_files(path[i],domains=domains)
     get_clean_data <- filter_tk_rec(Example=exp_more,recovery=Recovery)
     ## all_setcd <- get_clean_data$get_setcd_tk
     all_setcd[[i]] <- get_clean_data$setcd
@@ -605,11 +612,8 @@ ind <- which(Example$mi$MISEV=='')
     #Keeps: DOMAIN, LBTESTs, LBTESTCD, LBDY, LBDY, LBCAT
     #Replaces: STUDYID, USUBJID, LBORRES, LBSTRESC, LBSTRESN, and LBDTC
     #Removes: LBBLFL
-
     #Account for TK discrepancies possible in LB
     SENDstudy$lb <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjects_2$USUBJID),]
-##:ess-bp-start::browser@nil:##
-browser(expr=is.null(.ESSBP.[["@4@"]]));##:ess-bp-end:##
     #Replace StudyID and USUBJID
     SENDstudy$lb$STUDYID <- rep(studyID, nrow(SENDstudy$lb))
     SENDstudy$lb <- merge( USUBJIDTable,SENDstudy$lb, by = "USUBJID")
