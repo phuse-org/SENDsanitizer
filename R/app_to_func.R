@@ -30,8 +30,9 @@ sanitize <- function(path, number=1, recovery=FALSE,
                      where_to_save=NULL) {
   # whether to show original value in table, this
   # for test only, if true it will not write data
-  test_original <- FALSE
-  ## test_original <- TRUE
+  ## test_original <- FALSE
+  test_original <- TRUE
+  lb_day_model <- FALSE
   number  <- as.numeric(number)
   PRINT <- FALSE
   Recovery <- recovery
@@ -588,7 +589,7 @@ ind <- which(Example$mi$MISEV=='')
       df_bw <- data.table::as.data.table(SENDstudy$bw)
       df_bw <- df_bw[, c(names(df_bw)[!(names(df_bw) %in% c("original","BWSTRESN"))],
                          c( "original","BWSTRESN")), with = FALSE]
-      df_bw <- df_bw[,`:=`(res_diff=BWSTRESN - original)]
+      df_bw <- df_bw[,`:=`(BWSTRESN_diff_pct= round((BWSTRESN - original)/original*100,digits = 2))]
       View(df_bw,'bw_test')
     }
     print('BW DONE')
@@ -624,18 +625,23 @@ ind <- which(Example$mi$MISEV=='')
     cols <- grep("DTC", colnames(SENDstudy$lb))
     SENDstudy$lb[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$lb$STUDYID))
     #Find out value range per treatment group
-    LBFindings <- merge(Subjects, Example$lb[,c("USUBJID",
+    LBFindings <- merge(Subjects_2, Example$lb[,c("USUBJID",
                                                 "LBTESTCD","LBSPEC",
                                                 "LBSTRESN","LBDY",
                                                 "LBCAT")], by = "USUBJID")
 
+# check lower case and other terms
     if ('CLINICAL CHEMISTRY' %in% unique(LBFindings$LBCAT)){
 
-      LBFindings <- LBFindings %>% dplyr::filter(LBCAT=="CLINICAL CHEMISTRY")
+      ## LBFindings <- LBFindings %>% dplyr::filter(LBCAT=="CLINICAL CHEMISTRY")
+      LBFindings <- LBFindings[LBFindings$LBCAT=="CLINICAL CHEMISTRY",]
+      SENDstudy$lb <- SENDstudy$lb[SENDstudy$lb$LBCAT=='CLINICAL CHEMISTRY',]
     } else {
       stop('No observation for Clinical Chemistry in this study')
     }
-
+    SENDstudy$lb <- SENDstudy$lb[!is.na(SENDstudy$lb$LBSTRESN),]
+    uniq_lbtestcd_num <- unique(SENDstudy$lb$LBTESTCD)
+    LBFindings <- LBFindings[LBFindings$LBTESTCD %in% uniq_lbtestcd_num,]
     ## LBFindings <- LBFindings %>% dplyr::filter(LBCAT=="CLINICAL CHEMISTRY",
     ##                                            LBTESTCD %in% c('CHOL',
     ##                                                            'GLDH',
@@ -652,15 +658,180 @@ ind <- which(Example$mi$MISEV=='')
     SENDstudy$lb$LBSTRESN_new <- NA
     SENDstudy$lb$LBSTRESN_org <- SENDstudy$lb$LBSTRESN
     #Create a distribution of values using MCMC for LBSTRESN
-    for (Dose in unique(Doses$Dose)){
-      for (gender in unique(ExampleSubjects$SEX)){
+
+    if(lb_day_model){
+
+  ##   for (Dose in unique(Doses$Dose)){
+  ##     for (gender in unique(ExampleSubjects$SEX)){
+  ##       ## print(paste0(Dose, " - ", gender))
+  ##       Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose &
+  ##                                              ExampleSubjects$SEX == gender)]
+  ##       Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose &
+  ##                                     Subjects$SEX == gender)]
+  ##       GroupTests <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjs),
+  ##                                  c("LBTESTCD","LBSPEC")]
+  ##       ## LBTESTCD LBSPEC
+  ##       ##    UREAN  SERUM
+  ##       ##     CHOL  SERUM
+  ##       ##    CREAT  SERUM
+  ##       ##       CL  SERUM
+  ##       ##      GGT  SERUM
+  ##       ##       CK  SERUM
+  ##       for (lbspec in unique(GroupTests$LBSPEC)){
+  ##         # SERUM | URINE
+  ##         Days <- unique(LBSummary$LBDY[which(LBSummary$USUBJID %in% Sub &
+  ##                                             LBSummary$LBSPEC %in% lbspec)])
+  ##         ## ind <- which(is.na(LBSummary$LBSTRESN))
+  ##         ## LBSummary <- LBSummary[-ind, ]
+  ##         LBDATAs <- LBSummary[which(LBSummary$LBSPEC %in% lbspec),]
+  ##         LBDATAs <- LBDATAs[which(LBDATAs$USUBJID %in% Sub),]
+  ##         #Remove Tests that have a ARMstev of 0 (meaning they likely don't have enough data)
+  ##         LBDATAs <- LBDATAs[which(LBDATAs$ARMstdev != 0),]
+  ##         #Remove tests that do not have enough data (i.e. all days)
+  ##         ## Testspread <- table(droplevels(LBDATAs$LBTESTCD), LBDATAs$LBDY)
+  ##         Testspread <- table(LBDATAs$LBTESTCD, LBDATAs$LBDY)
+  ##         rowsub <- apply(Testspread,1, function(row) all(row !=0))
+  ##         highDataTests <- rownames(Testspread)[rowsub]
+  ##         if (length(highDataTests) <= 1){
+  ##           ToRemove <- which(GroupTests$LBSPEC %in% c(lbspec))
+  ##           SENDstudy$lb <- SENDstudy$lb[-ToRemove,]
+  ##           ## str(SENDstudy$lb)
+  ##           next #Too little data; SKips loop
+  ##         }
+
+  ##         LBDATAs <- LBDATAs[which(LBDATAs$LBTESTCD %in% highDataTests),]
+  ##         # how to make line with varying amount of variables
+  ##         line <- data.frame(USUBJID= LBDATAs$USUBJID,
+  ##                            LBSTRESN = LBDATAs$LBSTRESN,
+  ##                            Day= LBDATAs$LBDY, LBTEST = LBDATAs$LBTESTCD)
+  ##         line <- dplyr::distinct(line) #check for and remove duplicate rows
+  ##         line <- stats::reshape(line, idvar = c("USUBJID","Day"),
+  ##                                timevar = 'LBTEST', direction = "wide")
+  ##         line <- sapply(line[,2:ncol(line)], as.numeric)
+  ##         colnames(line) <- gsub("LBSTRESN.","",colnames(line))
+  ##         line <- as.data.frame(line)
+  ##         #Remove NA values (fit cannot have them)
+  ##         line <- stats::na.omit(line)
+  ##         no_col <- length(colnames(line))
+  ##         no_row <- nrow(line)
+
+  ##         ll <- unique(LBDATAs$LBTESTCD)
+  ##         ll <- ll[which(!ll %in% 'GLOBUL')]
+  ##         for (test in ll){
+
+  ##           ## tryCatch({
+  ##             Vars <- setdiff(colnames(line),c("Day",test))
+  ##             if (length(Vars) > 10){
+  ##               #limit Vars to 2 random variables for computation time
+  ##               Vars <- sample(Vars, 2)
+  ##               ## Vars <- c("SODIUM", "AST")
+  ##             }
+  ##       #Repeating fit PER test with interaction from other tests in that lbspec
+  ##           ## if(lb_day_model){
+  ##             equation <- paste0(Vars, sep= '*Day',collapse = " + ")
+  ##           ## }else{
+
+  ##           ##   equation <- paste0(Vars, sep= '',collapse = " + ")
+  ##           ## }
+  ##                                       #Make Fit
+  ##             formula_lb <- stats::as.formula(paste0(test, " ~ ", equation))
+  ##   ## LBfit <- MCMCpack::MCMCregress(as.formula(paste0(test, " ~ ",equation)),
+  ##             ## b0=0, B0 = 0.1, data = line)
+  ##             ##   print('761')
+  ##             ## print(test)
+
+  ##             LBfit <- MCMCpack::MCMCregress(formula = formula_lb, b0=0,
+  ##                                            B0 = 0.1, data = line)
+  ## ## LBfit <- MCMCpack::MCMCregress(formula = formula_lb, b0=0, B0 = 0.1, data = line)
+  ##             #Sample Model 'Per Individual animal'
+  ##             Fit <- sample(1:nrow(LBfit), size=length(Subjs))
+  ##             ## print('done')
+  ##             sn <-1
+  ##             for (Subj in Subjs) {
+  ##               LBFit <- LBfit[Fit[sn],]
+  ##               #Make LBSTRESN Fit for that variable
+  ##               DayVars <- which(grepl("Day",names(LBFit)) == TRUE)
+  ##               #Find break between interaction variables and other variables
+  ##               InteractionVars <- utils::tail(DayVars,length(DayVars)-1)
+  ##               #Original Day Variable will be first found
+
+  ##               #Make Equation Based on Varying length of Variables
+  ##               # LBFit[1] is always the intercept
+  ##               LBTESTVAR <- LBFit[1]
+  ##               #Then it will be individual Variable coeff*their variables (including Day)
+  ##               for (num in 2:(InteractionVars[1]-1)){
+  ##                 testnm <- names(LBFit[num])
+  ##                 LBTESTVAR <- LBTESTVAR + LBFit[num]*line[,testnm]
+  ##               }
+  ##               #Then interaction variables coeff * their variables will be added
+  ##               for (num2 in InteractionVars){
+  ##                 testnm <- unlist(strsplit(names(LBFit[num2]),":"))[2]
+  ##                 LBTESTVAR <- LBTESTVAR + LBFit[num2]*line[,"Day"]*line[,testnm]
+  ##               }
+  ##               #Add Variance using stdev/rnorm
+  ##               stdev <- unique(LBSummary[which(LBSummary$Dose == Dose &
+  ##                                               LBSummary$SEX == gender &
+  ##                                               LBSummary$LBTESTCD == test),
+  ##                                         c('ARMstdev','LBDY')])
+  ##               LBTESTVAR <- abs(LBTESTVAR + stats::rnorm(length(LBTESTVAR),
+  ##                                                         mean = 0,
+  ##                                                         sd = (stdev$ARMstdev)))
+  ##               #Fill DataFrame to allocate to fake individual based on Day once variance is added
+  ##               GenerLBData <- data.frame(LBSTRESN = 0,
+  ##                                         LBDy = 0,
+  ##                                         LBTESTCD = test)
+  ##               avrgs <- unique(LBSummary[which(LBSummary$Dose == Dose &
+  ##                                               LBSummary$SEX == gender &
+  ##                                               LBSummary$LBTESTCD == test),
+  ##                                         c('ARMavg','LBDY')])
+  ##               #rein in values to the days
+  ##               for (Dayz in Days){
+  ##                 Val <- LBTESTVAR[which.min(abs(LBTESTVAR - avrgs$ARMavg[which(avrgs$LBDY == Dayz)]))]
+  ##                 GenerLBData[nrow(GenerLBData)+1,] <- c(Val ,Dayz, test)
+  ##               }
+  ##               GenerLBData <- GenerLBData[2:nrow(GenerLBData),]
+  ##               # For each day store the value in generated dataset SENDstudy
+  ##               ## print('line 843')
+  ##               for (day in Days){
+  ##                 idx <-which(SENDstudy$lb$USUBJID %in% Subj &
+  ##                             SENDstudy$lb$LBTESTCD %in% test &
+  ##                             SENDstudy$lb$LBDY %in% day)
+  ##                 idx2 <- which(GenerLBData$LBDy %in% day)
+
+  ##                 SENDstudy$lb$LBSTRESN[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
+  ##                 SENDstudy$lb$LBSTRESN_org[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
+  ##               }
+  ##               #add to subject count before new subject done
+  ##               sn <- sn+1
+  ##             }
+  ##           ## }, error=function(e) {
+  ##           ##   err_for <- paste0(test, " ~ ", equation)
+  ##           ##   ## print(e)
+  ##           ##   ## print(test)
+  ##           ##   ## print(err_for)
+  ##           ##                 ## print(line)
+  ##           ## }
+  ##           ## )
+  ##         }
+  ##       }
+  ##     }
+  ##   }
+    } else{
+      dm_dose_gender <- ExampleSubjects[ExampleSubjects$USUBJID %in% unique(SENDstudy$lb$USUBJID),]
+      for (Dose in unique(Doses$Dose)){
+        for (gender in unique(ExampleSubjects$SEX)){
         ## print(paste0(Dose, " - ", gender))
-        Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose &
-                                               ExampleSubjects$SEX == gender)]
-        Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose &
-                                      Subjects$SEX == gender)]
-        GroupTests <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjs),
-                                   c("LBTESTCD","LBSPEC")]
+        ## Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose &
+        ##                                        ExampleSubjects$SEX == gender)]
+
+          Subjs <- dm_dose_gender[dm_dose_gender$ARM== Dose &
+                                  dm_dose_gender$SEX == gender,'USUBJID']
+          Subjs <- unique(Subjs$USUBJID)
+          Sub <- Subjects_2$USUBJID[which(Subjects$Dose == Dose &
+                                          Subjects$SEX == gender)]
+          GroupTests <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjs),
+                                     c("LBTESTCD","LBSPEC")]
+
         ## LBTESTCD LBSPEC
         ##    UREAN  SERUM
         ##     CHOL  SERUM
@@ -689,7 +860,6 @@ ind <- which(Example$mi$MISEV=='')
             ## str(SENDstudy$lb)
             next #Too little data; SKips loop
           }
-
           LBDATAs <- LBDATAs[which(LBDATAs$LBTESTCD %in% highDataTests),]
           # how to make line with varying amount of variables
           line <- data.frame(USUBJID= LBDATAs$USUBJID,
@@ -702,80 +872,160 @@ ind <- which(Example$mi$MISEV=='')
           colnames(line) <- gsub("LBSTRESN.","",colnames(line))
           line <- as.data.frame(line)
           #Remove NA values (fit cannot have them)
+
+          line <- line[, 2:length(colnames(line))]
           line <- stats::na.omit(line)
+          line_mean <- colMeans(line)
           no_col <- length(colnames(line))
           no_row <- nrow(line)
 
           ll <- unique(LBDATAs$LBTESTCD)
-          ll <- ll[which(!ll %in% 'GLOBUL')]
+          ## ll <- ll[which(!ll %in% 'GLOBUL')]
           for (test in ll){
+            close_vars <- setdiff(names(line_mean), test)
+            rest_line <- line_mean[names(line_mean) %in% close_vars]
+            test_val <- line_mean[names(line_mean) %in% test]
+            close_two <- names(sort(abs(rest_line - test_val))[1:2])
 
-            tryCatch({
-              Vars <- setdiff(colnames(line),c("Day",test))
-              if (length(Vars) > 10){
-                #limit Vars to 2 random variables for computation time
-                Vars <- sample(Vars, 2)
-              }
+              if(length(close_vars)> 1){
+
+                Vars <- close_two
+
+              } else{ stop('Can\'t build MCMC model in LB')}
+
+          ## if( Dose=='LD'&
+          ##     gender=='M'&
+          ##    test=='CREAT'){
+
+          ## }
+            ## tryCatch({
+              ## Vars <- setdiff(colnames(line),c("Day",test))
+              ## if (length(Vars) > 10){
+              ##   Vars <- sample(Vars, 2)
+              ## }
         #Repeating fit PER test with interaction from other tests in that lbspec
-              equation <- paste0(Vars, sep= '*Day',collapse = " + ")
-                                        #Make Fit
+
+              equation <- paste0(Vars, sep= '',collapse = " + ")
               formula_lb <- stats::as.formula(paste0(test, " ~ ", equation))
-    ## LBfit <- MCMCpack::MCMCregress(as.formula(paste0(test, " ~ ",equation)),
-              ## b0=0, B0 = 0.1, data = line)
-              ##   print('761')
-              ## print(test)
+
+            ## tryCatch({
+
               LBfit <- MCMCpack::MCMCregress(formula = formula_lb, b0=0,
                                              B0 = 0.1, data = line)
-  ## LBfit <- MCMCpack::MCMCregress(formula = formula_lb, b0=0, B0 = 0.1, data = line)
+            ## },error=function(e){
+            ##   print(e)
+
+            ## }
+
+            ## )
               #Sample Model 'Per Individual animal'
               Fit <- sample(1:nrow(LBfit), size=length(Subjs))
               ## print('done')
               sn <-1
               for (Subj in Subjs) {
-                LBFit <- LBfit[Fit[sn],]
-                #Make LBSTRESN Fit for that variable
-                DayVars <- which(grepl("Day",names(LBFit)) == TRUE)
-                #Find break between interaction variables and other variables
-                InteractionVars <- utils::tail(DayVars,length(DayVars)-1)
-                #Original Day Variable will be first found
 
-                #Make Equation Based on Varying length of Variables
-                # LBFit[1] is always the intercept
+                LBFit <- LBfit[Fit[sn],]
                 LBTESTVAR <- LBFit[1]
                 #Then it will be individual Variable coeff*their variables (including Day)
-                for (num in 2:(InteractionVars[1]-1)){
-                  testnm <- names(LBFit[num])
-                  LBTESTVAR <- LBTESTVAR + LBFit[num]*line[,testnm]
-                }
                 #Then interaction variables coeff * their variables will be added
-                for (num2 in InteractionVars){
-                  testnm <- unlist(strsplit(names(LBFit[num2]),":"))[2]
-                  LBTESTVAR <- LBTESTVAR + LBFit[num2]*line[,"Day"]*line[,testnm]
-                }
                 #Add Variance using stdev/rnorm
+
+                ## om_study <- SENDstudy$om[SENDstudy$om$OMTESTCD=='WEIGHT',
+                ##                          c('USUBJID','OMSPEC','OMSTRESN')]
+                lb_study <- SENDstudy$lb[SENDstudy$lb$USUBJID==Subj,]
+                lb_var1 <- lb_study[lb_study$LBTESTCD == Vars[1],'LBSTRESN']
+                lb_var2 <- lb_study[lb_study$LBTESTCD == Vars[2],'LBSTRESN']
+
+                lb_val <- LBTESTVAR + LBFit[2] * lb_var1 + LBFit[3] * lb_var2
+                ## if(length(lb_val) < 1){
+
+
+                ## }
+                ##                 if(is.na(lb_val)| lb_val==''){
+                ## ##
+##                 }
                 stdev <- unique(LBSummary[which(LBSummary$Dose == Dose &
                                                 LBSummary$SEX == gender &
                                                 LBSummary$LBTESTCD == test),
                                           c('ARMstdev','LBDY')])
-                LBTESTVAR <- abs(LBTESTVAR + stats::rnorm(length(LBTESTVAR),
-                                                          mean = 0,
-                                                          sd = (stdev$ARMstdev)))
+
+                ## print(paste0('stdev: ',stdev$ARMstdev))
+                noise <- stats::rnorm(1,mean=0,sd=(stdev$ARMstdev))
+                ## print(paste0('noise: ', noise))
+                ## print(paste0('lb_val:', lb_val))
+                ## LBTESTVAR <- abs(LBTESTVAR + stats::rnorm(length(LBTESTVAR),
+                ##                                           mean = 0,
+                ##                                           sd = (stdev$ARMstdev)))
                 #Fill DataFrame to allocate to fake individual based on Day once variance is added
+                final_val_lb <- lb_val + noise
+                ## if(final_val_lb < 0 | is.na(final_val_lb)){
+                ##   ## print(test)
+                ##   ## ## print(final_val_lb)
+                ##   ## print(noise)
+
+                ## }
+
+
+                if(final_val_lb< 0){
+
+                  get_pos_val <- function(LBfit,Subj,
+                                          Vars,line,test,SENDstudy,LBSummary,
+                                          Dose,gender){
+                    LBFit <- LBfit[sample(1:nrow(LBfit), 1),]
+
+                    LBTESTVAR <- LBFit[1]
+                    lb_study <- SENDstudy$lb[SENDstudy$lb$USUBJID==Subj,]
+                    lb_var1 <- lb_study[lb_study$LBTESTCD == Vars[1],'LBSTRESN']
+                    lb_var2 <- lb_study[lb_study$LBTESTCD == Vars[2],'LBSTRESN']
+                    lb_val <- LBTESTVAR + LBFit[2] * lb_var1 + LBFit[3] * lb_var2
+                    stdev <- unique(LBSummary[which(LBSummary$Dose == Dose &
+                                                    LBSummary$SEX == gender &
+                                                    LBSummary$LBTESTCD == test),
+                                              c('ARMstdev','LBDY')])
+
+                    noise <- stats::rnorm(1,mean=0,sd=(stdev$ARMstdev))
+                    final_val_lb <- lb_val + noise
+                    final_val_lb
+                  }
+
+
+                  for (i in 1:10){
+                  final_val_lb <- get_pos_val(LBfit,Subj,
+                      Vars,line,test,SENDstudy,LBSummary,
+                      Dose,gender)
+                    ## final_val_lb <- get_pos_val(LBfit,om_study,Subj,Vars,line,test,SENDstudy)
+                    if(final_val_lb> 0){
+                      break}
+
+                  }
+
+                  if(final_val_lb < 0){
+                    final_val_lb <- abs(final_val_lb)
+                  }
+                }
+                ## final_val_lb <- abs(final_val_lb)
+
+                ##                 if(length(final_val_lb==1)){
+## print(test)
+                ##                 }else{
+
+                ##                 }
                 GenerLBData <- data.frame(LBSTRESN = 0,
                                           LBDy = 0,
                                           LBTESTCD = test)
-                avrgs <- unique(LBSummary[which(LBSummary$Dose == Dose &
-                                                LBSummary$SEX == gender &
-                                                LBSummary$LBTESTCD == test),
-                                          c('ARMavg','LBDY')])
+                ## avrgs <- unique(LBSummary[which(LBSummary$Dose == Dose &
+                ##                                 LBSummary$SEX == gender &
+                ##                                 LBSummary$LBTESTCD == test),
+                ##                           c('ARMavg','LBDY')])
                 #rein in values to the days
-                for (Dayz in Days){
-                  Val <- LBTESTVAR[which.min(abs(LBTESTVAR - avrgs$ARMavg[which(avrgs$LBDY == Dayz)]))]
-                  GenerLBData[nrow(GenerLBData)+1,] <- c(Val ,Dayz, test)
-                }
-                GenerLBData <- GenerLBData[2:nrow(GenerLBData),]
+                ## for (Dayz in Days){
+                ##   Val <- LBTESTVAR[which.min(abs(LBTESTVAR - avrgs$ARMavg[which(avrgs$LBDY == Dayz)]))]
+                ##   GenerLBData[nrow(GenerLBData)+1,] <- c(Val ,Dayz, test)
+                ## }
+                ## GenerLBData <- GenerLBData[2:nrow(GenerLBData),]
                 # For each day store the value in generated dataset SENDstudy
                 ## print('line 843')
+
                 for (day in Days){
                   idx <-which(SENDstudy$lb$USUBJID %in% Subj &
                               SENDstudy$lb$LBTESTCD %in% test &
@@ -783,29 +1033,50 @@ ind <- which(Example$mi$MISEV=='')
                   idx2 <- which(GenerLBData$LBDy %in% day)
 
                   ## SENDstudy$lb$LBSTRESN[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
-                  SENDstudy$lb$LBSTRESN_new[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
-                  SENDstudy$lb$LBSTRESN_org[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
+                  ## SENDstudy$lb$LBSTRESN_new[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
+
+                  if(length(final_val_lb) < 1){
+                    print('here')
+
+                  SENDstudy$lb$LBSTRESN_new[idx] <- NA
+                  } else {
+                  SENDstudy$lb$LBSTRESN_new[idx] <- round(as.numeric(final_val_lb), digits = 3)
+                  }
+                  ## SENDstudy$lb$LBSTRESN_new[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
+                  ## SENDstudy$lb$LBSTRESN_org[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
                 }
                 #add to subject count before new subject done
                 sn <- sn+1
               }
-            }, error=function(e) {
-              err_for <- paste0(test, " ~ ", equation)
-              ## print(e)
-              ## print(test)
-              ## print(err_for)
-                            ## print(line)
-            }
-            )
+            ## }, error=function(e) {
+            ##   err_for <- paste0(test, " ~ ", equation)
+            ##   ## print(e)
+            ##   ## print(test)
+            ##   ## print(err_for)
+            ##                 ## print(line)
+            ## }
+            ## )
           }
         }
       }
+    }
+
     }
     #Testing code to graph fit compared to average of that ARM (HD, M, Selected LB tests)
     Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == "HD" &
                                            ExampleSubjects$SEX == "M")]
     TEST <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjs),
                          c("LBDY","LBSTRESN","LBTESTCD","USUBJID")]
+
+    if(test_original){
+     df_lb <- data.table::as.data.table(SENDstudy$lb)
+     df_lb <- df_lb[,`:=`(LBSTRESN_diff_pct = round(((LBSTRESN_new - LBSTRESN_org)/LBSTRESN_org)*100,digits = 2))]
+     View(df_lb, title = 'generated lb for view')
+    } else {
+      SENDstudy$lb$LBSTRESN  <- SENDstudy$lb$LBSTRESN_new
+      SENDstudy$lb$LBSTRESN_org <- NULL
+      SENDstudy$lb$LBSTRESN_new <- NULL
+    }
     #Coordinate LBORRES and LBSTRESC
     SENDstudy$lb$LBSTRESC <- as.character(SENDstudy$lb$LBSTRESN)
     SENDstudy$lb$LBORRESU <- SENDstudy$lb$LBSTRESU
@@ -825,6 +1096,7 @@ ind <- which(Example$mi$MISEV=='')
     SENDstudy$lb$LBSPEC <- as.character(SENDstudy$lb$LBSPEC)
     SENDstudy$lb$LBSTRESU <- as.character(SENDstudy$lb$LBSTRESU)
     print('LB DONE')
+
 #6
 #OM
             ######### Generates NUMERICAL OM Data #############
@@ -855,7 +1127,8 @@ ind <- which(Example$mi$MISEV=='')
 
     SENDstudy$om$OMSTRESN_new <- NA
     SENDstudy$om$OMSTRESN_org <- SENDstudy$om$OMSTRESN
-    om_study <- SENDstudy$om[SENDstudy$om$OMTESTCD=='WEIGHT',c('USUBJID','OMSPEC','OMSTRESN')]
+    om_study <- SENDstudy$om[SENDstudy$om$OMTESTCD=='WEIGHT',
+                             c('USUBJID','OMSPEC','OMSTRESN')]
     for(Dose in unique(Doses$Dose)){
       for(gender in unique(ExampleSubjects$SEX)){
 
@@ -949,10 +1222,12 @@ ind <- which(Example$mi$MISEV=='')
                               k_sd <- sd(k[,1])
                               noise <- stats::rnorm(1, mean=0, sd=k_sd)
                               final_val <- val + noise
-                              indx <- which(SENDstudy$om$USUBJID==Subj & SENDstudy$om$OMTESTCD==omspec &
+                              indx <- which(SENDstudy$om$USUBJID==Subj &
+                                            SENDstudy$om$OMTESTCD==omspec &
                                             SENDstudy$om$OMSPEC==test)
 
-                              indx <- which(SENDstudy$om$USUBJID==Subj & SENDstudy$om$OMSPEC==test)
+                              indx <- which(SENDstudy$om$USUBJID==Subj &
+                                            SENDstudy$om$OMSPEC==test)
                               if(final_val< 0){
                                 get_pos_val <- function(OMfit,om_study,Subj,Vars,line,test,SENDstudy){
                                   OMFit <- OMfit[sample(1:nrow(OMfit), 1),]
@@ -967,9 +1242,11 @@ ind <- which(Example$mi$MISEV=='')
                                   k_sd <- sd(k[,1])
                                   noise <- stats::rnorm(1, mean=0, sd=k_sd)
                                   final_val <- val + noise
-                                  indx <- which(SENDstudy$om$USUBJID==Subj & SENDstudy$om$OMTESTCD==omspec &
+                                  indx <- which(SENDstudy$om$USUBJID==Subj &
+                                                SENDstudy$om$OMTESTCD==omspec &
                                                 SENDstudy$om$OMSPEC==test)
-                                  indx <- which(SENDstudy$om$USUBJID==Subj & SENDstudy$om$OMSPEC==test)
+                                  indx <- which(SENDstudy$om$USUBJID==Subj &
+                                                SENDstudy$om$OMSPEC==test)
                                   final_val
                                 }
 
