@@ -30,8 +30,8 @@ sanitize <- function(path, number=1, recovery=FALSE,
                      where_to_save=NULL) {
   # whether to show original value in table, this
   # for test only, if true it will not write data
-  ## test_original <- FALSE
-  test_original <- TRUE
+  test_original <- FALSE
+  ## test_original <- TRUE
   lb_day_model <- FALSE
   number  <- as.numeric(number)
   PRINT <- FALSE
@@ -893,11 +893,14 @@ ind <- which(Example$mi$MISEV=='')
 
               } else{ stop('Can\'t build MCMC model in LB')}
 
-          ## if( Dose=='LD'&
-          ##     gender=='M'&
-          ##    test=='CREAT'){
+          if( Dose=='Control'&
+              gender=='M'&
+             test=='ALT'){
+##:ess-bp-start::browser@nil:##
+browser(expr=is.null(.ESSBP.[["@18@"]]));##:ess-bp-end:##
 
-          ## }
+
+           }
             ## tryCatch({
               ## Vars <- setdiff(colnames(line),c("Day",test))
               ## if (length(Vars) > 10){
