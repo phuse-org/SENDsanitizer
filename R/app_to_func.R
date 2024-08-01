@@ -22,6 +22,7 @@
 #' @importFrom magrittr  %>%
 # test
 # what will happen when visitday not present but dsnomdy present
+# before NA lbtestcd removed, check if > < in LBSTRESC
 # sequence current
 #ts,dm,tx
 #bw,lb,om,mi
@@ -642,9 +643,22 @@ ind <- which(Example$mi$MISEV=='')
     }
     # remove test that have NA value for some result.
     # for BILI there is >0.8 or 0.1 value in study. so removed BILI
+
     na_testcd <- SENDstudy$lb[is.na(SENDstudy$lb$LBSTRESN),]
     na_testcd <- unique(na_testcd$LBTESTCD)
-    SENDstudy$lb <- SENDstudy$lb[!SENDstudy$lb$LBTESTCD %in% na_testcd,]
+    if(length(na_testcd) > 0){
+
+      for(code in 1:length(na_testcd)){
+        sub_lb <- SENDstudy$lb[SENDstudy$lb$LBTESTCD== na_testcd[code],]
+        if(any(grepl('<|>', sub_lb$LBSTRESC))){
+    SENDstudy$lb <- SENDstudy$lb[!SENDstudy$lb$LBTESTCD %in% na_testcd[code],]
+        }
+
+      }
+
+    }
+
+
     ## SENDstudy$lb <- SENDstudy$lb[!is.na(SENDstudy$lb$LBSTRESN),]
     uniq_lbtestcd_num <- unique(SENDstudy$lb$LBTESTCD)
     LBFindings <- LBFindings[LBFindings$LBTESTCD %in% uniq_lbtestcd_num,]
@@ -652,6 +666,7 @@ ind <- which(Example$mi$MISEV=='')
     ##                                            LBTESTCD %in% c('CHOL',
     ##                                                            'GLDH',
     ##                                                            'BICARB'))
+    ##
     LBSummary <- LBFindings %>%
       dplyr::group_by(Dose, LBTESTCD,LBDY,SEX) %>%
       dplyr::mutate(ARMavg = mean(LBSTRESN, na.rm = TRUE)) %>%
@@ -823,18 +838,29 @@ ind <- which(Example$mi$MISEV=='')
   ##     }
   ##   }
     } else{
+      indx_dm <- unique(SENDstudy$lb$USUBJID)
+
       dm_dose_gender <- ExampleSubjects[ExampleSubjects$USUBJID %in% unique(SENDstudy$lb$USUBJID),]
+
+            print(length(unique(SENDstudy$lb$USUBJID)))
+            print(length(unique(dm_dose_gender$USUBJID)))
       for (Dose in unique(Doses$Dose)){
         for (gender in unique(ExampleSubjects$SEX)){
+
         ## print(paste0(Dose, " - ", gender))
         ## Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose &
         ##                                        ExampleSubjects$SEX == gender)]
+          ## if(Dose == 'HD_Rec' & gender=='M'){
+          ##   print('from_ inside____________')
+          ##   print(length(unique(SENDstudy$lb$USUBJID)))
+          ##   print(length(unique(dm_dose_gender$USUBJID)))
 
+          ## }
           Subjs <- dm_dose_gender[dm_dose_gender$ARM== Dose &
                                   dm_dose_gender$SEX == gender,'USUBJID']
           Subjs <- unique(Subjs$USUBJID)
-          Sub <- Subjects_2$USUBJID[which(Subjects$Dose == Dose &
-                                          Subjects$SEX == gender)]
+          Sub <- Subjects_2$USUBJID[which(Subjects_2$Dose == Dose &
+                                          Subjects_2$SEX == gender)]
           GroupTests <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjs),
                                      c("LBTESTCD","LBSPEC")]
 
@@ -861,6 +887,7 @@ ind <- which(Example$mi$MISEV=='')
           rowsub <- apply(Testspread,1, function(row) all(row !=0))
           highDataTests <- rownames(Testspread)[rowsub]
           if (length(highDataTests) <= 1){
+
             ToRemove <- which(GroupTests$LBSPEC %in% c(lbspec))
             SENDstudy$lb <- SENDstudy$lb[-ToRemove,]
             ## str(SENDstudy$lb)
@@ -970,10 +997,10 @@ ind <- which(Example$mi$MISEV=='')
 
                 ## }
               ## print(final_val_lb)
-                ## if(length(final_val_lb) < 1 ){
-                ##   print('here')
+                if(length(final_val_lb) < 1 ){
+                  print('here')
 
-                ## }
+                }
 ## print(final_val_lb)
                 if(final_val_lb< 0){
 
