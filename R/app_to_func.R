@@ -653,20 +653,11 @@ ind <- which(Example$mi$MISEV=='')
         if(any(grepl('<|>', sub_lb$LBSTRESC))){
     SENDstudy$lb <- SENDstudy$lb[!SENDstudy$lb$LBTESTCD %in% na_testcd[code],]
         }
-
       }
-
     }
-
-
     ## SENDstudy$lb <- SENDstudy$lb[!is.na(SENDstudy$lb$LBSTRESN),]
     uniq_lbtestcd_num <- unique(SENDstudy$lb$LBTESTCD)
     LBFindings <- LBFindings[LBFindings$LBTESTCD %in% uniq_lbtestcd_num,]
-    ## LBFindings <- LBFindings %>% dplyr::filter(LBCAT=="CLINICAL CHEMISTRY",
-    ##                                            LBTESTCD %in% c('CHOL',
-    ##                                                            'GLDH',
-    ##                                                            'BICARB'))
-    ##
     LBSummary <- LBFindings %>%
       dplyr::group_by(Dose, LBTESTCD,LBDY,SEX) %>%
       dplyr::mutate(ARMavg = mean(LBSTRESN, na.rm = TRUE)) %>%
@@ -679,9 +670,7 @@ ind <- which(Example$mi$MISEV=='')
     SENDstudy$lb$LBSTRESN_new <- NA
     SENDstudy$lb$LBSTRESN_org <- SENDstudy$lb$LBSTRESN
     #Create a distribution of values using MCMC for LBSTRESN
-
     if(lb_day_model){
-
   ##   for (Dose in unique(Doses$Dose)){
   ##     for (gender in unique(ExampleSubjects$SEX)){
   ##       ## print(paste0(Dose, " - ", gender))
@@ -846,16 +835,6 @@ ind <- which(Example$mi$MISEV=='')
             print(length(unique(dm_dose_gender$USUBJID)))
       for (Dose in unique(Doses$Dose)){
         for (gender in unique(ExampleSubjects$SEX)){
-
-        ## print(paste0(Dose, " - ", gender))
-        ## Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose &
-        ##                                        ExampleSubjects$SEX == gender)]
-          ## if(Dose == 'HD_Rec' & gender=='M'){
-          ##   print('from_ inside____________')
-          ##   print(length(unique(SENDstudy$lb$USUBJID)))
-          ##   print(length(unique(dm_dose_gender$USUBJID)))
-
-          ## }
           Subjs <- dm_dose_gender[dm_dose_gender$ARM== Dose &
                                   dm_dose_gender$SEX == gender,'USUBJID']
           Subjs <- unique(Subjs$USUBJID)
@@ -863,20 +842,9 @@ ind <- which(Example$mi$MISEV=='')
                                           Subjects_2$SEX == gender)]
           GroupTests <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjs),
                                      c("LBTESTCD","LBSPEC")]
-
-        ## LBTESTCD LBSPEC
-        ##    UREAN  SERUM
-        ##     CHOL  SERUM
-        ##    CREAT  SERUM
-        ##       CL  SERUM
-        ##      GGT  SERUM
-        ##       CK  SERUM
         for (lbspec in unique(GroupTests$LBSPEC)){
-          # SERUM | URINE
           Days <- unique(LBSummary$LBDY[which(LBSummary$USUBJID %in% Sub &
                                               LBSummary$LBSPEC %in% lbspec)])
-          ## ind <- which(is.na(LBSummary$LBSTRESN))
-          ## LBSummary <- LBSummary[-ind, ]
           LBDATAs <- LBSummary[which(LBSummary$LBSPEC %in% lbspec),]
           LBDATAs <- LBDATAs[which(LBDATAs$USUBJID %in% Sub),]
           #Remove Tests that have a ARMstev of 0 (meaning they likely don't have enough data)
@@ -925,31 +893,12 @@ ind <- which(Example$mi$MISEV=='')
                 Vars <- close_two
 
               } else{ stop('Can\'t build MCMC model in LB')}
-
-          ## if( Dose=='Control'&
-          ##     gender=='M'&
-          ##    test=='ALT'){
-          ##  }
-            ## tryCatch({
-              ## Vars <- setdiff(colnames(line),c("Day",test))
-              ## if (length(Vars) > 10){
-              ##   Vars <- sample(Vars, 2)
-              ## }
         #Repeating fit PER test with interaction from other tests in that lbspec
 
               equation <- paste0(Vars, sep= '',collapse = " + ")
               formula_lb <- stats::as.formula(paste0(test, " ~ ", equation))
-
-            ## tryCatch({
-
               LBfit <- MCMCpack::MCMCregress(formula = formula_lb, b0=0,
                                              B0 = 0.1, data = line)
-            ## },error=function(e){
-            ##   print(e)
-
-            ## }
-
-            ## )
               #Sample Model 'Per Individual animal'
               Fit <- sample(1:nrow(LBfit), size=length(Subjs))
               ## print('done')
@@ -958,57 +907,24 @@ ind <- which(Example$mi$MISEV=='')
 
                 LBFit <- LBfit[Fit[sn],]
                 LBTESTVAR <- LBFit[1]
-                #Then it will be individual Variable coeff*their variables (including Day)
-                #Then interaction variables coeff * their variables will be added
-                #Add Variance using stdev/rnorm
-
-                ## om_study <- SENDstudy$om[SENDstudy$om$OMTESTCD=='WEIGHT',
-                ##                          c('USUBJID','OMSPEC','OMSTRESN')]
                 lb_study <- SENDstudy$lb[SENDstudy$lb$USUBJID==Subj,]
                 lb_var1 <- lb_study[lb_study$LBTESTCD == Vars[1],'LBSTRESN']
                 lb_var2 <- lb_study[lb_study$LBTESTCD == Vars[2],'LBSTRESN']
 
                 lb_val <- LBTESTVAR + LBFit[2] * lb_var1 + LBFit[3] * lb_var2
-                ## if(length(lb_val) < 1){
-
-
-                ## }
-                ##                 if(is.na(lb_val)| lb_val==''){
-                ## ##
-##                 }
                 stdev <- unique(LBSummary[which(LBSummary$Dose == Dose &
                                                 LBSummary$SEX == gender &
                                                 LBSummary$LBTESTCD == test),
                                           c('ARMstdev','LBDY')])
 
-                ## print(paste0('stdev: ',stdev$ARMstdev))
                 noise <- stats::rnorm(1,mean=0,sd=(stdev$ARMstdev))
-                ## print(paste0('noise: ', noise))
-                ## print(paste0('lb_val:', lb_val))
-                ## LBTESTVAR <- abs(LBTESTVAR + stats::rnorm(length(LBTESTVAR),
-                ##                                           mean = 0,
-                ##                                           sd = (stdev$ARMstdev)))
                 #Fill DataFrame to allocate to fake individual based on Day once variance is added
                 final_val_lb <- lb_val + noise
-                ## if(final_val_lb < 0 | is.na(final_val_lb)){
-                ##   ## print(test)
-                ##   ## ## print(final_val_lb)
-                ##   ## print(noise)
-
-                ## }
-              ## print(final_val_lb)
-                if(length(final_val_lb) < 1 ){
-                  print('here')
-
-                }
-## print(final_val_lb)
                 if(final_val_lb< 0){
-
                   get_pos_val <- function(LBfit,Subj,
                                           Vars,line,test,SENDstudy,LBSummary,
                                           Dose,gender){
                     LBFit <- LBfit[sample(1:nrow(LBfit), 1),]
-
                     LBTESTVAR <- LBFit[1]
                     lb_study <- SENDstudy$lb[SENDstudy$lb$USUBJID==Subj,]
                     lb_var1 <- lb_study[lb_study$LBTESTCD == Vars[1],'LBSTRESN']
@@ -1023,13 +939,10 @@ ind <- which(Example$mi$MISEV=='')
                     final_val_lb <- lb_val + noise
                     final_val_lb
                   }
-
-
                   for (i in 1:10){
                   final_val_lb <- get_pos_val(LBfit,Subj,
                       Vars,line,test,SENDstudy,LBSummary,
                       Dose,gender)
-                    ## final_val_lb <- get_pos_val(LBfit,om_study,Subj,Vars,line,test,SENDstudy)
                     if(final_val_lb> 0){
                       break}
 
@@ -1039,34 +952,14 @@ ind <- which(Example$mi$MISEV=='')
                     final_val_lb <- abs(final_val_lb)
                   }
                 }
-                ## final_val_lb <- abs(final_val_lb)
-
-                ##                 if(length(final_val_lb==1)){
-## print(test)
-                ##                 }else{
-
-                ##                 }
                 GenerLBData <- data.frame(LBSTRESN = 0,
                                           LBDy = 0,
                                           LBTESTCD = test)
-                ## avrgs <- unique(LBSummary[which(LBSummary$Dose == Dose &
-                ##                                 LBSummary$SEX == gender &
-                ##                                 LBSummary$LBTESTCD == test),
-                ##                           c('ARMavg','LBDY')])
-                #rein in values to the days
-                ## for (Dayz in Days){
-                ##   Val <- LBTESTVAR[which.min(abs(LBTESTVAR - avrgs$ARMavg[which(avrgs$LBDY == Dayz)]))]
-                ##   GenerLBData[nrow(GenerLBData)+1,] <- c(Val ,Dayz, test)
-                ## }
-                ## GenerLBData <- GenerLBData[2:nrow(GenerLBData),]
-                # For each day store the value in generated dataset SENDstudy
-                ## print('line 843')
-
                 for (day in Days){
                   idx <-which(SENDstudy$lb$USUBJID %in% Subj &
                               SENDstudy$lb$LBTESTCD %in% test &
                               SENDstudy$lb$LBDY %in% day)
-                  idx2 <- which(GenerLBData$LBDy %in% day)
+                  ## idx2 <- which(GenerLBData$LBDy %in% day)
 
                   ## SENDstudy$lb$LBSTRESN[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
                   ## SENDstudy$lb$LBSTRESN_new[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
@@ -1077,20 +970,10 @@ ind <- which(Example$mi$MISEV=='')
                   } else {
                   SENDstudy$lb$LBSTRESN_new[idx] <- round(as.numeric(final_val_lb), digits = 3)
                   }
-                  ## SENDstudy$lb$LBSTRESN_new[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
-                  ## SENDstudy$lb$LBSTRESN_org[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
                 }
                 #add to subject count before new subject done
                 sn <- sn+1
               }
-            ## }, error=function(e) {
-            ##   err_for <- paste0(test, " ~ ", equation)
-            ##   ## print(e)
-            ##   ## print(test)
-            ##   ## print(err_for)
-            ##                 ## print(line)
-            ## }
-            ## )
           }
         }
       }
