@@ -6,12 +6,18 @@ generates ts, dm, tx, bw, lb, om, mi domains.
 
 ## Overview
 
-A random number is generated for STUDYID and utilized across all domains during data creation. Dates replaced with 'XXXX-XX-XX' in relevant domains.
+A random number is generated for STUDYID and utilized across all domains during
+data creation. Dates replaced with 'XXXX-XX-XX' in relevant domains.
 
 __TS,  DM,  TX__
-In the TS domain, identifiable information like study facility details, location, study title, and vehicle names are replaced with pre-defined values ('FAKE FACILITY' for facility, 'XXXX-XX-XX' for dates). Details of study director, animal purchasing location, and test facility country are eliminated.
+In the TS domain, identifiable information like study facility details,
+location, study title, and vehicle names are replaced with pre-defined values
+('FAKE FACILITY' for facility, 'XXXX-XX-XX' for dates). Details of study
+director, animal purchasing location, and test facility country are eliminated.
 
-In the DM domain, STUDYID is replaced with a randomly generated STUDYID, and USUBJID is changed to a unique number by concatenating the randomly generated STUDYID and SUBJID. ARM replaced with Control, LD, MD, or HD as appropriate.
+In the DM domain, STUDYID is replaced with a randomly generated STUDYID, and
+USUBJID is changed to a unique number by concatenating the randomly generated
+STUDYID and SUBJID. ARM replaced with Control, LD, MD, or HD as appropriate.
 ARMCD replaced with dose order. Where dose order defines in following way   
 Control to 1  
 LD to 2  
@@ -20,17 +26,24 @@ HD to 4
 
 In TX domain, the SET variable is updated with Control, LD, MD, or HD values.
 TXPARMCD Variable:  
-group label (GRPLBL) information is replaced by concatenating dose order and dose value (i.e. __Group 1, Control__ where 1 is order and Control is the dose). 
-TRTDOS is replaced with dose (Control, LD, MD, or HD). ARMCD and SPGRPCD  replaced with dose order (1,2,3,4).  
-Value of the parameter SPLRNAM, SSPONSOR, SPREFID and SPLRLOC which contain identifiable information in TXPARMCD were removed  
+group label (GRPLBL) information is replaced by concatenating dose order and
+dose value (i.e. __Group 1, Control__ where 1 is order and Control is the dose). 
+TRTDOS is replaced with dose (Control, LD, MD, or HD).
+ARMCD and SPGRPCD  replaced with dose order (1,2,3,4).  
+Value of the parameter SPLRNAM, SSPONSOR, SPREFID and SPLRLOC which contain
+identifiable information in TXPARMCD were removed  
 
 
 __BW LB OM Domain__  
 
-A Bayesian Regression model were build for each domain of BW, LB and OM using MCMCregress function from MCMCpack R package [MCMCpack: Markov Chain Monte Carlo
-in R](https://doi.org/10.18637/jss.v042.i09). Numerical Data then generated using this model.
+A Bayesian Regression model were build for each domain
+of BW, LB and OM using MCMCregress function from 
+MCMCpack R package [MCMCpack: Markov Chain Monte Carlo
+in R](https://doi.org/10.18637/jss.v042.i09).
+Numerical Data then generated using this model.
 
-STUDYID, USUBJID, and dates are replaced as previously described within the LB, BW and OM domain.
+STUDYID, USUBJID, and dates are replaced as previously 
+described within the LB, BW and OM domain.
 
 __LB__ 
 A group of Control, male rats whrere LBCAT is __CLINICAL CHEMISTRY__ choosen.
@@ -46,7 +59,8 @@ let's say following table have Mean of LBTESTCD.
 |CL         |105 |
 |GLUC       |7   |
 
-To build a model for __ALT__, algorithmically we choose nearest two value, in that case we choose __PROT__ and __ALB__  
+To build a model for __ALT__, algorithmically we choose nearest two value, 
+in this case we choose __PROT__ and __ALB__  
 
 `MCMCpack::MCMCregress("ALT ~ PROT + ALB", b0=0,B0=0.1, data= line)`  
 

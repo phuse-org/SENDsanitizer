@@ -390,8 +390,7 @@ server <- function(input, output, session) {
             #Replaces: StudyID, USUBJID, Dates
 
             #Account for discrepancies possible in dm with recovery
-            SENDstudy$dm <- SENDstudy$dm[which(SENDstudy$dm$USUBJID %in% Subjects$USUBJID),] ## MAY BE CAUSING PROBLEMS WITH ZYT-779
-
+            SENDstudy$dm <- SENDstudy$dm[which(SENDstudy$dm$USUBJID %in% Subjects$USUBJID),]
             #Find number of subjects in each group of each gender
             ControlAnimals <- SENDstudy$dm[which(SENDstudy$dm$ARMCD == 1),]
             Gendersplit <- table(ControlAnimals$SEX)

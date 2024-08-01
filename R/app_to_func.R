@@ -636,10 +636,16 @@ ind <- which(Example$mi$MISEV=='')
       ## LBFindings <- LBFindings %>% dplyr::filter(LBCAT=="CLINICAL CHEMISTRY")
       LBFindings <- LBFindings[LBFindings$LBCAT=="CLINICAL CHEMISTRY",]
       SENDstudy$lb <- SENDstudy$lb[SENDstudy$lb$LBCAT=='CLINICAL CHEMISTRY',]
+
     } else {
       stop('No observation for Clinical Chemistry in this study')
     }
-    SENDstudy$lb <- SENDstudy$lb[!is.na(SENDstudy$lb$LBSTRESN),]
+    # remove test that have NA value for some result.
+    # for BILI there is >0.8 or 0.1 value in study. so removed BILI
+    na_testcd <- SENDstudy$lb[is.na(SENDstudy$lb$LBSTRESN),]
+    na_testcd <- unique(na_testcd$LBTESTCD)
+    SENDstudy$lb <- SENDstudy$lb[!SENDstudy$lb$LBTESTCD %in% na_testcd,]
+    ## SENDstudy$lb <- SENDstudy$lb[!is.na(SENDstudy$lb$LBSTRESN),]
     uniq_lbtestcd_num <- unique(SENDstudy$lb$LBTESTCD)
     LBFindings <- LBFindings[LBFindings$LBTESTCD %in% uniq_lbtestcd_num,]
     ## LBFindings <- LBFindings %>% dplyr::filter(LBCAT=="CLINICAL CHEMISTRY",
@@ -893,14 +899,10 @@ ind <- which(Example$mi$MISEV=='')
 
               } else{ stop('Can\'t build MCMC model in LB')}
 
-          if( Dose=='Control'&
-              gender=='M'&
-             test=='ALT'){
-##:ess-bp-start::browser@nil:##
-browser(expr=is.null(.ESSBP.[["@18@"]]));##:ess-bp-end:##
-
-
-           }
+          ## if( Dose=='Control'&
+          ##     gender=='M'&
+          ##    test=='ALT'){
+          ##  }
             ## tryCatch({
               ## Vars <- setdiff(colnames(line),c("Day",test))
               ## if (length(Vars) > 10){
@@ -967,8 +969,12 @@ browser(expr=is.null(.ESSBP.[["@18@"]]));##:ess-bp-end:##
                 ##   ## print(noise)
 
                 ## }
+              ## print(final_val_lb)
+                ## if(length(final_val_lb) < 1 ){
+                ##   print('here')
 
-
+                ## }
+## print(final_val_lb)
                 if(final_val_lb< 0){
 
                   get_pos_val <- function(LBfit,Subj,
@@ -1039,7 +1045,6 @@ browser(expr=is.null(.ESSBP.[["@18@"]]));##:ess-bp-end:##
                   ## SENDstudy$lb$LBSTRESN_new[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
 
                   if(length(final_val_lb) < 1){
-                    print('here')
 
                   SENDstudy$lb$LBSTRESN_new[idx] <- NA
                   } else {
