@@ -12,7 +12,7 @@ path where real data/xpt files located, should be a directory that contains
 xpt files}
 
 \item{number}{mandatory, default 1\cr
-how many studies to generate}
+how many studies to generate. Currently only work with 1}
 
 \item{recovery}{optional\cr
 recovery}

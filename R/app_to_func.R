@@ -17,7 +17,7 @@
 #' @importFrom stringr str_detect str_replace_all
 #' @importFrom tidyr replace_na
 #' @importFrom fs dir_create path
-#' @importFrom data.table rbindlist
+#' @importFrom data.table rbindlist %like%
 #' @importFrom utils tail
 #' @importFrom magrittr  %>%
 # test
@@ -643,18 +643,26 @@ ind <- which(Example$mi$MISEV=='')
     }
     # remove test that have NA value for some result.
     # for BILI there is >0.8 or 0.1 value in study. so removed BILI
+    m2 <- data.table::copy(SENDstudy$lb)
+    m2 <- data.table::as.data.table(m2)
+    m2 <- m2[!is.na(LBSTRESN),]
+    # does not match any alpha and this character
+    m5 <-   m2[!LBSTRESC %like% "[a-zA-Z + < > = ]"]
+    data.table::setDF(m5)
+   SENDstudy$lb <- m5
+    ## na_testcd <- SENDstudy$lb[is.na(SENDstudy$lb$LBSTRESN),]
+    ## na_testcd <- unique(na_testcd$LBTESTCD)
 
-    na_testcd <- SENDstudy$lb[is.na(SENDstudy$lb$LBSTRESN),]
-    na_testcd <- unique(na_testcd$LBTESTCD)
-    if(length(na_testcd) > 0){
+    ## SENDstudy$lb <- SENDstudy$lb[!SENDstudy$lb$LBTESTCD %in% na_testcd,]
+    ## if(length(na_testcd) > 0){
 
-      for(code in 1:length(na_testcd)){
-        sub_lb <- SENDstudy$lb[SENDstudy$lb$LBTESTCD== na_testcd[code],]
-        if(any(grepl('<|>', sub_lb$LBSTRESC))){
-    SENDstudy$lb <- SENDstudy$lb[!SENDstudy$lb$LBTESTCD %in% na_testcd[code],]
-        }
-      }
-    }
+    ##   for(code in 1:length(na_testcd)){
+    ##     sub_lb <- SENDstudy$lb[SENDstudy$lb$LBTESTCD== na_testcd[code],]
+    ##     if(any(grepl('<|>', sub_lb$LBSTRESC))){
+    ## SENDstudy$lb <- SENDstudy$lb[!SENDstudy$lb$LBTESTCD %in% na_testcd[code],]
+    ##     }
+    ##   }
+    ## }
     ## SENDstudy$lb <- SENDstudy$lb[!is.na(SENDstudy$lb$LBSTRESN),]
     uniq_lbtestcd_num <- unique(SENDstudy$lb$LBTESTCD)
     LBFindings <- LBFindings[LBFindings$LBTESTCD %in% uniq_lbtestcd_num,]
@@ -830,9 +838,6 @@ ind <- which(Example$mi$MISEV=='')
       indx_dm <- unique(SENDstudy$lb$USUBJID)
 
       dm_dose_gender <- ExampleSubjects[ExampleSubjects$USUBJID %in% unique(SENDstudy$lb$USUBJID),]
-
-            print(length(unique(SENDstudy$lb$USUBJID)))
-            print(length(unique(dm_dose_gender$USUBJID)))
       for (Dose in unique(Doses$Dose)){
         for (gender in unique(ExampleSubjects$SEX)){
           Subjs <- dm_dose_gender[dm_dose_gender$ARM== Dose &
@@ -861,17 +866,42 @@ ind <- which(Example$mi$MISEV=='')
             ## str(SENDstudy$lb)
             next #Too little data; SKips loop
           }
+## print(Dose)
+          ## print(gender)
+          ## print(lbspec)
+            if(Dose=='Control_Rec' & gender=='F' & lbspec=='SERUM' ){
+
+
+            }
           LBDATAs <- LBDATAs[which(LBDATAs$LBTESTCD %in% highDataTests),]
           # how to make line with varying amount of variables
+
           line <- data.frame(USUBJID= LBDATAs$USUBJID,
                              LBSTRESN = LBDATAs$LBSTRESN,
                              Day= LBDATAs$LBDY, LBTEST = LBDATAs$LBTESTCD)
+          ## if(!recovery){
+
+          line1 <- data.table::as.data.table(data.table::copy(line))
+          ## line1 <- line1[, .N, by=.(USUBJID,LBTEST)]
+          ## line1 <- line1[, `:=`(N=.N), by=.(USUBJID,LBTEST)]
+          line1 <- line1[!duplicated(line1,by = c('USUBJID','LBTEST','Day'))]
+          ## line1 <- line1[N==2,]
+          ## line1$N <- NULL
+          line <- data.table::copy(line1)
+          line <- data.table::setDF(line)
+          ## }
+
           line <- dplyr::distinct(line) #check for and remove duplicate rows
           line <- stats::reshape(line, idvar = c("USUBJID","Day"),
                                  timevar = 'LBTEST', direction = "wide")
           line <- sapply(line[,2:ncol(line)], as.numeric)
           colnames(line) <- gsub("LBSTRESN.","",colnames(line))
           line <- as.data.frame(line)
+          # which columns have missing value
+          missing_cols <- names(which(unlist(lapply(line,
+                                                    function(x) sum(is.na(x))>0))))
+          # remove missing value column
+          line <- line[, !names(line) %in% missing_cols, drop=FALSE]
           #Remove NA values (fit cannot have them)
 
           line <- line[, 2:length(colnames(line))]
@@ -880,7 +910,8 @@ ind <- which(Example$mi$MISEV=='')
           no_col <- length(colnames(line))
           no_row <- nrow(line)
 
-          ll <- unique(LBDATAs$LBTESTCD)
+          ## ll <- unique(LBDATAs$LBTESTCD)
+          ll <- unique(colnames(line))
           ## ll <- ll[which(!ll %in% 'GLOBUL')]
           for (test in ll){
             close_vars <- setdiff(names(line_mean), test)
@@ -888,13 +919,29 @@ ind <- which(Example$mi$MISEV=='')
             test_val <- line_mean[names(line_mean) %in% test]
             close_two <- names(sort(abs(rest_line - test_val))[1:2])
 
+            if(Dose=='MD' & gender=='M' & test=='SERUM'){
+
+
+            }
+
               if(length(close_vars)> 1){
 
                 Vars <- close_two
 
-              } else{ stop('Can\'t build MCMC model in LB')}
-        #Repeating fit PER test with interaction from other tests in that lbspec
+              } else{
 
+## print(Dose)
+##           print(gender)
+##           print(lbspec)
+##           next
+                ##
+              print(paste0("can't generate data for: ", test, " in LB"))
+                next
+
+
+                ## stop('Can\'t build MCMC model in LB')
+              }
+        #Repeating fit PER test with interaction from other tests in that lbspec
               equation <- paste0(Vars, sep= '',collapse = " + ")
               formula_lb <- stats::as.formula(paste0(test, " ~ ", equation))
               LBfit <- MCMCpack::MCMCregress(formula = formula_lb, b0=0,
@@ -911,6 +958,15 @@ ind <- which(Example$mi$MISEV=='')
                 lb_var1 <- lb_study[lb_study$LBTESTCD == Vars[1],'LBSTRESN']
                 lb_var2 <- lb_study[lb_study$LBTESTCD == Vars[2],'LBSTRESN']
 
+                    if(length(lb_var1) > 1){
+                      lb_var1 <- lb_var1[1]
+                      print('There are two values for SAME LBTESTCD, First one taken.')
+                    }
+
+                    if(length(lb_var2) > 1){
+                      lb_var2 <- lb_var2[1]
+                      print('There are two values for SAME LBTESTCD, First one taken.')
+                    }
                 lb_val <- LBTESTVAR + LBFit[2] * lb_var1 + LBFit[3] * lb_var2
                 stdev <- unique(LBSummary[which(LBSummary$Dose == Dose &
                                                 LBSummary$SEX == gender &
@@ -920,7 +976,10 @@ ind <- which(Example$mi$MISEV=='')
                 noise <- stats::rnorm(1,mean=0,sd=(stdev$ARMstdev))
                 #Fill DataFrame to allocate to fake individual based on Day once variance is added
                 final_val_lb <- lb_val + noise
-                if(final_val_lb< 0){
+              ## print(Dose)
+              ##   print(gender)
+              ##   print(test)
+                if(final_val_lb < 0){
                   get_pos_val <- function(LBfit,Subj,
                                           Vars,line,test,SENDstudy,LBSummary,
                                           Dose,gender){
@@ -929,6 +988,15 @@ ind <- which(Example$mi$MISEV=='')
                     lb_study <- SENDstudy$lb[SENDstudy$lb$USUBJID==Subj,]
                     lb_var1 <- lb_study[lb_study$LBTESTCD == Vars[1],'LBSTRESN']
                     lb_var2 <- lb_study[lb_study$LBTESTCD == Vars[2],'LBSTRESN']
+                    if(length(lb_var1) > 1){
+                      lb_var1 <- lb_var1[1]
+                      print('There are two values for SAME LBTESTCD, First one taken.')
+                    }
+
+                    if(length(lb_var2) > 1){
+                      lb_var2 <- lb_var2[1]
+                      print('There are two values for SAME LBTESTCD, First one taken.')
+                    }
                     lb_val <- LBTESTVAR + LBFit[2] * lb_var1 + LBFit[3] * lb_var2
                     stdev <- unique(LBSummary[which(LBSummary$Dose == Dose &
                                                     LBSummary$SEX == gender &
@@ -1016,7 +1084,9 @@ ind <- which(Example$mi$MISEV=='')
     print('LB DONE')
 
 #6
-#OM
+    #OM
+
+Subjects <- Subjects_2
             ######### Generates NUMERICAL OM Data #############
 ## generate OM data
             SENDstudy$om <- SENDstudy$om[which(SENDstudy$om$USUBJID %in% Subjects$USUBJID),]
@@ -1047,6 +1117,7 @@ ind <- which(Example$mi$MISEV=='')
     SENDstudy$om$OMSTRESN_org <- SENDstudy$om$OMSTRESN
     om_study <- SENDstudy$om[SENDstudy$om$OMTESTCD=='WEIGHT',
                              c('USUBJID','OMSPEC','OMSTRESN')]
+    ## print(unique(Doses$Dose))
     for(Dose in unique(Doses$Dose)){
       for(gender in unique(ExampleSubjects$SEX)){
 
@@ -1057,10 +1128,13 @@ ind <- which(Example$mi$MISEV=='')
         GroupTests <- SENDstudy$om[which(SENDstudy$om$USUBJID %in% Subjs), c("OMTESTCD","OMSPEC")]
         GroupTests <- GroupTests[GroupTests$OMTESTCD=='WEIGHT',]
 
+          ## if(Dose=='LD' & gender=='F' ){
+          ##   print('hello')
+
+
+          ## }
         for(omspec in unique(GroupTests$OMTESTCD)){
-
           ## OMDATAs <- OMSummary[which(OMSummary$OMSPEC %in% omspec),]
-
           OMDATAs <- OMSummary[which(OMSummary$OMTESTCD=='WEIGHT'),]
 
           OMDATAs <- OMDATAs[which(OMDATAs$USUBJID %in% Sub),]
@@ -1076,6 +1150,10 @@ ind <- which(Example$mi$MISEV=='')
 
           line <- line[, 2:length(colnames(line))]
 
+          missing_cols <- names(which(unlist(lapply(line,
+                                                    function(x) sum(is.na(x))>0))))
+          # remove missing value column
+          line <- line[, !names(line) %in% missing_cols, drop=FALSE]
           ## line <- sapply(line, as.numeric)
           ## colnames(line) <- gsub("OMSTRESN.","",colnames(line))
           ## line <- as.data.frame(line)
@@ -1084,8 +1162,10 @@ ind <- which(Example$mi$MISEV=='')
           line_mean <- colMeans(line)
           ## no_col <- length(colnames(line))
           ## no_row <- nrow(line)
-## browser()
-          ll <- unique(OMDATAs$OMSPEC)
+          ## browser()
+
+          ## ll <- unique(OMDATAs$OMSPEC)
+          ll <- unique(colnames(line))
 
           for (test in ll){
             ## test <- 'BRAIN'
@@ -1102,7 +1182,7 @@ ind <- which(Example$mi$MISEV=='')
 
 
             
-            tryCatch({
+            ## tryCatch({
 
               if(length(close_vars)> 1){
 
@@ -1146,6 +1226,9 @@ ind <- which(Example$mi$MISEV=='')
 
                               indx <- which(SENDstudy$om$USUBJID==Subj &
                                             SENDstudy$om$OMSPEC==test)
+                              if(length(final_val) <1){
+
+                              }
                               if(final_val< 0){
                                 get_pos_val <- function(OMfit,om_study,Subj,Vars,line,test,SENDstudy){
                                   OMFit <- OMfit[sample(1:nrow(OMfit), 1),]
@@ -1188,14 +1271,14 @@ ind <- which(Example$mi$MISEV=='')
                             }
               ## }
 
-            }, error=function(e) {
+            ## }, error=function(e) {
 
-              print(e)
+            ##   print(e)
               ##             print(test)
               ## print(formula_om)
               ## print(line)
-            }
-                          )
+            ## }
+                          ## )
           }
         }
       }
@@ -1356,6 +1439,7 @@ dl <-   dk[OMTESTCD=="WEIGHT", c(3,4,5,6,9)][order(OMTESTCD,OMSPEC)]
     SENDstudy$om$OMSTRESU <- as.character(SENDstudy$om$OMSTRESU)
 
   print('OM DONE')
+
 #7
 #MI
   #Generate MI Data
