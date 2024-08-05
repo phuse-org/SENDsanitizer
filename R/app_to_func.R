@@ -55,7 +55,7 @@ sanitize <- function(path, number=1, recovery=FALSE,
 
   # number of study to generate
   if(number!=1){
-stop("Currently only work with 1. Please set number to 1")
+    stop("Currently only work with 1. Please set number to 1")
   }
   #######################
   ######################
@@ -64,11 +64,11 @@ stop("Currently only work with 1. Please set number to 1")
   if('pooldef' %in% avl_domains){
 
     domains <-  c("bw","dm","ds","ex","lb","mi",
-                  "ta","ts","tx","om","pooldef","pc")
-  }else {
+      "ta","ts","tx","om","pooldef","pc")
+  } else {
 
     domains <-  c("bw","dm","ds","ex","lb","mi",
-                  "ta","ts","tx","om","pc")
+      "ta","ts","tx","om","pc")
 
   }
   if(!multi_study){
@@ -497,11 +497,21 @@ ind <- which(Example$mi$MISEV=='')
 
     for (Dose in unique(trt_one$cat)){
       for (gender in unique(ExampleSubjects$SEX)){
+        print(Dose)
+        print(gender)
+
         #Limit to proper gender subjects
         #this from SENDstudy$dm, fake studyid and fake subject id
         Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose &
                                                ExampleSubjects$SEX == gender)]
 
+        if(length(Subjs)==0){
+          ## print(Dose)
+          print(paste0(Dose, ' and ', gender, ' group does not have animals '))
+          next()
+
+
+        }
         # this `Sub` from original, Example$dm, if multiple studies then
         # subjects from multiple studies
         Sub <- Subjects_2$USUBJID[which(Subjects_2$Dose == Dose &
@@ -528,6 +538,7 @@ ind <- which(Example$mi$MISEV=='')
         }
                     #Sample model to fill in Example using Subjs
         #Per individual, sample from postieror and derive line for their response
+
         Fit <- sample(1:nrow(posterior), size=length(Subjs))
         sn <-1
         #Use that fit to generate new animal data
@@ -627,9 +638,9 @@ ind <- which(Example$mi$MISEV=='')
     SENDstudy$lb[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$lb$STUDYID))
     #Find out value range per treatment group
     LBFindings <- merge(Subjects_2, Example$lb[,c("USUBJID",
-                                                "LBTESTCD","LBSPEC",
-                                                "LBSTRESN","LBDY",
-                                                "LBCAT")], by = "USUBJID")
+      "LBTESTCD","LBSPEC",
+      "LBSTRESN","LBDY",
+      "LBCAT")], by = "USUBJID")
 
 # check lower case and other terms
     if ('CLINICAL CHEMISTRY' %in% unique(LBFindings$LBCAT)){
@@ -638,7 +649,18 @@ ind <- which(Example$mi$MISEV=='')
       LBFindings <- LBFindings[LBFindings$LBCAT=="CLINICAL CHEMISTRY",]
       SENDstudy$lb <- SENDstudy$lb[SENDstudy$lb$LBCAT=='CLINICAL CHEMISTRY',]
 
-    } else {
+    }else if('BIOCHEMISTRY' %in% unique(LBFindings$LBCAT)){
+
+      LBFindings <- LBFindings[LBFindings$LBCAT=="BIOCHEMISTRY",]
+      SENDstudy$lb <- SENDstudy$lb[SENDstudy$lb$LBCAT=='BIOCHEMISTRY',]
+
+    } else if('BLOOD CHEMISTRY' %in% unique(LBFindings$LBCAT)){
+
+      LBFindings <- LBFindings[LBFindings$LBCAT=="BLOOD CHEMISTRY",]
+      SENDstudy$lb <- SENDstudy$lb[SENDstudy$lb$LBCAT=='BLOOD CHEMISTRY',]
+    }else  {
+
+      print(unique(LBFindings$LBCAT))
       stop('No observation for Clinical Chemistry in this study')
     }
     # remove test that have NA value for some result.
@@ -649,7 +671,7 @@ ind <- which(Example$mi$MISEV=='')
     # does not match any alpha and this character
     m5 <-   m2[!LBSTRESC %like% "[a-zA-Z + < > = ]"]
     data.table::setDF(m5)
-   SENDstudy$lb <- m5
+    SENDstudy$lb <- m5
     ## na_testcd <- SENDstudy$lb[is.na(SENDstudy$lb$LBSTRESN),]
     ## na_testcd <- unique(na_testcd$LBTESTCD)
 
@@ -679,7 +701,7 @@ ind <- which(Example$mi$MISEV=='')
     SENDstudy$lb$LBSTRESN_org <- SENDstudy$lb$LBSTRESN
     #Create a distribution of values using MCMC for LBSTRESN
     if(lb_day_model){
-  ##   for (Dose in unique(Doses$Dose)){
+      ##   for (Dose in unique(Doses$Dose)){
   ##     for (gender in unique(ExampleSubjects$SEX)){
   ##       ## print(paste0(Dose, " - ", gender))
   ##       Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose &
@@ -902,6 +924,9 @@ ind <- which(Example$mi$MISEV=='')
                                                     function(x) sum(is.na(x))>0))))
           # remove missing value column
           line <- line[, !names(line) %in% missing_cols, drop=FALSE]
+          ## print(Dose)
+          ## print(gender)
+          ## print(lbspec)
           #Remove NA values (fit cannot have them)
 
           line <- line[, 2:length(colnames(line))]
@@ -1085,7 +1110,7 @@ ind <- which(Example$mi$MISEV=='')
 
 #6
     #OM
-
+# OMLAT need to implement
 Subjects <- Subjects_2
             ######### Generates NUMERICAL OM Data #############
 ## generate OM data
@@ -1144,10 +1169,23 @@ Subjects <- Subjects_2
 
           line <- data.frame(USUBJID= OMDATAs$USUBJID, OMSTRESN = OMDATAs$OMSTRESN,
                               OMTEST = OMDATAs$OMSPEC)
-          line <- dplyr::distinct(line) #check for and remove duplicate rows
+          # omlat need to implement
+          line <- line[!duplicated(line[,c('USUBJID','OMTEST')]),]
           line <- tidyr::pivot_wider(line, values_from = 'OMSTRESN',
                                      names_from = 'OMTEST')
 
+
+          ## print(Dose)
+          ## print(gender)
+          ## print(omspec)
+
+          ## print(line)
+
+            if(Dose=='LD' & gender=='F' & omspec=='WEIGHT'){
+
+
+
+            }
           line <- line[, 2:length(colnames(line))]
 
           missing_cols <- names(which(unlist(lapply(line,
@@ -1445,28 +1483,28 @@ dl <-   dk[OMTESTCD=="WEIGHT", c(3,4,5,6,9)][order(OMTESTCD,OMSPEC)]
   #Generate MI Data
   #Keeps: MISPEC, MIDY, MISTESTCD, MITEST,
   #Replaces: STUDYID, USUBJID, MIDTC, MISTRESC, MIORRES, MISEV
-                                        #Removes: MIREASND, MISPCCND,MISPCUFL, MIDTHREL and MIREASND
+  #Removes: MIREASND, MISPCCND,MISPCUFL, MIDTHREL and MIREASND
 
 
-                                        #Replace StudyID and USUBJID
+  #Replace StudyID and USUBJID
     SENDstudy$mi$STUDYID <- rep(studyID, nrow(SENDstudy$mi))
     SENDstudy$mi$USUBJID <- as.character(SENDstudy$mi$USUBJID)
-            SENDstudy$mi$MIORRES <- as.character(SENDstudy$mi$MIORRES)
-    SENDstudy$mi <- merge( USUBJIDTable,SENDstudy$mi, by = "USUBJID")
-            SENDstudy$mi <- SENDstudy$mi[,!(names(SENDstudy$mi) %in% "USUBJID")]
-            names(SENDstudy$mi)[names(SENDstudy$mi) == "NEWUSUBJID"] <- "USUBJID"
-            #Remove Dates
-            cols <- grep("DTC", colnames(SENDstudy$mi))
-            SENDstudy$mi[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$mi$STUDYID))
-            #Consolidate "Normal" Findings
-            Example$mi$MISTRESC <- as.character(Example$mi$MISTRESC)
-            SENDstudy$mi$MISTRESC <- as.character(SENDstudy$mi$MISTRESC)
-            Example$mi$MISTRESC <- toupper(Example$mi$MISTRESC)
-            Example$mi$MISTRESC <-  stringr::str_replace_all(Example$mi$MISTRESC, "NORMAL", "UNREMARKABLE")
-            Example$mi$MISTRESC <-  stringr::str_replace_all(Example$mi$MISTRESC, "NAD", "UNREMARKABLE")
-            Example$mi$MISTRESC <-  stringr::str_replace_all(Example$mi$MISTRESC, "NO ABNORMALITY DETECTED", "UNREMARKABLE")
-            Example$mi$MISTRESC <-  stringr::str_replace_all(Example$mi$MISTRESC,"NO ABUNREMARKABLEITY DETECTED","UNREMARKABLE")
-            #Find out investigated MISPECS and Frequency of Findings/Severity Range of Findings
+  SENDstudy$mi$MIORRES <- as.character(SENDstudy$mi$MIORRES)
+  SENDstudy$mi <- merge( USUBJIDTable,SENDstudy$mi, by = "USUBJID")
+  SENDstudy$mi <- SENDstudy$mi[,!(names(SENDstudy$mi) %in% "USUBJID")]
+  names(SENDstudy$mi)[names(SENDstudy$mi) == "NEWUSUBJID"] <- "USUBJID"
+  #Remove Dates
+  cols <- grep("DTC", colnames(SENDstudy$mi))
+  SENDstudy$mi[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$mi$STUDYID))
+  #Consolidate "Normal" Findings
+  Example$mi$MISTRESC <- as.character(Example$mi$MISTRESC)
+  SENDstudy$mi$MISTRESC <- as.character(SENDstudy$mi$MISTRESC)
+  Example$mi$MISTRESC <- toupper(Example$mi$MISTRESC)
+  Example$mi$MISTRESC <-  stringr::str_replace_all(Example$mi$MISTRESC, "NORMAL", "UNREMARKABLE")
+  Example$mi$MISTRESC <-  stringr::str_replace_all(Example$mi$MISTRESC, "NAD", "UNREMARKABLE")
+  Example$mi$MISTRESC <-  stringr::str_replace_all(Example$mi$MISTRESC, "NO ABNORMALITY DETECTED", "UNREMARKABLE")
+  Example$mi$MISTRESC <-  stringr::str_replace_all(Example$mi$MISTRESC,"NO ABUNREMARKABLEITY DETECTED","UNREMARKABLE")
+  #Find out investigated MISPECS and Frequency of Findings/Severity Range of Findings
             #Calculate percentage of Findings per MISPEC in each ARM
 
 ## browser()
