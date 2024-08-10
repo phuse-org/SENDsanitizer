@@ -497,8 +497,8 @@ ind <- which(Example$mi$MISEV=='')
 
     for (Dose in unique(trt_one$cat)){
       for (gender in unique(ExampleSubjects$SEX)){
-        print(Dose)
-        print(gender)
+        ## print(Dose)
+        ## print(gender)
 
         #Limit to proper gender subjects
         #this from SENDstudy$dm, fake studyid and fake subject id
@@ -1127,8 +1127,8 @@ Subjects <- Subjects_2
     ## example_om <- Example$om
 ## save(send_study_om,USUBJIDTable,example_om, file='om.rda')
     OMFindings <- merge(Subjects, Example$om[, c('USUBJID','OMTESTCD','OMSPEC',
-                                             'OMSTRESN','OMDY')],
-                    by='USUBJID')
+                                                 'OMSTRESN','OMDY')],
+                        by='USUBJID')
 
     OMFindings <- OMFindings[OMFindings$OMTESTCD=='WEIGHT',]
     OMSummary <- OMFindings %>% dplyr::group_by(Dose,SEX,OMTESTCD,OMSPEC,OMDY) %>%
@@ -1137,18 +1137,25 @@ Subjects <- Subjects_2
       dplyr::mutate(ARMstdev= sd(OMSTRESN, na.rm = TRUE))
 
    OMSummary  <- stats::na.omit(OMSummary)
+    OMSummary <- as.data.frame(OMSummary)
 
     SENDstudy$om$OMSTRESN_new <- NA
     SENDstudy$om$OMSTRESN_org <- SENDstudy$om$OMSTRESN
     om_study <- SENDstudy$om[SENDstudy$om$OMTESTCD=='WEIGHT',
                              c('USUBJID','OMSPEC','OMSTRESN')]
+
+      om_dose_gender <- ExampleSubjects[ExampleSubjects$USUBJID %in% unique(SENDstudy$om$USUBJID),]
     ## print(unique(Doses$Dose))
     for(Dose in unique(Doses$Dose)){
       for(gender in unique(ExampleSubjects$SEX)){
 
         ## ExampleSubjects <- SENDstudy$dm[,c("USUBJID", "ARM","SUBJID","SEX")]
-        Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose & ExampleSubjects$SEX == gender)]
-        Subjs <- Subjs[which(Subjs %in% unique(om_study$USUBJID))]
+
+          Subjs <- om_dose_gender[om_dose_gender$ARM== Dose &
+                                  om_dose_gender$SEX == gender,'USUBJID']
+        Subjs <- unique(Subjs$USUBJID)
+        ## Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose & ExampleSubjects$SEX == gender)]
+        ## Subjs <- Subjs[which(Subjs %in% unique(om_study$USUBJID))]
         Sub <- Subjects$USUBJID[which(Subjects$Dose == Dose & Subjects$SEX == gender)]
         GroupTests <- SENDstudy$om[which(SENDstudy$om$USUBJID %in% Subjs), c("OMTESTCD","OMSPEC")]
         GroupTests <- GroupTests[GroupTests$OMTESTCD=='WEIGHT',]
@@ -1171,43 +1178,24 @@ Subjects <- Subjects_2
                               OMTEST = OMDATAs$OMSPEC)
           # omlat need to implement
           line <- line[!duplicated(line[,c('USUBJID','OMTEST')]),]
-          line <- tidyr::pivot_wider(line, values_from = 'OMSTRESN',
-                                     names_from = 'OMTEST')
 
-
-          ## print(Dose)
-          ## print(gender)
-          ## print(omspec)
-
-          ## print(line)
-
-            if(Dose=='LD' & gender=='F' & omspec=='WEIGHT'){
-
-
-
-            }
+          line <- data.table::dcast(data.table::as.data.table(line),
+                                     USUBJID ~ OMTEST,
+                                     value.var = 'OMSTRESN')
+          line <- as.data.frame(line)
           line <- line[, 2:length(colnames(line))]
 
           missing_cols <- names(which(unlist(lapply(line,
                                                     function(x) sum(is.na(x))>0))))
           # remove missing value column
           line <- line[, !names(line) %in% missing_cols, drop=FALSE]
-          ## line <- sapply(line, as.numeric)
-          ## colnames(line) <- gsub("OMSTRESN.","",colnames(line))
-          ## line <- as.data.frame(line)
-                                        #Remove NA values (fit cannot have them)
           line <- stats::na.omit(line)
           line_mean <- colMeans(line)
-          ## no_col <- length(colnames(line))
-          ## no_row <- nrow(line)
-          ## browser()
-
-          ## ll <- unique(OMDATAs$OMSPEC)
           ll <- unique(colnames(line))
 
           for (test in ll){
             ## test <- 'BRAIN'
-## line_mean
+            ## line_mean
             close_vars <- setdiff(names(line_mean), test)
             rest_line <-  line_mean[names(line_mean) %in% close_vars]
             ## print(rest_line)
@@ -1215,17 +1203,9 @@ Subjects <- Subjects_2
             test_val <- line_mean[names(line_mean) %in% test]
             ## print(test_val)
             close_two <- names(sort(abs(rest_line - test_val))[1:2])
-            ## print(close_two)
-
-
-
-            
             ## tryCatch({
-
               if(length(close_vars)> 1){
-
                 Vars <- close_two
-
               } else{ stop('Can\'t build MCMC model in OM')}
               #Repeating fit PER test with interaction from other tests in that omspec
               ## equation <- paste0(Vars, collapse = " + ")
@@ -1303,7 +1283,7 @@ Subjects <- Subjects_2
                                 }
                               }
                                SENDstudy$om[indx,'OMSTRESN_new'] <- final_val
-                              SENDstudy$om[indx,'OMSTRESN_org'] <- final_val
+                              ## SENDstudy$om[indx,'OMSTRESN_org'] <- final_val
                                 #add to subject count before new subject done
                               sn <- sn+1
                             }
@@ -1326,81 +1306,80 @@ Subjects <- Subjects_2
 
   # ratio
 ## browser()
-om_df <- data.table::copy(SENDstudy$om)
-data.table::setDT(om_df)
-
-bw_df <- data.table::copy(SENDstudy$bw)
-data.table::setDT(bw_df)
-
+  om_df <- data.table::copy(SENDstudy$om)
+  data.table::setDT(om_df)
+  bw_df <- data.table::copy(SENDstudy$bw)
+  data.table::setDT(bw_df)
   usubs <- unique(om_df$USUBJID)
   df_term <- bw_df[USUBJID %in% usubs & BWTESTCD=='TERMBW']
   usubs <- unique(df_term$USUBJID)
   for (i in 1:length(usubs)){
     sub <- usubs[i]
-bw_wgt <- bw_df[USUBJID==sub & BWTESTCD=='TERMBW', .(BWTESTCD,BWSTRESN,BWSTRESU)]
-sub_bw <- bw_wgt[['BWSTRESN']]
-sub_bw_u <- tolower(as.character(bw_wgt[['BWSTRESU']]))
-    ## print(i)
-    ## print(sub_bw_u)
-    ## if(length(sub_bw_u)==0){
-    ## browser()}
-if (sub_bw_u == 'kg'){
-  sub_bw <- sub_bw * 1000
-
-}
-
-
-sub_df <- om_df[USUBJID==sub,]
-sub_testcd <- unique(sub_df[['OMTESTCD']])
-organ_ratio <- grep('^OW|^BW', sub_testcd,value=T, ignore.case = T)
+    bw_wgt <- bw_df[USUBJID==sub & BWTESTCD=='TERMBW', .(BWTESTCD,BWSTRESN,BWSTRESU)]
+    sub_bw <- bw_wgt[['BWSTRESN']]
+    sub_bw_u <- tolower(as.character(bw_wgt[['BWSTRESU']]))
+    if (sub_bw_u == 'kg'){
+      sub_bw <- sub_bw * 1000
+    }
+    sub_df <- om_df[USUBJID==sub,]
+    sub_testcd <- unique(sub_df[['OMTESTCD']])
+    organ_ratio <- grep('^OW|^BW', sub_testcd,value=T, ignore.case = T)
     for(testcd in 1:length(organ_ratio)){
       ratio <- organ_ratio[testcd]
       if(ratio=='OWBR'){
-brain <- sub_df[OMSPEC=='BRAIN' & OMTESTCD=='WEIGHT', OMSTRESN]
-om_df[USUBJID==sub & OMTESTCD=='OWBR', `:=`(new_c=(OMSTRESN_new/brain)*100)]
-
-      }else if(ratio=='OWHT') {
-
-heart <- sub_df[OMSPEC=='HEART' & OMTESTCD=='WEIGHT', OMSTRESN]
-om_df[USUBJID==sub & OMTESTCD=='OWHT', `:=`(new_c=(OMSTRESN_new/heart)*100)]
+        brain <- sub_df[OMSPEC=='BRAIN' & OMTESTCD=='WEIGHT', OMSTRESN]
+        om_df[USUBJID==sub & OMTESTCD=='OWBR', `:=`(new_c=(OMSTRESN_new/brain)*100)]
+      } else if(ratio=='OWHT') {
+        heart <- sub_df[OMSPEC=='HEART' & OMTESTCD=='WEIGHT', OMSTRESN]
+        om_df[USUBJID==sub & OMTESTCD=='OWHT', `:=`(new_c=(OMSTRESN_new/heart)*100)]
       } else if(ratio=='OWBROB'){
-
-bulb <- sub_df[OMSPEC=='BRAIN, OLFACTORY BULB' & OMTESTCD=='WEIGHT', OMSTRESN]
-om_df[USUBJID==sub & OMTESTCD=='OWBROB', `:=`(new_c=(OMSTRESN_new/bulb)*100)]
-      }
-##       else if(ratio=='OWRATIO') {
-
-## brain <- sub_df[OMSPEC=='BRAIN' & OMTESTCD=='WEIGHT', OMSTRESN]
-## om_df[USUBJID==sub & OMTESTCD=='OWBR', `:=`(new_c=(OMSTRESN_new/brain)*100)]
-##       }
-
-      else if(ratio=='OWBW'){
+        bulb <- sub_df[OMSPEC=='BRAIN, OLFACTORY BULB' & OMTESTCD=='WEIGHT', OMSTRESN]
+        om_df[USUBJID==sub & OMTESTCD=='OWBROB', `:=`(new_c=(OMSTRESN_new/bulb)*100)]
+      } else if(ratio=='OWBW'){
         # what is value is in kg?
-
-om_df[USUBJID==sub & OMTESTCD=='OWBW', `:=`(new_c=(OMSTRESN_new/sub_bw)*100)]
-
-      }else if(ratio=='BWBR'){
-
-brain <- sub_df[OMSPEC=='BRAIN' & OMTESTCD=='WEIGHT', OMSTRESN]
-om_df[USUBJID==sub & OMTESTCD=='BWBR', `:=`(new_c=(sub_bw/brain)*100)]
+        om_df[USUBJID==sub & OMTESTCD=='OWBW', `:=`(new_c=(OMSTRESN_new/sub_bw)*100)]
+      } else if(ratio=='BWBR'){
+        brain <- sub_df[OMSPEC=='BRAIN' & OMTESTCD=='WEIGHT', OMSTRESN]
+        om_df[USUBJID==sub & OMTESTCD=='BWBR', `:=`(new_c=(sub_bw/brain)*100)]
       }
-}
+    }
   }
 
+      ##       else if(ratio=='OWRATIO') {
 
-  dd <- om_df[, c("STUDYID", "USUBJID","OMTESTCD", "OMSPEC", "OMSTRESN",
-                  "OMSTRESN_new",'new_c', "OMSTRESU")]
-  dk <- data.table::copy(dd)
+      ## brain <- sub_df[OMSPEC=='BRAIN' & OMTESTCD=='WEIGHT', OMSTRESN]
+      ## om_df[USUBJID==sub & OMTESTCD=='OWBR', `:=`(new_c=(OMSTRESN_new/brain)*100)]
+      ##       }
 
-  ## dk[, `:=`(dif=round(((abs(OMSTRESN-OMSTRESN_new))/OMSTRESN) * 100,3))]
-  dk[, `:=`(dif= round((abs(OMSTRESN - OMSTRESN_new)/OMSTRESN)*100, 3))]
+  ## dd <- om_df
+  ## om_df <- om_df[, c("STUDYID", "USUBJID","OMTESTCD", "OMSPEC", "OMSTRESN",
+  ##                 "OMSTRESN_new",'new_c', "OMSTRESU")]
+  om_df$ratio <- data.table::fcoalesce(om_df$new_c, om_df$OMSTRESN_new)
+  ## om_df <- data.table::copy(om_df)
 
-  ## dk[, `:=`(dif=round(((abs(OMSTRESN-OMSTRESN_new))/OMSTRESN) * 100,3))]
-dl <-   dk[OMTESTCD=="WEIGHT", c(3,4,5,6,9)][order(OMTESTCD,OMSPEC)]
-  kk <- dd[OMTESTCD=='WEIGHT' & OMSPEC %in% c('BRAIN','HEART','LIVER', 'KIDNEY')][order(OMSPEC)]
+  ## om_df[, `:=`(dif=round(((abs(OMSTRESN-OMSTRESN_new))/OMSTRESN) * 100,3))]
+  ## om_df[, `:=`(dif= round((OMSTRESN - OMSTRESN_new/OMSTRESN)*100, 3))]
+  ## om_df[, `:=`(dif_r= round((OMSTRESN - ratio/OMSTRESN)*100, 3))]
+
+  om_df[, `:=`(OMSTRESN_diff_pct= round(((ratio - OMSTRESN)/OMSTRESN)*100, 2))]
+  om_df$ratio <- round(om_df$ratio, 4)
+  ## om_df$OMSTRESN_new <- round(om_df$OMSTRESN_new, 3)
+  om_df$new_c <- NULL
+  om_df$OMSTRESN_new <- NULL
+  om_df$OMSTRESN_new <- om_df$ratio
+  om_df$ratio <- NULL
+  rest_cols <- colnames(om_df)[!colnames(om_df) %in% c('OMSTRESN_new','OMSTRESN_org','OMSTRESN_diff_pct')]
+  data.table::setcolorder(om_df, c(rest_cols, 'OMSTRESN_org','OMSTRESN_new', 'OMSTRESN_diff_pct'))
+  ###
+  ##
+  ## om_df is the new dataframe and ratio column should be OMSTRESN.
+   # and all other column need to delete
+  #############
+  ## om_df[, `:=`(dif=round(((abs(OMSTRESN-OMSTRESN_new))/OMSTRESN) * 100,3))]
+## dl <-   om_df[OMTESTCD=="WEIGHT", c(3,4,5,6,9)][order(OMTESTCD,OMSPEC)]
+##   kk <- om_df[OMTESTCD=='WEIGHT' & OMSPEC %in% c('BRAIN','HEART','LIVER', 'KIDNEY')][order(OMSPEC)]
 ## have to change om_df to SENDstudy$om
 ##
-
 # ratio calculation
     ## for(Dose in unique(Doses$Dose)){
     ##   for(gender in unique(ExampleSubjects$SEX)){
@@ -1453,9 +1432,20 @@ dl <-   dk[OMTESTCD=="WEIGHT", c(3,4,5,6,9)][order(OMTESTCD,OMSPEC)]
     ##     }
     ##   }
     ## }
-
 ## print('done_loop')
   #Coordinate LBORRES and LBSTRESC
+## test_original <- TRUE
+# copy to om
+  SENDstudy$om <- om_df
+    if(test_original){
+
+     View(SENDstudy$om, title = 'generated OM for view')
+    } else {
+      SENDstudy$om$OMSTRESN  <- SENDstudy$om$OMSTRESN_new
+      SENDstudy$om$OMSTRESN_org <- NULL
+      SENDstudy$om$OMSTRESN_new <- NULL
+      SENDstudy$om$OMSTRESN_diff_pct <- NULL
+    }
     SENDstudy$om$OMSTRESC <- as.character(SENDstudy$om$OMSTRESN)
     SENDstudy$om$OMORRESU <- SENDstudy$om$OMSTRESU
     SENDstudy$om$OMORRES <- SENDstudy$om$OMSTRESN
@@ -1477,6 +1467,7 @@ dl <-   dk[OMTESTCD=="WEIGHT", c(3,4,5,6,9)][order(OMTESTCD,OMSPEC)]
     SENDstudy$om$OMSTRESU <- as.character(SENDstudy$om$OMSTRESU)
 
   print('OM DONE')
+
 
 #7
 #MI
@@ -1601,7 +1592,7 @@ print('MI DONE')
                     printpath <- fs::path(dir_to_save, domain, ext= 'xpt')
                     ## haven::write_xpt(SENDstudy[[domain]],path = printpath, version = 5)
 
-                  print(paste0('file saved in: ',printpath))
+                  ## print(paste0('file saved in: ',printpath))
                 }
             } else {
 
