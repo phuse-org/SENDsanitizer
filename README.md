@@ -75,7 +75,7 @@ __line__ is the dataframe of LBSTRESN and LBTESTCD
 
 Markov Chain Monte Carlo (MCMC) output:  
 
-|Intercept  |Cof_PROT |Cof_ALB  |
+|INTERCEPT  |COF_PROT |COF_ALB  |
 |:----------|:--------|:--------|
 |0.05027991 |2.3874235|-1.956665|
 |-4.40402458|1.9721626|-1.627903|
@@ -84,7 +84,7 @@ Markov Chain Monte Carlo (MCMC) output:
 
 randomly choosen a model and calculate the __ALT__ value for a specific animal.  
 
-`ALT = Intercept + Cof_PROT * PROT + cof_ALB * ALB`  
+`ALT = INTERCEPT + COF_PROT * PROT + COF_ALB * ALB`  
 
 - some noise added
 
