@@ -4,12 +4,19 @@
 \alias{sanitize}
 \title{function to generate fake data}
 \usage{
-sanitize(path, number = 1, recovery = FALSE, where_to_save = NULL)
+sanitize(
+  path,
+  number = 1,
+  recovery = FALSE,
+  where_to_save = NULL,
+  write_xpt = FALSE,
+  test_original = FALSE
+)
 }
 \arguments{
 \item{path}{Mandatory\cr
 path where real data/xpt files located, should be a directory that contains
-xpt files}
+xpt files, one or multiple directory can be given.}
 
 \item{number}{mandatory, default 1\cr
 how many studies to generate. Currently only work with 1}
@@ -19,6 +26,15 @@ recovery}
 
 \item{where_to_save}{mandatory\cr
 where to save generated xpt files. Should be a directory.}
+
+\item{write_xpt}{mandatory, boolean\cr
+should write the file or not. If TRUE, then xpt file will be created.}
+
+\item{test_original}{mandatory, boolean\cr
+this will generate a dataset that have original value and generated value
+for bw, lb, mi, om domain.
+default FALSE.
+should write the file or not. If TRUE, then xpt file will be created.}
 }
 \description{
 function to generate fake data

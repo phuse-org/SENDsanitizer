@@ -1,13 +1,20 @@
 #' @title function to generate fake data
 #' @param path Mandatory\cr
 #' path where real data/xpt files located, should be a directory that contains
-#' xpt files
+#' xpt files, one or multiple directory can be given.
 #' @param number mandatory, default 1\cr
 #'   how many studies to generate. Currently only work with 1
 #' @param recovery optional\cr
 #' recovery
 #' @param where_to_save mandatory\cr
 #' where to save generated xpt files. Should be a directory.
+#' @param write_xpt mandatory, boolean\cr
+#' should write the file or not. If TRUE, then xpt file will be created.
+#' @param test_original mandatory, boolean\cr
+#' this will generate a dataset that have original value and generated value
+#' for bw, lb, mi, om domain.
+#' default FALSE.
+#' should write the file or not. If TRUE, then xpt file will be created.
 #' @export
 #' @import data.table
 #' @import utils
@@ -28,10 +35,11 @@
 #bw,lb,om,mi
 # start here
 sanitize <- function(path, number=1, recovery=FALSE,
-                     where_to_save=NULL) {
+                     where_to_save=NULL,write_xpt=FALSE,
+                     test_original=FALSE) {
   # whether to show original value in table, this
   # for test only, if true it will not write data
-  test_original <- FALSE
+  ## test_original <- FALSE
   ## test_original <- TRUE
   lb_day_model <- FALSE
   number  <- as.numeric(number)
@@ -71,9 +79,10 @@ sanitize <- function(path, number=1, recovery=FALSE,
       "ta","ts","tx","om","pc")
 
   }
+
   if(!multi_study){
    Example  <- load_xpt_files(path,domains = domains)
-    all_setcd <- list()
+   all_setcd <- list()
     get_data  <- filter_tk_rec(Example=Example,recovery=Recovery)
     Example <- get_data$data
     all_setcd[[1]] <- get_data$setcd
@@ -138,13 +147,20 @@ sanitize <- function(path, number=1, recovery=FALSE,
         #######################################################################
         tx_doses <- get_doses(Example$tx)
         ## treatment_doses <- tx_doses[SETCD %in% get_setcd[[1]][['treatment_group']]]
+
         treatment_doses <- tx_doses
+  studyid <- Example$tx$STUDYID[1]
+  if(studyid=='392-0047-TX'){
+        clean_dose <- SENDsanitizer:::clean_txval_dose_min(treatment_doses$TXVAL)
+  }else{
         clean_dose <- SENDsanitizer:::clean_txval_dose(treatment_doses$TXVAL)
+  }
         trt <- data.table::copy(treatment_doses)
         trt$dose  <- clean_dose
         ## if(length(trt$dose) < 3) {
         study_numbers <- unique(Example$dm$STUDYID)
-        ## }
+  ## }
+
         if(multi_study){
           first_study <- trt[STUDYID==study_numbers[1],]
           fs_cat <- dose_categorize(first_study)
@@ -160,31 +176,69 @@ sanitize <- function(path, number=1, recovery=FALSE,
         # check
         if(!Recovery){
           if(length(unique(trt[cat=='Control',SETCD]))>1){
+            ## print(trt)
+            trt <- get_correct_setcd(dt=trt, recovery=Recovery)
             print(trt)
+
+          if(length(unique(trt[cat=='Control',SETCD]))>1){
             stop(paste0('There are more than one control group.',
                         ' This is probably a combination study.'))
+           }
           }
+          if(length(unique(trt[cat=='LD',SETCD]))>1){
+            ## print(trt)
+            trt <- get_correct_setcd(dt=trt, recovery=Recovery)
+            print(trt)
+
           if(length(unique(trt[cat=='LD',SETCD]))>1){
             stop(paste0('There are more than one LD group.',
                         ' This is probably a combination study.'))
+            ##
+            }
           }
+          if(length(unique(trt[cat=='HD',SETCD]))>1){
+            print(trt)
+            trt <- get_correct_setcd(dt=trt, recovery=Recovery)
+            print(trt)
+
           if(length(unique(trt[cat=='HD',SETCD]))>1){
             stop(paste0('There are more than one HD group.',
                         ' This is probably a combination study.'))
+            }
           }
         } else {
           if(length(unique(trt[cat=='Control',SETCD]))>2){
+            ## print(trt)
+            trt <- get_correct_setcd(dt=trt, recovery=Recovery)
+            print(trt)
+          if(length(unique(trt[cat=='Control',SETCD]))>2){
+            ## trt <- get_correct_setcd(trt)
             print(trt)
             stop(paste0('There are more than two control group.',
                         ' This is probably a combination study.'))
+            }
+
           }
+          if(length(unique(trt[cat=='LD',SETCD]))>2){
+            print(trt)
+            trt <- get_correct_setcd(dt=trt, recovery=Recovery)
+            print(trt)
+
           if(length(unique(trt[cat=='LD',SETCD]))>2){
             stop(paste0('There are more than two LD group.',
                         ' This is probably a combination study.'))
+            }
           }
           if(length(unique(trt[cat=='HD',SETCD]))>2){
+            ## print(trt)
+
+            trt <- get_correct_setcd(dt=trt, recovery=Recovery)
+
+          if(length(unique(trt[cat=='HD',SETCD]))>2){
+            print(trt)
             stop(paste0('There are more than two HD group.',
                   ' This is probably a combination study.'))
+            }
           }
         }
 
@@ -207,6 +261,7 @@ sanitize <- function(path, number=1, recovery=FALSE,
               `:=`(dose_order=paste0(dose_order,'_R'))]
           ## trt[, `:=`(cat=trt_rc,trt_rc=NULL)]
         }
+## print(trt)
         ######################################################################
         Doses <- trt[,c('SETCD','cat')]
         Doses$ARMCD <- Doses$SETCD
@@ -219,7 +274,7 @@ sanitize <- function(path, number=1, recovery=FALSE,
         Doses_m <- Doses_m[!duplicated(Doses_m)]
         trt_m <- trt[,c('SETCD','cat','dose_order')]
         trt_m <- trt_m[!duplicated(trt_m)]
-
+# don't need the Subjects var, need Subjects_2
         Subjects <- merge(Example$dm[,c("USUBJID","ARMCD","SEX")], Doses_m,
                           by = "ARMCD")
         Subjects_2 <- merge(Example$dm[,c('USUBJID','SETCD','SEX','ARMCD','ARM')],
@@ -228,8 +283,10 @@ sanitize <- function(path, number=1, recovery=FALSE,
                                      'SETCD','cat','dose_order')]
         ## Subjects_2 <- Subjects_2[,c('USUBJID','SEX','SETCD','cat')]
         Subjects_2$Dose <- Subjects_2$cat
-        Subjects_2$cat <- NULL
+  Subjects_2$cat <- NULL
+  Subjects_test <- Subjects
 
+  mi_original_data <- Example$mi
                                         #Consolidate Severity Methods
   Example$mi$MISEV <- as.character(Example$mi$MISEV)
 
@@ -288,6 +345,10 @@ ind <- which(Example$mi$MISEV=='')
 
             #Replace StudyID
     SENDstudy$ts$STUDYID <- rep(studyID, nrow(SENDstudy$ts))
+    SENDstudy$ts$STUDYID <- as.character(SENDstudy$ts$STUDYID)
+
+   # only trt setcd
+    ## SENDstudy$ts <- SENDstudy$ts[which(SENDstudy$ts$SETCD %in% unique(trt$SETCD)),]
     #Find Date TSPARMCDs and replace
     daterows <- grep("DTC", SENDstudy$ts$TSPARMCD)
     SENDstudy$ts[daterows, "TSVAL"] <- rep("XXXX-XX-XX",length(daterows))
@@ -299,8 +360,8 @@ ind <- which(Example$mi$MISEV=='')
     SENDstudy$ts[rows, "TSVAL"] <- rep(Compound, length(rows))
     if (NumData > 1){
       Vehicles <- Example$ts[grep("TRTV",Example$ts$TSPARMCD),"TSVAL"]
-      print(Vehicles)
-      str(Vehicles)
+      ## print(Vehicles)
+      ## str(Vehicles)
       #Remove any N/A or "NOT AVAILABLE"
       ## Vehicles <- Vehicles[grep('NOT AVAILABLE',Vehicles$TSVAL,ignore.case = T,invert = T)]
       ## Vehicles <- Vehicles[grep('NA',Vehicles$TSVAL,invert = T)]
@@ -341,6 +402,10 @@ ind <- which(Example$mi$MISEV=='')
       SENDstudy$ts$TSVAL[idx] <- ""
     }
     print('TS DONE')
+    if(test_original){
+      View(Example$ts,title = 'original_ts')
+      View(SENDstudy$ts, title = 'generated_ts')
+    }
     #2
     #dm
     #done
@@ -358,6 +423,7 @@ ind <- which(Example$mi$MISEV=='')
     Gendersplit <- table(ControlAnimals$SEX)
     #Replace StudyID
     SENDstudy$dm$STUDYID <- rep(studyID, nrow(SENDstudy$dm))
+    SENDstudy$dm$STUDYID <- as.character(SENDstudy$dm$STUDYID)
     #Generate new USUBJIDs using SBJID
     NEWUSUBJID <- paste0(studyID, "-" ,SENDstudy$dm$SUBJID)
     USUBJIDTable <- data.frame(USUBJID = SENDstudy$dm$USUBJID,
@@ -374,12 +440,16 @@ ind <- which(Example$mi$MISEV=='')
     dm2 <- merge(SENDstudy$dm,trt_one_st, by = 'SETCD')
     dm2 <- data.table::as.data.table(dm2)
     dm2 <- dm2[, `:=`(ARMCD=dose_order,ARM=cat,dose_order=NULL,cat=NULL)]
+     data.table::setcolorder(dm2, "SETCD", after=ncol(dm2))
     SENDstudy$dm <- dm2
             #Make Factors Characters for Correct .xpt creation
             SENDstudy$dm$SEX <- as.character(SENDstudy$dm$SEX)
             SENDstudy$dm$AGEU <- as.character(SENDstudy$dm$AGEU)
     print('DM DONE')
 
+    if(test_original){
+      View(Example$dm,title = 'original_dm')
+      View(SENDstudy$dm, title = 'generated_dm') }
     ## example subject
     ## this is generated arm have control and other group options
     ExampleSubjects <- SENDstudy$dm[,c("USUBJID", "ARM","SUBJID","SEX")]
@@ -392,7 +462,9 @@ ind <- which(Example$mi$MISEV=='')
     #Replaces: SET
     #Replace StudyID
     SENDstudy$tx$STUDYID <- rep(studyID, nrow(SENDstudy$tx))
+    SENDstudy$tx$STUDYID <- as.character(SENDstudy$tx$STUDYID)
 
+    SENDstudy$tx <- SENDstudy$tx[which(SENDstudy$tx$SETCD %in% unique(trt$SETCD)),]
     tx_f <- data.table::copy(SENDstudy$tx)
     data.table::setDT(tx_f)
     uniq_setcd <- unique(tx_f$SETCD)
@@ -419,6 +491,7 @@ ind <- which(Example$mi$MISEV=='')
     tx_new <- merge(tx_f,trt_mm, by = 'SETCD')
     tx_new <- data.table::as.data.table(tx_new)
     tx_new <- tx_new[, `:=`(SET=cat,cat=NULL)]
+    data.table::setcolorder(tx_new, "SETCD", after="DOMAIN")
     SENDstudy$tx <- tx_new
     #Replace Factors with Characters
     SENDstudy$tx$SETCD <- as.character(SENDstudy$tx$SETCD)
@@ -426,6 +499,9 @@ ind <- which(Example$mi$MISEV=='')
     SENDstudy$tx$TXPARMCD <- as.character(SENDstudy$tx$TXPARMCD)
     print('TX DONE')
 
+    if(test_original){
+      View(Example$tx,title = 'original_tx')
+View(SENDstudy$tx,title = 'generated_tx') }
 #4
 #bw
 # bw done
@@ -446,6 +522,7 @@ ind <- which(Example$mi$MISEV=='')
     ## SENDstudy$dm$USUBJID <- NEWUSUBJID
     #Add Generated StudyID and USUBJID
     SENDstudy$bw$STUDYID <- rep(studyID, nrow(SENDstudy$bw))
+    SENDstudy$bw$STUDYID <- as.character(SENDstudy$bw$STUDYID)
     SENDstudy$bw$USUBJID <- as.character(SENDstudy$bw$USUBJID)
     SENDstudy$bw <- merge( USUBJIDTable,SENDstudy$bw, by = "USUBJID")
     SENDstudy$bw <- SENDstudy$bw[,!(names(SENDstudy$bw) %in% "USUBJID")]
@@ -629,6 +706,7 @@ ind <- which(Example$mi$MISEV=='')
     SENDstudy$lb <- SENDstudy$lb[which(SENDstudy$lb$USUBJID %in% Subjects_2$USUBJID),]
     #Replace StudyID and USUBJID
     SENDstudy$lb$STUDYID <- rep(studyID, nrow(SENDstudy$lb))
+    SENDstudy$lb$STUDYID <- as.character(SENDstudy$lb$STUDYID)
     SENDstudy$lb <- merge( USUBJIDTable,SENDstudy$lb, by = "USUBJID")
     SENDstudy$lb <- SENDstudy$lb[,!(names(SENDstudy$lb) %in% "USUBJID")]
     names(SENDstudy$lb)[names(SENDstudy$lb) == "NEWUSUBJID"] <- "USUBJID"
@@ -658,7 +736,14 @@ ind <- which(Example$mi$MISEV=='')
 
       LBFindings <- LBFindings[LBFindings$LBCAT=="BLOOD CHEMISTRY",]
       SENDstudy$lb <- SENDstudy$lb[SENDstudy$lb$LBCAT=='BLOOD CHEMISTRY',]
-    }else  {
+    } else if('SERUM CHEMISTRY' %in% unique(LBFindings$LBCAT)){
+
+      LBFindings <- LBFindings[LBFindings$LBCAT=="SERUM CHEMISTRY",]
+      SENDstudy$lb <- SENDstudy$lb[SENDstudy$lb$LBCAT=='SERUM CHEMISTRY',]
+    } else if('Clinical Chemistry' %in% unique(LBFindings$LBCAT)){
+      LBFindings <- LBFindings[LBFindings$LBCAT=="Clinical Chemistry",]
+      SENDstudy$lb <- SENDstudy$lb[SENDstudy$lb$LBCAT=='Clinical Chemistry',]
+    } else {
 
       print(unique(LBFindings$LBCAT))
       stop('No observation for Clinical Chemistry in this study')
@@ -982,15 +1067,19 @@ ind <- which(Example$mi$MISEV=='')
                 lb_study <- SENDstudy$lb[SENDstudy$lb$USUBJID==Subj,]
                 lb_var1 <- lb_study[lb_study$LBTESTCD == Vars[1],'LBSTRESN']
                 lb_var2 <- lb_study[lb_study$LBTESTCD == Vars[2],'LBSTRESN']
-
+                if(length(lb_var2) < 1){
+                  print(paste0('no LBTESTCD: ', Vars[2],' value for this ', Subj,
+                               ' animal'))
+                 stop('need to fix this in lb')
+                }
                     if(length(lb_var1) > 1){
                       lb_var1 <- lb_var1[1]
-                      print('There are two values for SAME LBTESTCD, First one taken.')
+                      ## print('There are two values for SAME LBTESTCD, First one taken.')
                     }
 
                     if(length(lb_var2) > 1){
                       lb_var2 <- lb_var2[1]
-                      print('There are two values for SAME LBTESTCD, First one taken.')
+                      ## print('There are two values for SAME LBTESTCD, First one taken.')
                     }
                 lb_val <- LBTESTVAR + LBFit[2] * lb_var1 + LBFit[3] * lb_var2
                 stdev <- unique(LBSummary[which(LBSummary$Dose == Dose &
@@ -1004,6 +1093,10 @@ ind <- which(Example$mi$MISEV=='')
               ## print(Dose)
               ##   print(gender)
               ##   print(test)
+
+                ## if(Dose=='LD' & gender=='F' & test=='UREA'){
+
+                ## }
                 if(final_val_lb < 0){
                   get_pos_val <- function(LBfit,Subj,
                                           Vars,line,test,SENDstudy,LBSummary,
@@ -1015,12 +1108,12 @@ ind <- which(Example$mi$MISEV=='')
                     lb_var2 <- lb_study[lb_study$LBTESTCD == Vars[2],'LBSTRESN']
                     if(length(lb_var1) > 1){
                       lb_var1 <- lb_var1[1]
-                      print('There are two values for SAME LBTESTCD, First one taken.')
+                      ## print('There are two values for SAME LBTESTCD, First one taken.')
                     }
 
                     if(length(lb_var2) > 1){
                       lb_var2 <- lb_var2[1]
-                      print('There are two values for SAME LBTESTCD, First one taken.')
+                      ## print('There are two values for SAME LBTESTCD, First one taken.')
                     }
                     lb_val <- LBTESTVAR + LBFit[2] * lb_var1 + LBFit[3] * lb_var2
                     stdev <- unique(LBSummary[which(LBSummary$Dose == Dose &
@@ -1114,8 +1207,13 @@ ind <- which(Example$mi$MISEV=='')
 Subjects <- Subjects_2
             ######### Generates NUMERICAL OM Data #############
 ## generate OM data
-            SENDstudy$om <- SENDstudy$om[which(SENDstudy$om$USUBJID %in% Subjects$USUBJID),]
-            SENDstudy$om$STUDYID <- rep(studyID, nrow(SENDstudy$om))
+## remove NA value from OMSTRESN
+    ## SENDstudy$om <- SENDstudy$om[!is.na(SENDstudy$om$OMSTRESN),]
+    SENDstudy$om <- SENDstudy$om[which(!is.na(SENDstudy$om$OMSTRESN)),]
+    SENDstudy$om <- SENDstudy$om[which(SENDstudy$om$USUBJID %in% Subjects$USUBJID),]
+    SENDstudy$om$STUDYID <- rep(studyID, nrow(SENDstudy$om))
+    SENDstudy$om$STUDYID <- as.character(SENDstudy$om$STUDYID)
+
             SENDstudy$om <- merge( USUBJIDTable,SENDstudy$om, by = "USUBJID")
             SENDstudy$om <- SENDstudy$om[,!(names(SENDstudy$om) %in% "USUBJID")]
             names(SENDstudy$om)[names(SENDstudy$om) == "NEWUSUBJID"] <- "USUBJID"
@@ -1173,7 +1271,9 @@ Subjects <- Subjects_2
                                         #Remove Tests that have a ARMstev of 0 (meaning they likely don't have enough data)
           OMDATAs <- OMDATAs[which(OMDATAs$ARMstdev != 0),]
                                         #Remove tests that do not have enough data (i.e. all days)
+          ## if(Dose=='LD' & gender=='F'){
 
+          ## }
           line <- data.frame(USUBJID= OMDATAs$USUBJID, OMSTRESN = OMDATAs$OMSTRESN,
                               OMTEST = OMDATAs$OMSPEC)
           # omlat need to implement
@@ -1182,7 +1282,11 @@ Subjects <- Subjects_2
           line <- data.table::dcast(data.table::as.data.table(line),
                                      USUBJID ~ OMTEST,
                                      value.var = 'OMSTRESN')
+
           line <- as.data.frame(line)
+          ## print(Dose)
+          ## print(gender)
+          ## print(line)
           line <- line[, 2:length(colnames(line))]
 
           missing_cols <- names(which(unlist(lapply(line,
@@ -1232,19 +1336,59 @@ Subjects <- Subjects_2
 
                               var1 <- sub_res[sub_res$OMSPEC==Vars[1], 'OMSTRESN']
                               var2 <- sub_res[sub_res$OMSPEC==Vars[2], 'OMSTRESN']
+
+                                  if(length(var1) > 1){
+                                    uniq_omlat <- sub_res[sub_res$OMSPEC==Vars[1],c('OMLAT')]
+                                    print(uniq_omlat)
+                                    print('OM have multiple value for Vars1 for OMLAT for same animal')
+                                    var1 <- var1[1]
+                                  }
+
+                                  if(length(var2) > 1){
+                                    uniq_omlat <- sub_res[sub_res$OMSPEC==Vars[2],c('OMLAT')]
+                                    print(uniq_omlat)
+                                    print('OM have multiple value for Vars2 for OMLAT for same animal')
+                                    var2 <- var2[1]
+                                  }
                              val <- intercept_val + OMFit[2] * var1 + OMFit[3] * var2
 
                               k <- as.data.frame(line[, test])
                               k_sd <- sd(k[,1])
                               noise <- stats::rnorm(1, mean=0, sd=k_sd)
                               final_val <- val + noise
-                              indx <- which(SENDstudy$om$USUBJID==Subj &
-                                            SENDstudy$om$OMTESTCD==omspec &
-                                            SENDstudy$om$OMSPEC==test)
+                              ## indx <- which(SENDstudy$om$USUBJID==Subj &
+                              ##               SENDstudy$om$OMTESTCD==omspec &
+                              ##               SENDstudy$om$OMSPEC==test)
 
                               indx <- which(SENDstudy$om$USUBJID==Subj &
                                             SENDstudy$om$OMSPEC==test)
-                              if(length(final_val) <1){
+                              ## print(Dose)
+                              ## print(gender)
+                              ## print(omspec)
+                              if(length(final_val) >1){
+                                ## print('here')
+
+                              }
+                              if(Dose=='LD' & gender=='F'){
+                                ## print(Subj)
+
+
+                              }
+                              if(is.na(final_val)){
+
+
+                               ##    indx <- which(SENDstudy$om$USUBJID==Subj &
+                               ##                  SENDstudy$om$OMSPEC==test)
+
+                               ## SENDstudy$om[indx,'OMSTRESN_new'] <- final_val
+                                print('final value returned NA for OMSTRESN')
+                                ## next()
+                                stop('fix OMLAT')
+                                ## indx <- which(SENDstudy$om$USUBJID==Subj &
+                                ##               SENDstudy$om$OMSPEC==test)
+
+                                ## SENDstudy$om[indx,'OMSTRESN_new'] <- final_val
+                                ## next
 
                               }
                               if(final_val< 0){
@@ -1255,15 +1399,29 @@ Subjects <- Subjects_2
                                   intercept_val <- OMFit[1]
                                   var1 <- sub_res[sub_res$OMSPEC==Vars[1], 'OMSTRESN']
                                   var2 <- sub_res[sub_res$OMSPEC==Vars[2], 'OMSTRESN']
+
+                                  if(length(var1) > 1){
+                                    uniq_omlat <- sub_res[sub_res$OMSPEC==Vars[1],c('OMLAT')]
+                                    ## print(uniq_omlat)
+                                    print('OM have multiple value for Vars1 for OMLAT for same animal')
+                                    var1 <- var1[1]
+                                  }
+
+                                  if(length(var2) > 1){
+                                    uniq_omlat <- sub_res[sub_res$OMSPEC==Vars[2],c('OMLAT')]
+                                    ## print(uniq_omlat)
+                                    print('OM have multiple value for Vars2 for OMLAT for same animal')
+                                    var2 <- var2[1]
+                                  }
                                   val <- intercept_val + OMFit[2] * var1 + OMFit[3] * var2
 
                                   k <- as.data.frame(line[, test])
                                   k_sd <- sd(k[,1])
                                   noise <- stats::rnorm(1, mean=0, sd=k_sd)
                                   final_val <- val + noise
-                                  indx <- which(SENDstudy$om$USUBJID==Subj &
-                                                SENDstudy$om$OMTESTCD==omspec &
-                                                SENDstudy$om$OMSPEC==test)
+                                  ## indx <- which(SENDstudy$om$USUBJID==Subj &
+                                  ##               SENDstudy$om$OMTESTCD==omspec &
+                                  ##               SENDstudy$om$OMSPEC==test)
                                   indx <- which(SENDstudy$om$USUBJID==Subj &
                                                 SENDstudy$om$OMSPEC==test)
                                   final_val
@@ -1436,6 +1594,7 @@ Subjects <- Subjects_2
   #Coordinate LBORRES and LBSTRESC
 ## test_original <- TRUE
 # copy to om
+## test_original <- TRUE
   SENDstudy$om <- om_df
     if(test_original){
 
@@ -1478,8 +1637,10 @@ Subjects <- Subjects_2
 
 
   #Replace StudyID and USUBJID
-    SENDstudy$mi$STUDYID <- rep(studyID, nrow(SENDstudy$mi))
-    SENDstudy$mi$USUBJID <- as.character(SENDstudy$mi$USUBJID)
+  SENDstudy$mi$STUDYID <- rep(studyID, nrow(SENDstudy$mi))
+  SENDstudy$mi$STUDYID <- as.character(SENDstudy$mi$STUDYID)
+
+  SENDstudy$mi$USUBJID <- as.character(SENDstudy$mi$USUBJID)
   SENDstudy$mi$MIORRES <- as.character(SENDstudy$mi$MIORRES)
   SENDstudy$mi <- merge( USUBJIDTable,SENDstudy$mi, by = "USUBJID")
   SENDstudy$mi <- SENDstudy$mi[,!(names(SENDstudy$mi) %in% "USUBJID")]
@@ -1488,8 +1649,17 @@ Subjects <- Subjects_2
   cols <- grep("DTC", colnames(SENDstudy$mi))
   SENDstudy$mi[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$mi$STUDYID))
   #Consolidate "Normal" Findings
+
   Example$mi$MISTRESC <- as.character(Example$mi$MISTRESC)
   SENDstudy$mi$MISTRESC <- as.character(SENDstudy$mi$MISTRESC)
+  SENDstudy$mi$MISTRESC_org <- SENDstudy$mi$MISTRESC
+  SENDstudy$mi$MISTRESC_new <- NA
+  SENDstudy$mi$MIORRES_org <- SENDstudy$mi$MIORRES
+  SENDstudy$mi$MIORRES_new <- NA
+  SENDstudy$mi$MISEV_org <- SENDstudy$mi$MISEV
+  SENDstudy$mi$MISEV_new <- SENDstudy$mi$MISEV
+
+
   Example$mi$MISTRESC <- toupper(Example$mi$MISTRESC)
   Example$mi$MISTRESC <-  stringr::str_replace_all(Example$mi$MISTRESC, "NORMAL", "UNREMARKABLE")
   Example$mi$MISTRESC <-  stringr::str_replace_all(Example$mi$MISTRESC, "NAD", "UNREMARKABLE")
@@ -1547,18 +1717,63 @@ Subjects <- Subjects_2
                                 }
                             }
                         }
+
                         #Store Generated Values
-                        SENDstudy$mi[idx,c("MISTRESC","MISEV","MIORRES")] <-GenData
+                        SENDstudy$mi[idx,c("MISTRESC_new","MISEV_new","MIORRES_new")] <- GenData
                     }
                     #Make MIDY Appropriate
                     MIDY <- max(SENDstudy$mi[which(SENDstudy$mi$USUBJID %in% Subjs), "MIDY"], na.rm = TRUE)
                     SENDstudy$mi[which(SENDstudy$mi$USUBJID %in% Subjs), "MIDY"] <- MIDY
                 }
             }
-            #Make MIRESCAT for Non-Normal Findings
-            SENDstudy$mi$MIRESCAT <- NA
-            SENDstudy$mi$MIRESCAT[which(grepl("UNREMARKABLE",SENDstudy$mi$MISTRESC) == FALSE)] <- "NON-NEOPLASTIC"
 
+
+# fix 1 OF 5
+sev_org <- unique(mi_original_data$MISEV)
+  sev_org <- sev_org[sev_org!='']
+ sev_sp <- unlist(strsplit(sev_org[1],' '))
+
+  if (length(sev_sp) > 1){
+    max_sev <- sev_sp[length(sev_sp)]
+    max_num <- as.numeric(max_sev)
+  }else{
+    max_num <- length(sev_org)
+  }
+## max_num <- 5
+  if(max_num < 4){
+max_num <- 4
+  }
+  ll <- c()
+  for(i in 1:max_num){
+    ## print(i)
+kk <- paste0(as.character(i), ' OF ',as.character(max_num))
+ll <- c(ll,kk)
+  }
+
+
+sev_fix <- data.table::as.data.table(data.table::copy(SENDstudy$mi))
+  for ( i in 1:max_num){
+sev_fix[MISEV_new==i, `:=`(MISEV_new=ll[i])]
+
+  }
+sev_fix[MISEV_new==0 | is.na(MISEV_new),`:=`(MISEV_new='')]
+
+
+  SENDstudy$mi <- data.table::setDF(sev_fix)
+
+  if(test_original){
+    View(SENDstudy$mi)
+  } else {
+    SENDstudy$mi$MISTRESC <- SENDstudy$mi$MISTRESC_new
+    SENDstudy$mi$MISTRESC_org <- NULL
+    SENDstudy$mi$MISTRESC_new <- NULL
+    SENDstudy$mi$MIORRES <- SENDstudy$mi$MIORRES_new
+    SENDstudy$mi$MIORRES_org <- NULL
+    SENDstudy$mi$MIORRES_new <- NULL
+    SENDstudy$mi$MISEV <- SENDstudy$mi$MISEV_new
+    SENDstudy$mi$MISEV_org <- NULL
+    SENDstudy$mi$MISEV_new <- NULL
+  }
 
             #Make Factors as Characters
             SENDstudy$mi$MITESTCD <- as.character(SENDstudy$mi$MITESTCD)
@@ -1566,6 +1781,11 @@ Subjects <- Subjects_2
             SENDstudy$mi$MISPEC <- as.character(SENDstudy$mi$MISPEC)
             SENDstudy$mi$MISTRESC <- as.character(SENDstudy$mi$MISTRESC)
             SENDstudy$mi$MISEV <- as.character(SENDstudy$mi$MISEV)
+            #Make MIRESCAT for Non-Normal Findings
+            SENDstudy$mi$MIRESCAT <- NA
+            SENDstudy$mi$MIRESCAT[which(grepl("UNREMARKABLE",SENDstudy$mi$MISTRESC) == FALSE)] <- "NON-NEOPLASTIC"
+
+  ## View(SENDstudy$mi)
 print('MI DONE')
   cat('\n \n \n \n ')
             ##### Save Generated Study for Tables ####
@@ -1577,6 +1797,7 @@ print('MI DONE')
             if (!is.null(where_to_save)){
                 #Create .xpt files if you can
                 study_fake <- paste0('FAKE',studyID)
+
               path_save <- where_to_save
                 dir_to_save <- fs::path(path_save,study_fake)
               fs::dir_create(dir_to_save)
@@ -1585,14 +1806,16 @@ print('MI DONE')
                 #Loop through domains created to print them in created folder
                 ## browser()
                 Domains <- names(SENDstudy)
-              Domains <- setdiff(Domains, 'om')
+              ## Domains <- setdiff(Domains, 'om')
                 for (domain in Domains){
                   
                     ## printpath <- paste0(path,"/FAKE",studyID,"/",domain,".xpt")
                     printpath <- fs::path(dir_to_save, domain, ext= 'xpt')
-                    ## haven::write_xpt(SENDstudy[[domain]],path = printpath, version = 5)
+                  if(write_xpt){
+                    haven::write_xpt(SENDstudy[[domain]],path = printpath, version = 5)
+                  print(paste0('file saved in: ',printpath))
+                  }
 
-                  ## print(paste0('file saved in: ',printpath))
                 }
             } else {
 

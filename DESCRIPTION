@@ -18,3 +18,7 @@ Imports:
     MCMCpack,
     stringr,
     tidyr
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

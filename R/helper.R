@@ -9,11 +9,8 @@
 
 
 get_trt_group <- function(ExampleStudy1) {
-
   list_return <- list()
   four <- c()
-  ## }
-    ## print(study)
   tx <- ExampleStudy1$tx
   tx <- data.table::as.data.table(tx)
   tx_df <- tx[,.(STUDYID,SETCD,TXPARMCD,TXVAL)]
@@ -30,24 +27,18 @@ get_trt_group <- function(ExampleStudy1) {
   pc <- data.table::as.data.table(pc)
   # to match with database.
   if(!'POOLID' %in% names(pc)){
-pc$POOLID <- ''
+    pc$POOLID <- ''
   }
   pc_df <- pc[, .(STUDYID,USUBJID,POOLID)]
-
-all_df <- names(ExampleStudy1)
+  all_df <- names(ExampleStudy1)
   if('pooldef' %in% all_df){
-
   pooldef <- ExampleStudy1$pooldef
   pooldef <- data.table::as.data.table(pooldef)
   pooldef_df <- pooldef[, .(STUDYID,USUBJID,POOLID)]
-
   }
-num_study <- unique(dm_df$STUDYID)
+  num_study <- unique(dm_df$STUDYID)
 
   for(i in 1:length(num_study)){
-
-
-  ## study <- dm[1,STUDYID]
   study <- num_study[i]
   dm <- dm_df[STUDYID==study,]
   ds <- ds_df[STUDYID==study,]
@@ -56,29 +47,28 @@ num_study <- unique(dm_df$STUDYID)
   pc <- pc_df[STUDYID==study,]
     if('pooldef' %in% all_df){
 
-  pooldef <- pooldef_df[STUDYID==study,]
+      pooldef <- pooldef_df[STUDYID==study,]
     }
-    number_of_setcd <- unique(dm[['SETCD']])
-    st_species <- unique(ts[TSPARMCD=='SPECIES'][, TSVAL])
+  number_of_setcd <- unique(dm[['SETCD']])
+  st_species <- unique(ts[TSPARMCD=='SPECIES'][, TSVAL])
+  list_return[[study]][['species']] <- st_species
+  list_return[[study]][['setcd']] <- number_of_setcd
+  recv_group <- c()
+  trtm_group <- c()
 
-    list_return[[study]][['species']] <- st_species
-
-    list_return[[study]][['setcd']] <- number_of_setcd
-    recv_group <- c()
-    trtm_group <- c()
-
-if(length(st_species)!= 0) {
+  if(length(st_species)!= 0) {
     if(tolower(st_species) =="rat") {
       # see if tkdesc in txparmcd
       parmcd <- unique(tx[['TXPARMCD']])
-      if('TKDESC' %in% parmcd){
+      if (condition) {
+      }
+      ('TKDESC' %in% parmcd){
         tkdesc_in_parmcd <- TRUE
       } else {
-
         tkdesc_in_parmcd <- FALSE
       }
 
-    not_tk_term <-  c("NON-TK", "Non-TK", "non-TK", "NON TK")
+      not_tk_term <-  c("NON-TK", "Non-TK", "non-TK", "NON TK")
       ## tkdesc_in_parmcd
       if(tkdesc_in_parmcd) {
         tk_group <- c()
@@ -88,19 +78,13 @@ if(length(st_species)!= 0) {
             tk_group <- unique(tx[TXPARMCD=='TKDESC' & TXVAL=='TK',  SETCD])
           not_tk <- number_of_setcd[which(!number_of_setcd %in% tk_group)]
           } else if(any(not_tk_term %in% unq_tkdesc)){
-
             not_tk  <- unique(tx[TXPARMCD=='TKDESC' & TXVAL %in% not_tk_term,  SETCD])
            tk_group <- number_of_setcd[which(!number_of_setcd %in% not_tk)]
-
           } else {
-stop('Value of TKDESC in TXVAL probably not TK or NON-TK')
+            stop('Value of TKDESC in TXVAL probably not TK or NON-TK')
           }
-          ## else{
-          ##   not_tk <- number_of_setcd
-
-          ## }
         } else {
-stop('Check TKDESC parameter value in TXVAL of TX domain')
+          stop('Check TKDESC parameter value in TXVAL of TX domain')
         }
       } else {
         tk_group <- c()
@@ -129,7 +113,6 @@ stop('Check TKDESC parameter value in TXVAL of TX domain')
               tk_group <- c(tk_group, set_cd)
             }
           }
-
         }
         not_tk <- number_of_setcd[which(!number_of_setcd %in% tk_group)]
       }
@@ -169,11 +152,6 @@ stop('Check TKDESC parameter value in TXVAL of TX domain')
     }
     }
 
-    ## if( length(trtm_group) == 4) {
-
-    ##   four <- c(four,study)
-    ##   ## print(four)
-    ## }
 
     ## print(trtm_group)
     list_return[[study]][['treatment_group']] <- trtm_group
@@ -183,8 +161,6 @@ stop('Check TKDESC parameter value in TXVAL of TX domain')
 ## list_return[['four_trtm_group']] <- four
   list_return
 }
-
-
 
 get_doses <- function(tx){
   tx <- data.table::as.data.table(tx)
@@ -214,3 +190,22 @@ clean_txval_dose <- function(dose) {
 
 
 
+
+clean_txval_dose_min <- function(dose) {
+    # function to clean doses
+  index <- 1:length(dose)
+  dose_char <- dose
+  dose_num <- as.numeric(dose)
+  final_dose <- NA
+
+  for (i in index) {
+    if (is.na(dose_num[i])) {
+      x <- gsub(";|-|\\/|\\|", ",", dose_char[i])
+      x <- min(as.numeric(unlist(strsplit(x,","))))
+      final_dose[i] <- x
+    } else {
+      final_dose[i] <- dose_num[i]
+    }
+  }
+  return(final_dose)
+}

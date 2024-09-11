@@ -19,3 +19,4 @@
 ^test_data$
 ^test\.db$
 ^test_two$
+^vignettes/articles$
