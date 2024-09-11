@@ -3,6 +3,7 @@ title: "Trial Summary (TS) Domain"
 output: html_document
 date: Sep-08-2024
 author: Md Yousuf Ali
+toc: false
 ---
 
 
