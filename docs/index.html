@@ -157,9 +157,9 @@ Value of the parameter SPLRNAM, SSPONSOR, SPREFID and SPLRLOC which contain iden
 <p>Markov Chain Monte Carlo (MCMC) output:</p>
 <table class="table">
 <thead><tr class="header">
-<th align="left">Intercept</th>
-<th align="left">Cof_PROT</th>
-<th align="left">Cof_ALB</th>
+<th align="left">INTERCEPT</th>
+<th align="left">COF_PROT</th>
+<th align="left">COF_ALB</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
@@ -180,7 +180,7 @@ Value of the parameter SPLRNAM, SSPONSOR, SPREFID and SPLRLOC which contain iden
 </tbody>
 </table>
 <p>randomly choosen a model and calculate the <strong>ALT</strong> value for a specific animal.</p>
-<p><code>ALT = Intercept + Cof_PROT * PROT + cof_ALB * ALB</code></p>
+<p><code>ALT = INTERCEPT + COF_PROT * PROT + COF_ALB * ALB</code></p>
 <ul><li>some noise added</li></ul>
 <p><code>noise &lt;- stats::rnorm(1,mean=0,sd=(standard_deviation_of_that_group_for_ALT)</code></p>
 <p><code>final_value = ALT + noise</code></p>
