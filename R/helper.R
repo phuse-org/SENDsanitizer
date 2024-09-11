@@ -60,9 +60,7 @@ get_trt_group <- function(ExampleStudy1) {
     if(tolower(st_species) =="rat") {
       # see if tkdesc in txparmcd
       parmcd <- unique(tx[['TXPARMCD']])
-      if (condition) {
-      }
-      ('TKDESC' %in% parmcd){
+      if ('TKDESC' %in% parmcd){
         tkdesc_in_parmcd <- TRUE
       } else {
         tkdesc_in_parmcd <- FALSE
