@@ -1,0 +1,13 @@
+pandoc: 2.10.1
+pkgdown: 2.0.9
+pkgdown_sha: ~
+articles:
+  bw_documentation: bw_documentation.html
+  dm_documentation: dm_documentation.html
+  lb_documentation: lb_documentation.html
+  mi_documentation: mi_documentation.html
+  om_documentation: om_documentation.html
+  ts_documentation: ts_documentation.html
+  tx_documentation: tx_documentation.html
+last_built: 2024-09-11T14:02Z
+
