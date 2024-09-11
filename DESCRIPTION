@@ -1,11 +1,16 @@
 Package: SENDsanitizer
-Title: What the Package Does (One Line, Title Case)
+Title: Generate Fake SEND Data
 Version: 0.0.0.9000
-Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
+Authors@R:
+ c(
+    person("Yousuf", "Ali", email=  "md.ali@fda.hhs.gov", role = c( "cre",  "aut")),
+    person("Susan", "Butler", email= "susan.butler@fda.hhs.gov", role = c("aut")),
+    person("Kevin", "Snyder", email= "kevin.snyder@fda.hhs.gov", role = c("aut")),
+    person(given = "FDA", role = "cph"))
+Description: An R package that that generate fake SEND data based on real SEND data.
 License: MIT + file LICENSE
+URL: https://github.com/phuse-org/SENDsanitizer
+BugReports: https://github.com/phuse-org/SENDsanitizer/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.1
