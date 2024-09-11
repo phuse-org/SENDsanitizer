@@ -10,7 +10,8 @@ sanitize(
   recovery = FALSE,
   where_to_save = NULL,
   write_xpt = FALSE,
-  test_original = FALSE
+  test_original = FALSE,
+  setcd = NULL
 )
 }
 \arguments{
@@ -35,6 +36,10 @@ this will generate a dataset that have original value and generated value
 for bw, lb, mi, om domain.
 default FALSE.
 should write the file or not. If TRUE, then xpt file will be created.}
+
+\item{setcd}{optional, vector\cr
+If there are more than one control or Low dose or High dose, function will
+give an error. User can choose which setcd should use.}
 }
 \description{
 function to generate fake data

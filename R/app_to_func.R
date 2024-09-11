@@ -15,6 +15,11 @@
 #' for bw, lb, mi, om domain.
 #' default FALSE.
 #' should write the file or not. If TRUE, then xpt file will be created.
+#' @param setcd optional, vector\cr
+#' If there are more than one control or Low dose or High dose, function will
+#' give an error. User can choose which setcd should use. If recovery FALSE, then
+#' only provide c('1','2','3','4') setcd like this. But if recovery is TRUE, then
+#' also add setcd for recovery group c('1','2','3','4','1R','2R','3R','4R')
 #' @export
 #' @import data.table
 #' @import utils
@@ -36,7 +41,7 @@
 # start here
 sanitize <- function(path, number=1, recovery=FALSE,
                      where_to_save=NULL,write_xpt=FALSE,
-                     test_original=FALSE) {
+                     test_original=FALSE,setcd=NULL) {
   # whether to show original value in table, this
   # for test only, if true it will not write data
   ## test_original <- FALSE
@@ -143,9 +148,12 @@ sanitize <- function(path, number=1, recovery=FALSE,
                   " SEND Example Studies. Pick one SNDIGVER."))
     }
   }
-        # dose categorization
+  # dose categorization
         #######################################################################
         tx_doses <- get_doses(Example$tx)
+  if(!is.null(setcd)){
+tx_doses <- tx_doses[SETCD %in% setcd,]
+  }
         ## treatment_doses <- tx_doses[SETCD %in% get_setcd[[1]][['treatment_group']]]
 
         treatment_doses <- tx_doses
@@ -173,72 +181,40 @@ sanitize <- function(path, number=1, recovery=FALSE,
         }else{
           trt <- dose_categorize(trt)
         }
+
         # check
         if(!Recovery){
           if(length(unique(trt[cat=='Control',SETCD]))>1){
-            ## print(trt)
-            trt <- get_correct_setcd(dt=trt, recovery=Recovery)
             print(trt)
-
-          if(length(unique(trt[cat=='Control',SETCD]))>1){
             stop(paste0('There are more than one control group.',
                         ' This is probably a combination study.'))
-           }
           }
-          if(length(unique(trt[cat=='LD',SETCD]))>1){
-            ## print(trt)
-            trt <- get_correct_setcd(dt=trt, recovery=Recovery)
-            print(trt)
 
           if(length(unique(trt[cat=='LD',SETCD]))>1){
+            print(trt)
             stop(paste0('There are more than one LD group.',
                         ' This is probably a combination study.'))
-            ##
-            }
           }
           if(length(unique(trt[cat=='HD',SETCD]))>1){
             print(trt)
-            trt <- get_correct_setcd(dt=trt, recovery=Recovery)
-            print(trt)
-
-          if(length(unique(trt[cat=='HD',SETCD]))>1){
             stop(paste0('There are more than one HD group.',
                         ' This is probably a combination study.'))
-            }
           }
         } else {
           if(length(unique(trt[cat=='Control',SETCD]))>2){
-            ## print(trt)
-            trt <- get_correct_setcd(dt=trt, recovery=Recovery)
-            print(trt)
-          if(length(unique(trt[cat=='Control',SETCD]))>2){
-            ## trt <- get_correct_setcd(trt)
             print(trt)
             stop(paste0('There are more than two control group.',
                         ' This is probably a combination study.'))
-            }
-
           }
           if(length(unique(trt[cat=='LD',SETCD]))>2){
             print(trt)
-            trt <- get_correct_setcd(dt=trt, recovery=Recovery)
-            print(trt)
-
-          if(length(unique(trt[cat=='LD',SETCD]))>2){
             stop(paste0('There are more than two LD group.',
                         ' This is probably a combination study.'))
-            }
           }
-          if(length(unique(trt[cat=='HD',SETCD]))>2){
-            ## print(trt)
-
-            trt <- get_correct_setcd(dt=trt, recovery=Recovery)
-
           if(length(unique(trt[cat=='HD',SETCD]))>2){
             print(trt)
             stop(paste0('There are more than two HD group.',
                   ' This is probably a combination study.'))
-            }
           }
         }
 
