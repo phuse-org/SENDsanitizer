@@ -1,0 +1,45 @@
+url: ~
+template:
+    bootswatch: zephyr
+    bootstrap: 5
+    bslib:
+      primary: "#414b51"
+      # primary: "#497f9c"
+      pkgdown-nav-height: 100px
+navbar:
+  structure:
+    left:
+    - intro
+    - reference
+    - articles
+    # - resources
+    right: github
+  components:
+    reference:
+      text: Reference
+      href: reference/index.html
+    github: 
+      icon: fab fa-github fa-lg
+      href: https://github.com/phuse-org/SENDsanitizer
+      aria-label: github
+    articles:
+      text: Articles
+      menu:
+      - text: Trial Summary (TS) Domain
+        href: articles/ts_documentation.html
+      - text: Trial Sets (TX) Domain
+        href: articles/tx_documentation.html
+      - text: Demographics (DM) Domain
+        href: articles/dm_documentation.html
+      - text: Body Weight (BW) Domain
+        href: articles/bw_documentation.html
+      - text: Laboratory Test (LB) Domain
+        href: articles/lb_documentation.html
+      - text: Organ Measurements (OM) Domain
+        href: articles/om_documentation.html
+      - text: Microscopic Findings (MI) Domain
+        href: articles/mi_documentation.html
+
+    # resources:
+    #     text: Resources
+    #     href: https://github.com/phuse-org/toxSummary/wiki
