@@ -1,25 +1,28 @@
-#' @title function to generate fake data
+#' @title Function to generate synthetic SEND data
+#' @description This function generate synthetic SEND data from real SEND data.
 #' @param path Mandatory\cr
-#' path where real data/xpt files located, should be a directory that contains
+#' Path where real data/xpt files located, should be a directory that contains
 #' xpt files, one or multiple directory can be given.
-#' @param number mandatory, default 1\cr
-#'   how many studies to generate. Currently only work with 1
-#' @param recovery optional\cr
-#' recovery
 #' @param where_to_save mandatory\cr
-#' where to save generated xpt files. Should be a directory.
+#' Where to save generated xpt files. Should be a directory.
+#' @param recovery optional\cr
+#' Whether recovery animal data should be generated. Default FALSE.\cr
+#' If FALSE, no recovery animal data will be generated.
+#' @param number mandatory, default 1\cr
+#'  How many studies to generate. Currently only work with 1
 #' @param write_xpt mandatory, boolean\cr
-#' should write the file or not. If TRUE, then xpt file will be created.
-#' @param test_original mandatory, boolean\cr
-#' this will generate a dataset that have original value and generated value
-#' for bw, lb, mi, om domain.
-#' default FALSE.
-#' should write the file or not. If TRUE, then xpt file will be created.
+#' Should write the file or not. If TRUE, then xpt file will be created.\cr
+#' Default is TRUE.
 #' @param setcd optional, vector\cr
 #' If there are more than one control or Low dose or High dose, function will
 #' give an error. User can choose which setcd should use. If recovery FALSE, then
 #' only provide c('1','2','3','4') setcd like this. But if recovery is TRUE, then
 #' also add setcd for recovery group c('1','2','3','4','1R','2R','3R','4R')
+#' @param test_original mandatory, boolean\cr
+#' This will print dataset that have original value and generated value.
+#' This is just comparison purpose.
+#' In RStudio IDE, you can see all the datasets and visually inspect.\cr
+#' default FALSE.
 #' @export
 #' @import data.table
 #' @import utils
@@ -39,9 +42,13 @@
 #ts,dm,tx
 #bw,lb,om,mi
 # start here
-sanitize <- function(path, number=1, recovery=FALSE,
-                     where_to_save=NULL,write_xpt=FALSE,
-                     test_original=FALSE,setcd=NULL) {
+sanitize <- function(path,
+                     where_to_save=NULL,
+                     recovery=FALSE,
+                     number=1,
+                     write_xpt=TRUE,
+                     setcd=NULL,
+                     test_original=FALSE) {
   # whether to show original value in table, this
   # for test only, if true it will not write data
   ## test_original <- FALSE

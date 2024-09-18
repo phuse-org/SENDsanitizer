@@ -5,7 +5,7 @@
 ## ----------   --------------------------------------------------------------
 ##   Mar-21-2024    Md Yousuf Ali (md.ali@fda.hhs.gov)
 
-
+# need to update
 
 #' @title Run function
 #' @param path Mandatory\cr
@@ -20,7 +20,7 @@
 #' @param study_batch mandatory, fefault 2\cr
 #' interger value
 #
-
+#' @noRd
 #' @importFrom utils combn
 
 
