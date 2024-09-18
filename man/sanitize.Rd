@@ -39,7 +39,9 @@ should write the file or not. If TRUE, then xpt file will be created.}
 
 \item{setcd}{optional, vector\cr
 If there are more than one control or Low dose or High dose, function will
-give an error. User can choose which setcd should use.}
+give an error. User can choose which setcd should use. If recovery FALSE, then
+only provide c('1','2','3','4') setcd like this. But if recovery is TRUE, then
+also add setcd for recovery group c('1','2','3','4','1R','2R','3R','4R')}
 }
 \description{
 function to generate fake data

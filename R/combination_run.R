@@ -20,7 +20,6 @@
 #' @param study_batch mandatory, fefault 2\cr
 #' interger value
 #
-#' @export
 
 #' @importFrom utils combn
 
