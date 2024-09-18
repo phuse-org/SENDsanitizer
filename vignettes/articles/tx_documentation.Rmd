@@ -32,7 +32,7 @@ tx_org <- haven::read_xpt(fs::path(path,file_org))
 
 # Trial Sets (TX) Domains
 
-##  original data
+##  Original Data
 
 
 ```{r}
@@ -41,7 +41,7 @@ tx_org <- as.data.frame(tx_org)
 DT::datatable(tx_org,options = list(pageLength = 20))
 ```
 
-unique setcd in original data
+### unique setcd (set code) in original data
 
 ```{r}
 #| echo=FALSE
@@ -55,14 +55,14 @@ unique(tx_org$SETCD)
 tx_fake <- haven::read_xpt(fs::path(path,file_fake))
 ```
 
-animal taken only from 01, 04, 06, 08
+### Animals taken only from 01, 04, 06, 08 set code (SETCD)
 
 ```{r}
 #| echo=FALSE
 unique(tx_fake$SETCD)
 ```
 
-## fake data
+## Synthetic Data
 
 
 ```{r}
@@ -71,7 +71,7 @@ tx_fake <- as.data.frame(tx_fake)
 DT::datatable(tx_fake,options = list(pageLength = -1))
 ```
 
-## fake data group by SETCD column
+## Synthetic data group by SETCD (Set Code) column
 
 ```{r}
 #| echo=FALSE
@@ -92,7 +92,10 @@ data.table::setcolorder(tx_merge_full,c("STUDYID_original","STUDYID_fake","DOMAI
                              "TXVAL_fake"))
 ```
 
-## columns that changed
+## Columns that changed are in blue background.
+This is comparison of original data to synthetic data.
+ Since, we just took 4 set code from all the set code availabe, there are lots of
+empty value if we compare side by side.
 
 ```{r}
 #| echo=FALSE
@@ -112,7 +115,7 @@ DT::datatable(tx_merge_full,options = list(pageLength=20))  |>
 ##                   )
 ```
 
-## actual original data that we took to worked on
+## Actual original data that we took to worked on
 only those 4 setcd animals
 
 ```{r}
@@ -122,7 +125,7 @@ tx_org_setcd <- tx_org[SETCD %in% c('01','04','06','08'), ]
 DT::datatable(tx_org_setcd,options = list(pageLength=20))
 ```
 
-##  Fake data comparison
+##  Synthetic data comparison
 
 ```{r}
 #| echo=FALSE
@@ -130,8 +133,8 @@ data.table::setDT(tx_merge_full)
 tx_setcd <- tx_merge_full[SETCD %in% c('01','04','06','08'), ]
 ```
 
-## total comparison
-red background data removed. green are replaced with skyblue
+## Column by Column Comparison
+red background data totally removed. green are replaced with skyblue.
 
 ```{r}
 #| echo=FALSE

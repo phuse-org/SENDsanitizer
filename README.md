@@ -28,28 +28,29 @@ install.packages("devtools")
 devtools::install_github('phuse-org/SENDsanitizer')
 ```
 
-## Generate synthetic xpt files  
+#### To generate one synthetic study dataset from one real study  
 
 ```
 library(SENDsanitizer)
 SENDsanitizer::sanitize(path='path/to/directory/of/xpt/files/of/study/',
-where_to_save='path/to/directory/where/generated/files/should/save/')
+where_to_save='path/to/directory/where/generated/files/should/be/saved/')
 
 ```
  
-To use multiple studies as input, put the path in a vector
+ 
+#### To generate one synthetic study dataset from multiple real study  
 
 ```
+library(SENDsanitizer)
 study_01 <- 'path/to/directory/of/xpt/files/of/study_01/'
 study_02 <- 'path/to/directory/of/xpt/files/of/study_02/'
 multiple_studies <- c(study_01,study_02)
-library(SENDsanitizer)
 SENDsanitizer::sanitize(path= multiple_studies,
-where_to_save='path/to/directory/where/generated/files/should/save/')
+where_to_save='path/to/directory/where/generated/files/should/be/saved/')
 
 ```
 
-## Install from cloned repo  
+### Install from cloned repo  
 
 
 Clone the [GitHub](https://github.com/phuse-org/SENDsanitizer) repo
@@ -58,12 +59,11 @@ and set repo as working directory.
 ```
 devtools::load_all(".")
 SENDsanitizer::sanitize(path='path/to/directory/of/xpt/files/of/study/',
-nubmer=1,
-where_to_save='path/to/directory/where/generated/files/should/save/')
+where_to_save='path/to/directory/where/generated/files/should/be/saved/')
 ```
 
 
-Notes on Example SEND Studies:
+Notes on Example SEND Studies:  
 It is recommended to use multiple example studies for better results.  These
 SEND format example studies must have similar arms/dosing regimens (with the
 option to include or exclude recovery animals), SEND Version, and have the same

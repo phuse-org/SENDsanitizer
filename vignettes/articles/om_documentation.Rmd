@@ -30,7 +30,7 @@ file_fake  <- 'no_git_dir/code/phuse/FAKE15218/om.xpt'
 om_org <- haven::read_xpt(fs::path(path,file_org))
 ```
 
-##  Original data
+##  Original Data
 
 
 ```{r}
@@ -40,7 +40,7 @@ DT::datatable(om_org,options = list(pageLength = 10))
 colnames(om_org)
 ```
 
-##  columns that changed in original
+## Columns that changed in original data (red background)
 
 ```{r}
 #| echo=FALSE
@@ -57,7 +57,7 @@ DT::datatable(om_org,options = list(pageLength=10)) |>
 om_fake <- haven::read_xpt(fs::path(path,file_fake))
 ```
 
-## Fake data
+## Synthetic data
 
 
 ```{r}
@@ -68,7 +68,7 @@ data.table::setcolorder(om_fake,'USUBJID', after = 'DOMAIN')
 DT::datatable(om_fake,options = list(pageLength = 10))
 ```
 
-## columns in Fake data
+## Synthetic Data with columns that changed (blue bakcground)
 
 ```{r}
 #| echo=FALSE
@@ -85,9 +85,6 @@ DT::datatable(om_fake,options = list(pageLength=10)) |>
 data.table::setDT(om_org)
 data.table::setDT(om_fake)
 ```
-
-merge
-
 ```{r}
 #| include=FALSE
 om_merge <- merge(om_org,om_fake[,.(STUDYID,USUBJID,OMSTRESN,

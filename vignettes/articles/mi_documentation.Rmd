@@ -30,7 +30,7 @@ file_fake  <- 'no_git_dir/code/phuse/FAKE15218/mi.xpt'
 mi_org <- haven::read_xpt(fs::path(path,file_org))
 ```
 
-##  Original data
+##  Original Data
 
 
 ```{r}
@@ -40,7 +40,7 @@ DT::datatable(mi_org,options = list(pageLength = 10))
 colnames(mi_org)
 ```
 
-##  columns that changed in original
+##  Columns that changed in original (red background)
 
 ```{r}
 #| echo=FALSE
@@ -57,7 +57,7 @@ DT::datatable(mi_org,options = list(pageLength=10)) |>
 mi_fake <- haven::read_xpt(fs::path(path,file_fake))
 ```
 
-## Fake data
+## Synthetic Data
 
 
 ```{r}
@@ -69,7 +69,7 @@ data.table::setcolorder(mi_fake,'USUBJID', after = 'DOMAIN')
 DT::datatable(mi_fake,options = list(pageLength = 10))
 ```
 
-## columns in Fake data
+## Synthetic Data with columns that changed (blue background)
 
 ```{r}
 #| echo=FALSE
@@ -86,9 +86,6 @@ DT::datatable(mi_fake,options = list(pageLength=10)) |>
 data.table::setDT(mi_org)
 data.table::setDT(mi_fake)
 ```
-
-merge
-
 ```{r}
 #| include=FALSE
 mi_merge <- merge(mi_org,mi_fake[,.(STUDYID,USUBJID,

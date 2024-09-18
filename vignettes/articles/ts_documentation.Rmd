@@ -30,7 +30,7 @@ file_fake  <- 'no_git_dir/code/phuse/FAKE15218/ts.xpt'
 ts_org <- haven::read_xpt(fs::path(path,file_org))
 ```
 
-##  original data
+##  Original Data
 
 
 ```{r}
@@ -46,7 +46,7 @@ DT::datatable(ts_org,options = list(pageLength = -1))
 ts_fake <- haven::read_xpt(fs::path(path,file_fake))
 ```
 
-## fake data
+## Synthetic Data
 
 
 ```{r}
@@ -55,7 +55,12 @@ ts_fake <- as.data.frame(ts_fake)
 DT::datatable(ts_fake,options = list(pageLength = -1))
 ```
 
-## print which data changes
+## Values of the column that changed.
+STUDYID and TSVAL column have value that differ from original data.
+Blue background represents all the values that replaced with synthetic value.
+When it is empty, that's mean value removed
+(in otherword, replaced with empty string('')).
+Red text in TSPARMCD is just a visual guide what changes in TSVAL.
 
 ```{r}
 #| echo=FALSE
@@ -91,7 +96,7 @@ data.table::setcolorder(ll, c('STUDYID_original','STUDYID_fake',
                               'TSPARM','TSVAL_original','TSVAL_fake'))
 ```
 
-##  now side by side comparison
+##  Now column by column comparison
 
 ```{r}
 #| echo=FALSE

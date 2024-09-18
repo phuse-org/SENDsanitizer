@@ -30,7 +30,7 @@ file_fake  <- 'no_git_dir/code/phuse/FAKE15218/dm.xpt'
 dm_org <- haven::read_xpt(fs::path(path,file_org))
 ```
 
-##  Original data
+##  Original Data
 
 
 ```{r}
@@ -39,7 +39,7 @@ dm_org <- as.data.frame(dm_org)
 DT::datatable(dm_org,options = list(pageLength = 20))
 ```
 
-unique setcd in original data
+###  Unique setcd in original data
 
 ```{r}
 #| echo=FALSE
@@ -53,14 +53,14 @@ unique(dm_org$SETCD)
 dm_fake <- haven::read_xpt(fs::path(path,file_fake))
 ```
 
-animal taken only from 01, 04, 06, 08
+### Animals taken only from 01, 04, 06, 08
 
 ```{r}
 #| echo=FALSE
 unique(dm_fake$SETCD)
 ```
 
-## Fake data
+## Synthetic Data
 
 
 ```{r}
@@ -69,7 +69,7 @@ dm_fake <- as.data.frame(dm_fake)
 DT::datatable(dm_fake,options = list(pageLength = -1))
 ```
 
-## Fake data group by SETCD column
+## Synthetic Data group by SETCD column
 
 ```{r}
 #| echo=FALSE
@@ -100,7 +100,11 @@ data.table::setcolorder(dm_merge_full,c("STUDYID_original", "STUDYID_fake",
                                         "ARM_original", "ARM_fake", "SETCD"))
 ```
 
-## columns that changed
+## Columns that changed are in blue background.
+This is comparison of original data to synthetic data.
+Since, we just took 4 set code from all the set code availabe, there are lots of
+empty value if we compare side by side.
+A column by column comparison.
 
 ```{r}
 #| echo=FALSE
@@ -109,7 +113,7 @@ DT::datatable(dm_merge_full,options = list(pageLength=20)) |>
                   backgroundColor = 'skyblue')
 ```
 
-## actual original data that we took to worked on
+## Actual original data that we took to worked on
 only those 4 setcd animals
 
 ```{r}
@@ -117,17 +121,16 @@ only those 4 setcd animals
 data.table::setDT(dm_org)
 dm_org_setcd <- dm_org[SETCD %in% c('01','04','06','08'), ]
 DT::datatable(dm_org_setcd,options = list(pageLength=20))
+
 ```
-
-##  Fake data comparison
-
 ```{r}
 #| echo=FALSE
 data.table::setDT(dm_merge_full)
 dm_setcd <- dm_merge_full[SETCD %in% c('01','04','06','08'), ]
 ```
 
-## total comparison
+## Column by Column Comparison
+
 
 ```{r}
 #| echo=FALSE

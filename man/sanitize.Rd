@@ -48,3 +48,22 @@ default FALSE.}
 \description{
 This function generate synthetic SEND data from real SEND data.
 }
+\examples{
+\dontrun{
+
+# To generate one synthetic study dataset from one real study
+
+SENDsanitizer::sanitize(path='path/to/directory/of/xpt/files/of/study/',
+where_to_save='path/to/directory/where/generated/files/should/be/saved/')
+
+# To generate one synthetic study dataset from multiple real studies
+
+study_01 <- 'path/to/directory/of/xpt/files/of/study_01/'
+study_02 <- 'path/to/directory/of/xpt/files/of/study_02/'
+multiple_studies <- c(study_01,study_02)
+
+SENDsanitizer::sanitize(path= multiple_studies,
+where_to_save='path/to/directory/where/generated/files/should/be/saved/')
+
+}
+}

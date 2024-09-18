@@ -1,5 +1,5 @@
 Package: SENDsanitizer
-Title: Generate Fake SEND Data
+Title: Generate Synthetic SEND Data
 Version: 0.0.0.9000
 Authors@R:
  c(
@@ -7,7 +7,7 @@ Authors@R:
     person("Susan", "Butler", email= "susan.butler@fda.hhs.gov", role = c("aut")),
     person("Kevin", "Snyder", email= "kevin.snyder@fda.hhs.gov", role = c("aut")),
     person(given = "FDA", role = "cph"))
-Description: An R package that that generate fake SEND data based on real SEND data.
+Description: An R package that generate synthetic SEND data based on real SEND data.
 License: MIT + file LICENSE
 URL: https://github.com/phuse-org/SENDsanitizer
 BugReports: https://github.com/phuse-org/SENDsanitizer/issues

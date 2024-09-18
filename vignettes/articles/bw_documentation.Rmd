@@ -29,7 +29,7 @@ file_fake  <- 'no_git_dir/code/phuse/FAKE15218/bw.xpt'
 bw_org <- haven::read_xpt(fs::path(path,file_org))
 ```
 
-##  Original data
+##  Original Data
 
 
 ```{r}
@@ -38,7 +38,7 @@ bw_org <- as.data.frame(bw_org)
 DT::datatable(bw_org,options = list(pageLength = 10))
 ```
 
-##  columns that changed in original
+##  Columns that changed
 
 ```{r}
 #| echo=FALSE
@@ -54,7 +54,7 @@ DT::datatable(bw_org,options = list(pageLength=10)) |>
 bw_fake <- haven::read_xpt(fs::path(path,file_fake))
 ```
 
-## Fake data
+## Synthetic Data
 
 
 ```{r}
@@ -65,7 +65,7 @@ data.table::setcolorder(bw_fake,'USUBJID', after = 'DOMAIN')
 DT::datatable(bw_fake,options = list(pageLength = 10))
 ```
 
-## columns in Fake data
+## Synthetic Data with columns that changed (blue background)
 
 ```{r}
 #| echo=FALSE
@@ -82,7 +82,7 @@ data.table::setDT(bw_org)
 data.table::setDT(bw_fake)
 ```
 
- BWSEQ might not be the way we do this, just for an idea for column to column
+## Column by Column Comparison
 
 ```{r}
 #| echo=FALSE

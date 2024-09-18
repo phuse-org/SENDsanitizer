@@ -30,7 +30,7 @@ file_fake  <- 'no_git_dir/code/phuse/FAKE15218/lb.xpt'
 lb_org <- haven::read_xpt(fs::path(path,file_org))
 ```
 
-##  Original data
+##  Original Data
 
 
 ```{r}
@@ -39,7 +39,7 @@ lb_org <- as.data.frame(lb_org)
 DT::datatable(lb_org,options = list(pageLength = 10))
 ```
 
-##  columns that changed in original
+##  Columns that changed in original (red background)
 
 ```{r}
 #| echo=FALSE
@@ -56,7 +56,7 @@ DT::datatable(lb_org,options = list(pageLength=10)) |>
 lb_fake <- haven::read_xpt(fs::path(path,file_fake))
 ```
 
-## Fake data
+## Synthetic Data
 
 
 ```{r}
@@ -67,7 +67,7 @@ data.table::setcolorder(lb_fake,'USUBJID', after = 'DOMAIN')
 DT::datatable(lb_fake,options = list(pageLength = 10))
 ```
 
-## columns in Fake data
+## Columns (blue background) that have changes in Synthetic Data
 
 ```{r}
 #| echo=FALSE
@@ -86,8 +86,7 @@ data.table::setDT(lb_org)
 data.table::setDT(lb_fake)
 ```
 
- LBSEQ might not be the way we do this, just for an idea
-merge and column by column
+##  Column by Column Comparison
 
 ```{r}
 #| echo=FALSE
