@@ -2,47 +2,49 @@
 % Please edit documentation in R/app_to_func.R
 \name{sanitize}
 \alias{sanitize}
-\title{function to generate fake data}
+\title{Function to generate synthetic SEND data}
 \usage{
 sanitize(
   path,
-  number = 1,
-  recovery = FALSE,
   where_to_save = NULL,
-  write_xpt = FALSE,
-  test_original = FALSE,
-  setcd = NULL
+  recovery = FALSE,
+  number = 1,
+  write_xpt = TRUE,
+  setcd = NULL,
+  test_original = FALSE
 )
 }
 \arguments{
 \item{path}{Mandatory\cr
-path where real data/xpt files located, should be a directory that contains
+Path where real data/xpt files located, should be a directory that contains
 xpt files, one or multiple directory can be given.}
 
-\item{number}{mandatory, default 1\cr
-how many studies to generate. Currently only work with 1}
+\item{where_to_save}{mandatory\cr
+Where to save generated xpt files. Should be a directory.}
 
 \item{recovery}{optional\cr
-recovery}
+Whether recovery animal data should be generated. Default FALSE.\cr
+If FALSE, no recovery animal data will be generated.}
 
-\item{where_to_save}{mandatory\cr
-where to save generated xpt files. Should be a directory.}
+\item{number}{mandatory, default 1\cr
+How many studies to generate. Currently only work with 1}
 
 \item{write_xpt}{mandatory, boolean\cr
-should write the file or not. If TRUE, then xpt file will be created.}
-
-\item{test_original}{mandatory, boolean\cr
-this will generate a dataset that have original value and generated value
-for bw, lb, mi, om domain.
-default FALSE.
-should write the file or not. If TRUE, then xpt file will be created.}
+Should write the file or not. If TRUE, then xpt file will be created.\cr
+Default is TRUE.}
 
 \item{setcd}{optional, vector\cr
 If there are more than one control or Low dose or High dose, function will
 give an error. User can choose which setcd should use. If recovery FALSE, then
 only provide c('1','2','3','4') setcd like this. But if recovery is TRUE, then
 also add setcd for recovery group c('1','2','3','4','1R','2R','3R','4R')}
+
+\item{test_original}{mandatory, boolean\cr
+This will print dataset that have original value and generated value.
+This is just comparison purpose.
+In RStudio IDE, you can see all the datasets and visually inspect.\cr
+default FALSE.}
 }
 \description{
-function to generate fake data
+This function generate synthetic SEND data from real SEND data.
 }
