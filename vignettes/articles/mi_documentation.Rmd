@@ -37,7 +37,6 @@ mi_org <- haven::read_xpt(fs::path(path,file_org))
 #| echo=FALSE
 mi_org <- as.data.frame(mi_org)
 DT::datatable(mi_org,options = list(pageLength = 10))
-colnames(mi_org)
 ```
 
 ##  Columns that changed in original (red background)
@@ -64,7 +63,6 @@ mi_fake <- haven::read_xpt(fs::path(path,file_fake))
 #| echo=FALSE
 mi_fake <- as.data.frame(mi_fake)
 data.table::setDT(mi_fake)
-colnames(mi_fake)
 data.table::setcolorder(mi_fake,'USUBJID', after = 'DOMAIN')
 DT::datatable(mi_fake,options = list(pageLength = 10))
 ```

@@ -113,7 +113,7 @@ DT::datatable(dm_merge_full,options = list(pageLength=20)) |>
                   backgroundColor = 'skyblue')
 ```
 
-## Actual original data that we took to worked on
+## Actual original data that we took to work on
 only those 4 setcd animals
 
 ```{r}

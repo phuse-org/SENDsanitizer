@@ -77,7 +77,8 @@ DT::datatable(tx_fake,options = list(pageLength = -1))
 #| echo=FALSE
 DT::datatable(tx_fake,options = list(pageLength= -1)) |>
   DT::formatStyle(colnames(tx_fake), valueColumns = 'SETCD',
-                  backgroundColor = styleEqual(c('01','04','06','08'),c('#a8d5ba','#fbcccf','#d2deeb','#d3d8c4')))
+                  backgroundColor = styleEqual(c('01','04','06','08'),
+                                               c('#a8d5ba','#fbcccf','#d2deeb','#d3d8c4')))
 
 ```
 ```{r}
@@ -115,7 +116,7 @@ DT::datatable(tx_merge_full,options = list(pageLength=20))  |>
 ##                   )
 ```
 
-## Actual original data that we took to worked on
+## Actual original data that we took to work on
 only those 4 setcd animals
 
 ```{r}
