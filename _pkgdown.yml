@@ -25,6 +25,8 @@ navbar:
     articles:
       text: Articles
       menu:
+      - text: Introduction
+        href: articles/introduction.html
       - text: Trial Summary (TS) Domain
         href: articles/ts_documentation.html
       - text: Trial Sets (TX) Domain
@@ -39,6 +41,8 @@ navbar:
         href: articles/om_documentation.html
       - text: Microscopic Findings (MI) Domain
         href: articles/mi_documentation.html
+      - text: Bayesian Regression Model
+        href: articles/bayesian_regression_model.html
 
     # resources:
     #     text: Resources

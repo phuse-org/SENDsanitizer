@@ -41,6 +41,7 @@
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
+    <a class="dropdown-item" href="articles/introduction.html">Introduction</a>
     <a class="dropdown-item" href="articles/ts_documentation.html">Trial Summary (TS) Domain</a>
     <a class="dropdown-item" href="articles/tx_documentation.html">Trial Sets (TX) Domain</a>
     <a class="dropdown-item" href="articles/dm_documentation.html">Demographics (DM) Domain</a>
@@ -48,6 +49,7 @@
     <a class="dropdown-item" href="articles/lb_documentation.html">Laboratory Test (LB) Domain</a>
     <a class="dropdown-item" href="articles/om_documentation.html">Organ Measurements (OM) Domain</a>
     <a class="dropdown-item" href="articles/mi_documentation.html">Microscopic Findings (MI) Domain</a>
+    <a class="dropdown-item" href="articles/bayesian_regression_model.html">Bayesian Regression Model</a>
   </div>
 </li>
       </ul>
@@ -72,121 +74,12 @@
   <main id="main" class="col-md-9"><div class="section level1">
 <div class="page-header"><h1 id="sendsanitizer">SENDsanitizer<a class="anchor" aria-label="anchor" href="#sendsanitizer"></a>
 </h1></div>
-<p>Based on example SEND Repeat-Dose Toxicity Studies, generates new studies that follow similar dose responsive trends for modelling purposes. It currently generates ts, dm, tx, bw, lb, om, mi domains.</p>
+<p><strong>SENDsanitizer</strong> is an <strong>R</strong> <strong>package</strong> to generate synthetic data from real data.</p>
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>A random number is generated for STUDYID and utilized across all domains during data creation. Dates replaced with ‘XXXX-XX-XX’ in relevant domains.</p>
-<p><strong>TS, DM, TX</strong> In the TS domain, identifiable information like study facility details, location, study title, and vehicle names are replaced with pre-defined values (‘FAKE FACILITY’ for facility, ‘XXXX-XX-XX’ for dates). Details of study director, animal purchasing location, and test facility country are eliminated.</p>
-<p>In the DM domain, STUDYID is replaced with a randomly generated STUDYID, and USUBJID is changed to a unique number by concatenating the randomly generated STUDYID and SUBJID. ARM replaced with Control, LD, MD, or HD as appropriate. ARMCD replaced with dose order. Where dose order defines in following way<br>
-Control to 1<br>
-LD to 2<br>
-MD to 3<br>
-HD to 4</p>
-<p>In TX domain, the SET variable is updated with Control, LD, MD, or HD values. TXPARMCD Variable:<br>
-group label (GRPLBL) information is replaced by concatenating dose order and dose value (i.e. <strong>Group 1, Control</strong> where 1 is order and Control is the dose). TRTDOS is replaced with dose (Control, LD, MD, or HD). ARMCD and SPGRPCD replaced with dose order (1,2,3,4).<br>
-Value of the parameter SPLRNAM, SSPONSOR, SPREFID and SPLRLOC which contain identifiable information in TXPARMCD were removed</p>
-<p><strong>BW LB OM Domain</strong></p>
-<p>A Bayesian Regression model were build for each domain of BW, LB and OM using MCMCregress function from MCMCpack R package <a href="https://doi.org/10.18637/jss.v042.i09" class="external-link">MCMCpack: Markov Chain Monte Carlo in R</a>. Numerical Data then generated using this model.</p>
-<p>STUDYID, USUBJID, and dates are replaced as previously described within the LB, BW and OM domain.</p>
-<p><strong>LB</strong> A group of Control, male rats whrere LBCAT is <strong>CLINICAL CHEMISTRY</strong> choosen. Mean of all LBTEST (PHOS, CA, CHOL, BIL, ALP etc) calculated for that group.</p>
-<p>let’s say following table have Mean of LBTESTCD.</p>
-<table class="table">
-<thead><tr class="header">
-<th align="left">LBTESTCD</th>
-<th align="left">MEAN</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">ALT</td>
-<td align="left">58</td>
-</tr>
-<tr class="even">
-<td align="left">PROT</td>
-<td align="left">60</td>
-</tr>
-<tr class="odd">
-<td align="left">ALB</td>
-<td align="left">36</td>
-</tr>
-<tr class="even">
-<td align="left">CL</td>
-<td align="left">105</td>
-</tr>
-<tr class="odd">
-<td align="left">GLUC</td>
-<td align="left">7</td>
-</tr>
-</tbody>
-</table>
-<p>To build a model for <strong>ALT</strong>, algorithmically we choose nearest two value, in this case we choose <strong>PROT</strong> and <strong>ALB</strong></p>
-<p><code>MCMCpack::MCMCregress("ALT ~ PROT + ALB", b0=0,B0=0.1, data= line)</code></p>
-<p><strong>line</strong> is the dataframe of LBSTRESN and LBTESTCD</p>
-<table class="table">
-<thead><tr class="header">
-<th align="left">ALT</th>
-<th align="left">PROT</th>
-<th align="left">ALB</th>
-<th align="left">CL</th>
-<th align="left">GLUC</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">58</td>
-<td align="left">59</td>
-<td align="left">36</td>
-<td align="left">105</td>
-<td align="left">6</td>
-</tr>
-<tr class="even">
-<td align="left">59</td>
-<td align="left">60</td>
-<td align="left">37</td>
-<td align="left">104</td>
-<td align="left">9</td>
-</tr>
-<tr class="odd">
-<td align="left">57</td>
-<td align="left">61</td>
-<td align="left">35</td>
-<td align="left">106</td>
-<td align="left">6</td>
-</tr>
-</tbody>
-</table>
-<p>Markov Chain Monte Carlo (MCMC) output:</p>
-<table class="table">
-<thead><tr class="header">
-<th align="left">INTERCEPT</th>
-<th align="left">COF_PROT</th>
-<th align="left">COF_ALB</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">0.05027991</td>
-<td align="left">2.3874235</td>
-<td align="left">-1.956665</td>
-</tr>
-<tr class="even">
-<td align="left">-4.40402458</td>
-<td align="left">1.9721626</td>
-<td align="left">-1.627903</td>
-</tr>
-<tr class="odd">
-<td align="left">0.31785474</td>
-<td align="left">2.9303049</td>
-<td align="left">-3.017695</td>
-</tr>
-</tbody>
-</table>
-<p>randomly choosen a model and calculate the <strong>ALT</strong> value for a specific animal.</p>
-<p><code>ALT = INTERCEPT + COF_PROT * PROT + COF_ALB * ALB</code></p>
-<ul><li>some noise added</li></ul>
-<p><code>noise &lt;- stats::rnorm(1,mean=0,sd=(standard_deviation_of_that_group_for_ALT)</code></p>
-<p><code>final_value = ALT + noise</code></p>
-<p>In case value returned negative, algorithmically a different model choosen. Code try that max 10 times. If it fails, absolute value is taken as final value.</p>
-<p><strong>MI domain</strong></p>
-<p>percentage of the incidence and serverity was calculated.</p>
+<p>The Standard for Exchange of Nonclinical Data (<strong>SEND</strong>), developed by the Clinical Data Interchange Standards Consortium (CDISC), offers a <strong>structured</strong> <strong>electronic</strong> <strong>format</strong> to organize and exchange <strong>nonclinical</strong> study data among sponsor companies, contract research organizations (CROs), and health authorities.</p>
+<p>SENDsanitizer is an R package designed to generate synthetic SEND-formatted data by modifying real SEND-formatted datasets. It anonymizes the data by replacing sensitive information like dates and other specific details with predefined text, ensuring that identities cannot be traced. Additionally, potentially identifiable data elements are removed entirely to maintain privacy. For numerical values, SENDsanitizer generates synthetic data using Bayesian regression model.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -199,11 +92,17 @@ Value of the parameter SPLRNAM, SSPONSOR, SPREFID and SPLRLOC which contain iden
 <span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">'phuse-org/SENDsanitizer'</span><span class="op">)</span></span></code></pre>
 </div>
 <div class="section level2">
-<h2 id="generate-fake-xpt-files">Generate fake xpt files<a class="anchor" aria-label="anchor" href="#generate-fake-xpt-files"></a>
+<h2 id="generate-synthetic-xpt-files">Generate synthetic xpt files<a class="anchor" aria-label="anchor" href="#generate-synthetic-xpt-files"></a>
 </h2>
 <pre><code><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/phuse-org/SENDsanitizer" class="external-link">SENDsanitizer</a></span><span class="op">)</span></span>
 <span><span class="fu">SENDsanitizer</span><span class="fu">::</span><span class="fu"><a href="reference/sanitize.html">sanitize</a></span><span class="op">(</span>path<span class="op">=</span><span class="st">'path/to/directory/of/xpt/files/of/study/'</span>,</span>
-<span>nubmer<span class="op">=</span><span class="fl">1</span>,</span>
+<span>where_to_save<span class="op">=</span><span class="st">'path/to/directory/where/generated/files/should/save/'</span><span class="op">)</span></span></code></pre>
+<p>To use multiple studies as input, put the path in a vector</p>
+<pre><code><span><span class="va">study_01</span> <span class="op">&lt;-</span> <span class="st">'path/to/directory/of/xpt/files/of/study_01/'</span></span>
+<span><span class="va">study_02</span> <span class="op">&lt;-</span> <span class="st">'path/to/directory/of/xpt/files/of/study_02/'</span></span>
+<span><span class="va">multiple_studies</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">study_01</span>,<span class="va">study_02</span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/phuse-org/SENDsanitizer" class="external-link">SENDsanitizer</a></span><span class="op">)</span></span>
+<span><span class="fu">SENDsanitizer</span><span class="fu">::</span><span class="fu"><a href="reference/sanitize.html">sanitize</a></span><span class="op">(</span>path<span class="op">=</span> <span class="va">multiple_studies</span>,</span>
 <span>where_to_save<span class="op">=</span><span class="st">'path/to/directory/where/generated/files/should/save/'</span><span class="op">)</span></span></code></pre>
 </div>
 <div class="section level2">

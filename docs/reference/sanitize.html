@@ -24,6 +24,7 @@
 <li class="nav-item dropdown">
   <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
   <div class="dropdown-menu" aria-labelledby="dropdown-articles">
+    <a class="dropdown-item" href="../articles/introduction.html">Introduction</a>
     <a class="dropdown-item" href="../articles/ts_documentation.html">Trial Summary (TS) Domain</a>
     <a class="dropdown-item" href="../articles/tx_documentation.html">Trial Sets (TX) Domain</a>
     <a class="dropdown-item" href="../articles/dm_documentation.html">Demographics (DM) Domain</a>
@@ -31,6 +32,7 @@
     <a class="dropdown-item" href="../articles/lb_documentation.html">Laboratory Test (LB) Domain</a>
     <a class="dropdown-item" href="../articles/om_documentation.html">Organ Measurements (OM) Domain</a>
     <a class="dropdown-item" href="../articles/mi_documentation.html">Microscopic Findings (MI) Domain</a>
+    <a class="dropdown-item" href="../articles/bayesian_regression_model.html">Bayesian Regression Model</a>
   </div>
 </li>
       </ul><form class="form-inline my-2 my-lg-0" role="search">
@@ -66,7 +68,8 @@
 <span>  recovery <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  where_to_save <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  write_xpt <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  test_original <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  test_original <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  setcd <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -104,6 +107,12 @@ this will generate a dataset that have original value and generated value
 for bw, lb, mi, om domain.
 default FALSE.
 should write the file or not. If TRUE, then xpt file will be created.</p></dd>
+
+
+<dt>setcd</dt>
+<dd><p>optional, vector<br>
+If there are more than one control or Low dose or High dose, function will
+give an error. User can choose which setcd should use.</p></dd>
 
 </dl></div>
 

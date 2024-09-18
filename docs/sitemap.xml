@@ -4,6 +4,9 @@
     <loc>/404.html</loc>
   </url>
   <url>
+    <loc>/articles/bayesian_regression_model.html</loc>
+  </url>
+  <url>
     <loc>/articles/bw_documentation.html</loc>
   </url>
   <url>
@@ -13,7 +16,13 @@
     <loc>/articles/index.html</loc>
   </url>
   <url>
+    <loc>/articles/introduction.html</loc>
+  </url>
+  <url>
     <loc>/articles/lb_documentation.html</loc>
+  </url>
+  <url>
+    <loc>/articles/MCMC.html</loc>
   </url>
   <url>
     <loc>/articles/mi_documentation.html</loc>
