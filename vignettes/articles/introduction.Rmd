@@ -1,0 +1,49 @@
+---
+title: "Introduction"
+output: html_document
+date: Sep-13-2024
+---
+
+# Introduction  
+The Standard for Exchange of Nonclinical Data (__SEND__), developed by the Clinical
+Data Interchange Standards Consortium (CDISC), offers a __structured__ __electronic__
+__format__  to organize and exchange __nonclinical__ study data among sponsor companies,
+contract research organizations (CROs), and health authorities.
+
+Test results, examinations, and observations for subjects in a nonclinical study
+are represented in a series of SEND domains. 
+
+A __domain__ is defined as a collection of logically related observations with a
+common topic.  Typically, each domain is represented by a single dataset. 
+- [Domain vs
+dataset](https://www.cdisc.org/kb/articles/domain-vs-dataset-whats-difference).
+All datasets are structured as flat files with rows representing observations
+and columns representing variables.
+You can think a domain is just a dataset or table with columns and rows.
+
+There are domains like Trial Summary (TS) and Trial Sets (TX) which provide 
+information about trial design. Demographics (DM) provide information about
+each animal. On the other hand, domain like Laboratory Test Results (LB) contain
+information about laboratory test of different end points.
+SENDsanitizer generate synthetic dataset for 
+
+- Trial Summary (TS)
+- Trial Sest (TX)
+- Demographics (DM)
+- Body Weight (BW)
+- Laboratory Test Results (LB)
+- Organ Measurements (OM)
+- Microscopic Findings (MI)
+
+
+Each of these domain in real data have STUDYID column. 
+Value of which (STUDYID) is repalced by a randomly generated number in synthetic data.
+Also, All the Dates were replaced by XXXX-XX-XX.
+
+SENDsanitizer either removes or replaces (with predefined text) potentially
+identifiable information from  TS, TX, and DM domain. 
+For numberical results (in BW, LB, OM domain), SENDsanitizer generate synthetic
+data using Bayesian regression model.   
+For details see [Bayesian Regression Model Article](../articles/bayesian_regression_model.html) 
+
+- MI documentation still in progress 
