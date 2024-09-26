@@ -1,0 +1,78 @@
+#' ---
+#' title: "Body Weight (BW) domain"
+#' date: Sep-10-2024
+#' author: Md Yousuf Ali
+#' toc: false
+#' ---
+
+
+#'
+# /* this file will be converted to Rmd file */
+# /* commnet written differently */
+# /* load packages */
+#'
+#| include=FALSE
+library(DT)
+library(data.table)
+
+#'
+#| include=FALSE
+path <- '~/OneDrive - FDA/yousuf/00_github_projects/SENDsanitizer/'
+file_org <- 'no_git_dir/code/phuse/PDS/bw.xpt'
+file_fake  <- 'no_git_dir/code/phuse/FAKE15218/bw.xpt'
+
+#'
+#| include=FALSE
+bw_org <- haven::read_xpt(fs::path(path,file_org))
+
+
+#' ##  Original Data
+#'
+#| echo=FALSE
+bw_org <- as.data.frame(bw_org)
+DT::datatable(bw_org,options = list(pageLength = 10))
+
+#' ##  Columns that changed
+#| echo=FALSE
+DT::datatable(bw_org,options = list(pageLength=10)) |>
+  DT::formatStyle(columns = c('STUDYID','USUBJID','BWORRES','BWSTRESC','BWSTRESN','BWDTC'),
+                  backgroundColor = '#fbcccf')
+#'
+#| include=FALSE
+bw_fake <- haven::read_xpt(fs::path(path,file_fake))
+
+#' ## Synthetic Data
+#'
+#| echo=FALSE
+bw_fake <- as.data.frame(bw_fake)
+data.table::setDT(bw_fake)
+data.table::setcolorder(bw_fake,'USUBJID', after = 'DOMAIN')
+DT::datatable(bw_fake,options = list(pageLength = 10))
+
+#' ## Synthetic Data with columns that changed (blue background)
+#| echo=FALSE
+DT::datatable(bw_fake,options = list(pageLength=10)) |>
+  DT::formatStyle(columns = c('STUDYID','USUBJID','BWORRES','BWSTRESC','BWSTRESN','BWDTC'),
+                  backgroundColor = 'skyblue')
+#'
+#| include=FALSE
+data.table::setDT(bw_org)
+data.table::setDT(bw_fake)
+
+#' ## Column by Column Comparison
+# /* BWSEQ might not be the way we do this, just for an idea for column to column */
+#| echo=FALSE
+bw_merge <- merge(bw_org,bw_fake[,.(STUDYID,USUBJID,BWSTRESN,
+                                    BWSEQ,BWSTRESC,BWORRES,BWDTC)],
+                  by = c('BWSEQ'),suffixes = c('_original','_fake'))
+data.table::setcolorder(bw_merge, c("STUDYID_original", "STUDYID_fake", "DOMAIN", "USUBJID_original",
+"USUBJID_fake", "BWSEQ", "BWTESTCD", "BWTEST", "BWORRES_original",
+"BWORRES_fake", "BWORRESU", "BWSTRESC_original", "BWSTRESC_fake",
+"BWSTRESN_original", "BWSTRESN_fake", "BWSTRESU", "BWSTAT", "BWREASND",
+"BWBLFL", "BWFAST", "BWEXCLFL", "BWREASEX", "VISITDY",
+"BWDTC_original","BWDTC_fake", "BWDY" ))
+DT::datatable(bw_merge, options = list(pageLength=20)) |>
+  DT::formatStyle(grep('fake',colnames(bw_merge),value = T),
+                  backgroundColor = 'skyblue') |>
+  DT::formatStyle(grep('original',colnames(bw_merge),value = T),
+                  backgroundColor = '#fbcccf')

@@ -1,0 +1,87 @@
+#' ---
+#' title: "Laboratory Test (LB) domain"
+#' output: html_document
+#' date: Sep-10-2024
+#' author: Md Yousuf Ali
+#' toc: false
+
+#' ---
+
+#'
+# /* this file will be converted to Rmd file */
+# /* commnet written differently */
+# /* load packages */
+#'
+#| include=FALSE
+library(DT)
+library(data.table)
+
+#'
+#| include=FALSE
+path <- '~/OneDrive - FDA/yousuf/00_github_projects/SENDsanitizer/'
+file_org <- 'no_git_dir/code/phuse/PDS/lb.xpt'
+file_fake  <- 'no_git_dir/code/phuse/FAKE15218/lb.xpt'
+
+#'
+#| include=FALSE
+lb_org <- haven::read_xpt(fs::path(path,file_org))
+
+
+#' ##  Original Data
+#'
+#| echo=FALSE
+lb_org <- as.data.frame(lb_org)
+DT::datatable(lb_org,options = list(pageLength = 10))
+
+#' ##  Columns that changed in original (red background)
+#| echo=FALSE
+DT::datatable(lb_org,options = list(pageLength=10)) |>
+  DT::formatStyle(columns = c('STUDYID','USUBJID','LBORRES','LBSTRESC',
+                              'LBSTRESN','LBDTC','LBENDTC','LBRFTDTC'),
+                  backgroundColor = '#fbcccf')
+#'
+#| include=FALSE
+lb_fake <- haven::read_xpt(fs::path(path,file_fake))
+
+#' ## Synthetic Data
+#'
+#| echo=FALSE
+lb_fake <- as.data.frame(lb_fake)
+data.table::setDT(lb_fake)
+data.table::setcolorder(lb_fake,'USUBJID', after = 'DOMAIN')
+DT::datatable(lb_fake,options = list(pageLength = 10))
+
+#' ## Columns (blue background) that have changes in Synthetic Data
+#| echo=FALSE
+DT::datatable(lb_fake,options = list(pageLength=10)) |>
+  DT::formatStyle(columns = c('STUDYID','USUBJID','LBORRES',
+                              'LBSTRESC','LBSTRESN','LBDTC',
+                              'LBENDTC','LBRFTDTC'),
+                  backgroundColor = 'skyblue')
+#'
+#| include=FALSE
+data.table::setDT(lb_org)
+data.table::setDT(lb_fake)
+
+# /*  LBSEQ might not be the way we do this, just for an idea */
+# /* merge and column by column */
+#' ##  Column by Column Comparison
+#| echo=FALSE
+lb_merge <- merge(lb_org,lb_fake[,.(STUDYID,USUBJID,LBSTRESN,
+                                    LBSEQ,LBSTRESC,LBORRES,LBDTC,LBENDTC,LBRFTDTC)],
+                  by = c('LBSEQ'),suffixes = c('_original','_fake'))
+data.table::setcolorder(lb_merge,
+                        c("STUDYID_original", "STUDYID_fake", "DOMAIN",
+                          "USUBJID_original","USUBJID_fake",
+                          "LBORRES_original","LBORRES_fake", "LBORRESU",
+                          "LBSTRESC_original", "LBSTRESC_fake",
+                          "LBSTRESN_original", "LBSTRESN_fake",
+                          "LBDTC_original","LBDTC_fake", "LBDY",
+                          "LBENDTC_original", "LBENDTC_fake",
+                          "LBRFTDTC_original","LBRFTDTC_fake"
+                          ))
+DT::datatable(lb_merge, options = list(pageLength=20)) |>
+  DT::formatStyle(grep('fake',colnames(lb_merge),value = T),
+                  backgroundColor = 'skyblue') |>
+  DT::formatStyle(grep('original',colnames(lb_merge),value = T),
+                  backgroundColor = '#fbcccf')
