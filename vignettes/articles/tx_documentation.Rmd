@@ -30,7 +30,6 @@ file_fake  <- 'no_git_dir/code/phuse/FAKE15218/tx.xpt'
 tx_org <- haven::read_xpt(fs::path(path,file_org))
 ```
 
-# Trial Sets (TX) Domains
 
 ##  Original Data
 

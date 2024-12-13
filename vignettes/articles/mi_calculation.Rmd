@@ -1,0 +1,313 @@
+---
+title: "MI Calculaiton"
+output: html_document
+date: Dec-11-2024
+author: Md Yousuf Ali
+toc: false
+---
+
+
+
+```{r}
+#| include=FALSE
+library(DT)
+library(data.table)
+```
+
+## Incidence
+
+```{r}
+#| include=FALSE
+dt <- structure(list(SEX = structure(c("F", "F", "F", "F", "F", "F",
+"F", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F", "F",
+"F"), label = "Sex"), Dose = c("HD", "HD", "HD", "HD", "HD",
+"HD", "HD", "HD", "HD", "HD", "HD", "HD", "HD", "HD", "HD", "HD",
+"HD", "HD", "HD", "HD"), MISPEC = structure(c("GLAND, ADRENAL",
+"GLAND, ADRENAL", "GLAND, ADRENAL", "GLAND, ADRENAL", "GLAND, ADRENAL",
+"GLAND, ADRENAL", "GLAND, ADRENAL", "GLAND, ADRENAL", "GLAND, ADRENAL",
+"GLAND, ADRENAL", "GLAND, ADRENAL", "GLAND, ADRENAL", "GLAND, ADRENAL",
+"GLAND, ADRENAL", "GLAND, ADRENAL", "GLAND, ADRENAL", "GLAND, ADRENAL",
+"GLAND, ADRENAL", "GLAND, ADRENAL", "GLAND, ADRENAL"), label = "Specimen Material Type"),
+    MISTRESC = c("HEMORRHAGE", "HEMORRHAGE", "HEMORRHAGE", "HEMORRHAGE",
+    "HEMORRHAGE", "HEMORRHAGE", "HEMORRHAGE", "HEMORRHAGE", "HYPERTROPHY",
+    "HYPERTROPHY", "HYPERTROPHY", "HYPERTROPHY", "HYPERTROPHY",
+    "HYPERTROPHY", "HYPERTROPHY", "HYPERTROPHY", "HYPERTROPHY",
+    "MINERALIZATION", "NECROSIS", "UNREMARKABLE"), MISEV = structure(c(4L,
+    4L, 5L, 5L, 5L, 5L, 3L, 5L, 4L, 4L, 4L, 4L, 4L, 4L, 4L, 3L,
+    4L, 4L, 4L, 1L), levels = c("0", "1", "2", "3", "4", "5"), class = c("ordered",
+    "factor"))), class = c("data.table", "data.frame"), row.names = c(NA,
+-20L))
+```
+
+As the middle step, we created a dataframe which have information like
+animal SEX and Dose. Also all the MI(Microscopic Findings) domain data.
+Let's start with some animals which were filter out by SEX, Dose and
+MISPEC from the dataframe.
+
+we get a group of 20 animals
+
+
+```{r}
+#| echo=FALSE
+dt
+```
+
+Remove MISEV (Severity) for now
+
+```{r}
+#| include=FALSE
+dt_f <- dt[, c(1,2,3,4)]
+```
+
+### Original Data
+
+```{r}
+#| echo=FALSE
+dt_f
+```
+
+###  Count the animals in each group
+
+```{r}
+#| include=FALSE
+dt_count <- dt_f[,.N,by=.(MISTRESC)]
+```
+
+
+
+```{r}
+#| echo=FALSE
+dt_count
+```
+
+
+
+```{r}
+#| include=FALSE
+dt_p <- data.table::copy(dt_f)
+dt_p <- dt_p[,`:=`(n=.N) , by=.(MISTRESC)]
+dt_p <- dt_p[!duplicated(dt_p)]
+dt_p[,`:=`(percent=n/sum(n))]
+```
+
+### Find incidence rate/percent
+
+```{r}
+#| echo=TRUE
+dt_p
+```
+
+### Sampling
+#### Findings
+
+```{r}
+dt_p$MISTRESC
+```
+
+#### Incidance rate
+
+```{r}
+dt_p$percent
+```
+
+#### Sampling using R function
+
+```{r}
+#| include=TRUE
+syn_percent <- sample(x=dt_p$MISTRESC,
+                      size = 20, replace = TRUE,
+                      prob = dt_p$percent)
+```
+
+
+
+```{r}
+#| echo=FALSE
+syn_percent
+```
+
+#### Incidence Count/Table
+
+```{r}
+#| include=FALSE
+syn_p <- table(syn_percent)
+```
+
+
+
+```{r}
+#| echo=FALSE
+syn_p
+```
+
+
+
+```{r}
+#| include=FALSE
+kk <- data.frame(syn_p)
+kk$MISTRESC <- kk$syn_percent
+kk$N <- kk$Freq
+kk$Freq <- NULL
+kk$syn_percent <- NULL
+syn_count <- kk
+```
+
+
+
+```{r}
+#| include=FALSE
+syn_count$MISTRESC <- as.character(syn_count$MISTRESC)
+dt_org <- dt_f[,c(1,2,3,4)]
+mistc <- NULL
+for(i in 1:nrow(syn_count)){
+misc <- syn_count[i,c('MISTRESC')]
+count <- syn_count[i,c('N')]
+val <- rep(misc,count)
+mistc <- c(mistc,val)
+}
+dt_syn <- data.table::copy(dt_org)
+dt_syn$MISTRESC_syn <- mistc
+```
+
+
+
+```{r}
+#| echo=FALSE
+dt_syn
+```
+
+
+
+```{r}
+#| include=FALSE
+dt_syn_p <- data.table::copy(dt_syn)
+dt_syn_p <- dt_syn_p[,c(1,2,3,5)]
+dt_syn_p <- dt_syn_p[,`:=`(n=.N) , by=.(MISTRESC_syn)]
+dt_syn_p <- dt_syn_p[!duplicated(dt_syn_p)]
+dt_syn_count <- data.table::copy(dt_syn_p)
+dt_syn_p[,`:=`(percent=n/sum(n))]
+```
+
+### Original Count
+
+```{r}
+#| echo=FALSE
+dt_count
+```
+
+### Synthetic Count
+
+```{r}
+#| include=FALSE
+dt_count_syn <- dt_syn[,.N,by=.(MISTRESC_syn)]
+```
+
+
+
+```{r}
+#| echo=FALSE
+dt_count_syn
+```
+
+### Original Data
+
+```{r}
+#| echo=FALSE
+dt_p
+```
+
+### Synthetic Data
+
+```{r}
+#| echo=FALSE
+dt_syn_p
+```
+
+## Severity
+
+```{r}
+#| include=FALSE
+dt_sev <- data.table::copy(dt)
+dt_sev_org <- data.table::copy(dt)
+dt_sev_org <- dt_sev_org[,c('SEX','Dose',
+                            'MISPEC','MISTRESC','MISEV')]
+dt_sev <- dt_sev[,c('SEX','Dose','MISPEC','MISTRESC',
+                    'MISEV')]
+```
+
+
+
+```{r}
+#| echo=FALSE
+dt_sev
+```
+
+### Percent
+
+```{r}
+#| include=FALSE
+dt_sev <- dt_sev[,c('SEX','Dose','MISPEC','MISEV')]
+dt_sev <- dt_sev[,`:=`(n=.N),by=.(MISEV)][!duplicated(dt_sev)]
+dt_sev[,`:=`(percent=n/sum(n))]
+dt_sev$MISEV <- as.numeric(dt_sev$MISEV)
+```
+
+
+
+```{r}
+#| echo=FALSE
+dt_sev
+```
+
+for each of MISPEC (if not UNREMARKABLE)
+find severity
+
+```{r}
+ll <- sample(dt_sev$MISEV, size = 1, replace = TRUE, prob = dt_sev$percent)
+```
+
+### synthetic
+
+```{r}
+#| include=FALSE
+test <- c()
+for(i in 1:nrow(dt)){
+ll <- sample(dt_sev$MISEV, size = 1, replace = TRUE, prob = dt_sev$percent)
+test <- c(test,ll)
+}
+```
+
+
+
+```{r}
+#| echo=FALSE
+test
+```
+
+
+
+```{r}
+#| include=FALSE
+dt_synthetic <- data.table::copy(dt_sev_org)
+dt_synthetic$MISEV_syn <- test
+dt_synthetic$MISTRESC_syn <- mistc
+dt_synthetic[MISTRESC_syn=='UNREMARKABLE',
+                             `:=`(MISEV_syn=0)]
+dt_synthetic <- dt_synthetic[,c('SEX','Dose','MISPEC',
+                                'MISTRESC',
+                                'MISEV',
+                                'MISTRESC_syn',
+                                'MISEV_syn')]
+```
+
+### Final Severity
+
+```{r}
+#| echo=FALSE
+print(dt_synthetic)
+```
+
+NOTE: severity for UNREMARKBLE set 0 for MISEV_syn.
+
+There are more steps involved which create the final
+synthetic data but this is a simplified version(main idea) the way synthetic data created

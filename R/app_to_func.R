@@ -1633,7 +1633,7 @@ Subjects <- Subjects_2
 
 
 #7
-#MI
+  #MI
   #Generate MI Data
   #Keeps: MISPEC, MIDY, MISTESTCD, MITEST,
   #Replaces: STUDYID, USUBJID, MIDTC, MISTRESC, MIORRES, MISEV
@@ -1696,8 +1696,17 @@ Subjects <- Subjects_2
                     Subjs <- ExampleSubjects$USUBJID[which(ExampleSubjects$ARM == Dose  & ExampleSubjects$SEX == gender)]
                     GroupTests <- SENDstudy$mi$MISPEC[which(SENDstudy$mi$USUBJID %in% Subjs)]
                     for (Organ in unique(GroupTests)){
-                        SevPerc <- SevPercen[which(SevPercen$Dose == Dose & SevPercen$MISPEC == Organ), c('MISEV','percent')]
-                        FindPercen <- FindingsPercen[which(FindingsPercen$Dose == Dose & FindingsPercen$MISPEC == Organ), c('MISTRESC','percent')]
+
+
+                              ## if(Dose=='HD' & gender=='F' & Organ=='GLAND, ADRENAL'){
+                              ##   ## browser()
+                              ## }
+
+                      # SEX should be filter too
+                      SevPerc <- SevPercen[which(SevPercen$Dose == Dose & SevPercen$MISPEC == Organ & SevPercen$SEX==gender),
+                                           c('MISEV','percent')]
+                      FindPercen <- FindingsPercen[which(FindingsPercen$Dose == Dose & FindingsPercen$MISPEC == Organ & FindingsPercen$SEX == gender),
+                                                   c('MISTRESC','percent')]
                         idx <- which(SENDstudy$mi$USUBJID %in% Subjs & SENDstudy$mi$MISPEC %in% Organ )
                         #Create Appropriate Findings Per MISPEC
                         FindGendata <- sample(FindPercen$MISTRESC,length(idx), replace = TRUE, prob = FindPercen$percent)
@@ -1717,7 +1726,9 @@ Subjects <- Subjects_2
                                     #Check if all of the Findings have NA Severity
                                     GenData$MISEV[i] <- NA
                                 }else{
-                                    GenData$MISEV[i] <- sample(Sevs$MISEV,1,replace = TRUE, prob = Sevs$percent)
+                                  GenData$MISEV[i] <- sample(Sevs$MISEV,1,
+                                                             replace = TRUE,
+                                                             prob = Sevs$percent)
                                 }
                             }
                         }

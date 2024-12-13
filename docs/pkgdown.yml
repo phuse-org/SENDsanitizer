@@ -1,15 +1,15 @@
-pandoc: 2.10.1
-pkgdown: 2.0.9
+pandoc: '3.5'
+pkgdown: 2.1.1
 pkgdown_sha: ~
 articles:
-  bayesian_regression_model: bayesian_regression_model.html
-  bw_documentation: bw_documentation.html
-  dm_documentation: dm_documentation.html
-  introduction: introduction.html
-  lb_documentation: lb_documentation.html
-  mi_documentation: mi_documentation.html
-  om_documentation: om_documentation.html
-  ts_documentation: ts_documentation.html
-  tx_documentation: tx_documentation.html
-last_built: 2024-09-18T15:21Z
-
+  articles/bayesian_regression_model: bayesian_regression_model.html
+  articles/bw_documentation: bw_documentation.html
+  articles/dm_documentation: dm_documentation.html
+  articles/introduction: introduction.html
+  articles/lb_documentation: lb_documentation.html
+  articles/mi_calculation: mi_calculation.html
+  articles/mi_documentation: mi_documentation.html
+  articles/om_documentation: om_documentation.html
+  articles/ts_documentation: ts_documentation.html
+  articles/tx_documentation: tx_documentation.html
+last_built: 2024-12-13T19:57Z

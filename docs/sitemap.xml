@@ -1,60 +1,23 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>/404.html</loc>
-  </url>
-  <url>
-    <loc>/articles/bayesian_regression_model.html</loc>
-  </url>
-  <url>
-    <loc>/articles/bw_documentation.html</loc>
-  </url>
-  <url>
-    <loc>/articles/dm_documentation.html</loc>
-  </url>
-  <url>
-    <loc>/articles/index.html</loc>
-  </url>
-  <url>
-    <loc>/articles/introduction.html</loc>
-  </url>
-  <url>
-    <loc>/articles/lb_documentation.html</loc>
-  </url>
-  <url>
-    <loc>/articles/mi_documentation.html</loc>
-  </url>
-  <url>
-    <loc>/articles/om_documentation.html</loc>
-  </url>
-  <url>
-    <loc>/articles/ts_documentation.html</loc>
-  </url>
-  <url>
-    <loc>/articles/tx_documentation.html</loc>
-  </url>
-  <url>
-    <loc>/authors.html</loc>
-  </url>
-  <url>
-    <loc>/documentation_details.html</loc>
-  </url>
-  <url>
-    <loc>/index.html</loc>
-  </url>
-  <url>
-    <loc>/LICENSE-text.html</loc>
-  </url>
-  <url>
-    <loc>/LICENSE.html</loc>
-  </url>
-  <url>
-    <loc>/reference/index.html</loc>
-  </url>
-  <url>
-    <loc>/reference/sanitize.html</loc>
-  </url>
-  <url>
-    <loc>/reference/sanitize_batch.html</loc>
-  </url>
+<urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
+<url><loc>/404.html</loc></url>
+<url><loc>/articles/bayesian_regression_model.html</loc></url>
+<url><loc>/articles/bw_documentation.html</loc></url>
+<url><loc>/articles/dm_documentation.html</loc></url>
+<url><loc>/articles/index.html</loc></url>
+<url><loc>/articles/introduction.html</loc></url>
+<url><loc>/articles/lb_documentation.html</loc></url>
+<url><loc>/articles/mi_calculation.html</loc></url>
+<url><loc>/articles/mi_documentation.html</loc></url>
+<url><loc>/articles/om_documentation.html</loc></url>
+<url><loc>/articles/ts_documentation.html</loc></url>
+<url><loc>/articles/tx_documentation.html</loc></url>
+<url><loc>/authors.html</loc></url>
+<url><loc>/documentation_details.html</loc></url>
+<url><loc>/index.html</loc></url>
+<url><loc>/LICENSE-text.html</loc></url>
+<url><loc>/LICENSE.html</loc></url>
+<url><loc>/reference/index.html</loc></url>
+<url><loc>/reference/sanitize.html</loc></url>
+<url><loc>/reference/sanitize_batch.html</loc></url>
 </urlset>
+

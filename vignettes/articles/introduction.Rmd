@@ -44,6 +44,7 @@ SENDsanitizer either removes or replaces (with predefined text) potentially
 identifiable information from  TS, TX, and DM domain. 
 For numberical results (in BW, LB, OM domain), SENDsanitizer generate synthetic
 data using Bayesian regression model.   
-For details see [Bayesian Regression Model Article](../articles/bayesian_regression_model.html) 
+For details see
+- [Bayesian Regression Model Article](../articles/bayesian_regression_model.html) 
 
-- MI documentation still in progress 
+- [Read here how MI (Microscopic Findings) synthetic data generated](../articles/mi_calculation.html)

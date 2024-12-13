@@ -43,6 +43,8 @@ navbar:
         href: articles/mi_documentation.html
       - text: Bayesian Regression Model
         href: articles/bayesian_regression_model.html
+      - text: MI Synthetic Data Generation Steps
+        href: articles/mi_calculation.html
 
     # resources:
     #     text: Resources
