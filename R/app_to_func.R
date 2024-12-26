@@ -144,7 +144,7 @@ sanitize <- function(path,
    Example$mi <- data.table::rbindlist(list(Example$mi, bind_to_exp$mi),
                                        fill = T,use.names = TRUE)
    Example$ts <- data.table::rbindlist(list(Example$ts, bind_to_exp$ts),
-                                       fill = T,use.names = TRUE)
+                                      fill = T,use.names = TRUE)
    Example$tx <- data.table::rbindlist(list(Example$tx, bind_to_exp$tx),
                                        fill = T,use.names = TRUE)
    Example$dm <- data.table::rbindlist(list(Example$dm, bind_to_exp$dm),
@@ -186,7 +186,7 @@ sanitize <- function(path,
 
   treatment_doses <- tx_doses
   studyid <- Example$tx$STUDYID[1]
-  clean_dose <- SENDsanitizer:::clean_txval_dose(treatment_doses$TXVAL)
+  clean_dose <- clean_txval_dose(treatment_doses$TXVAL)
   trt <- data.table::copy(treatment_doses)
   trt$dose  <- clean_dose
   ## if(length(trt$dose) < 3) {
@@ -1095,7 +1095,7 @@ ind <- which(Example$mi$MISEV=='')
 
                 ## }
                 if(final_val_lb < 0){
-                  get_pos_val <- function(LBfit,Subj,
+                  get_pos_val_lb <- function(LBfit,Subj,
                                           Vars,line,test,SENDstudy,LBSummary,
                                           Dose,gender){
                     LBFit <- LBfit[sample(1:nrow(LBfit), 1),]
@@ -1123,7 +1123,7 @@ ind <- which(Example$mi$MISEV=='')
                     final_val_lb
                   }
                   for (i in 1:10){
-                  final_val_lb <- get_pos_val(LBfit,Subj,
+                  final_val_lb <- get_pos_val_lb(LBfit,Subj,
                       Vars,line,test,SENDstudy,LBSummary,
                       Dose,gender)
                     if(final_val_lb> 0){

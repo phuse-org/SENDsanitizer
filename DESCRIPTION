@@ -3,7 +3,7 @@ Title: Generate Synthetic SEND Data
 Version: 0.0.0.9000
 Authors@R:
  c(
-    person("Yousuf", "Ali", email=  "md.ali@fda.hhs.gov", role = c( "cre",  "aut")),
+    person("Md Yousuf", "Ali", email=  "mdyousuf.ali@fda.hhs.gov", role = c( "cre",  "aut")),
     person("Susan", "Butler", email= "susan.butler@fda.hhs.gov", role = c("aut")),
     person("Kevin", "Snyder", email= "kevin.snyder@fda.hhs.gov", role = c("aut")),
     person(given = "FDA", role = "cph"))
@@ -26,4 +26,3 @@ Imports:
 Suggests: 
     knitr,
     rmarkdown
-VignetteBuilder: knitr
