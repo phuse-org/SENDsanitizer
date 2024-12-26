@@ -178,23 +178,19 @@ sanitize <- function(path,
   }
   # dose categorization
         #######################################################################
-        tx_doses <- get_doses(Example$tx)
+  tx_doses <- get_doses(Example$tx)
   if(!is.null(setcd)){
-tx_doses <- tx_doses[SETCD %in% setcd,]
+    tx_doses <- tx_doses[SETCD %in% setcd,]
   }
         ## treatment_doses <- tx_doses[SETCD %in% get_setcd[[1]][['treatment_group']]]
 
-        treatment_doses <- tx_doses
+  treatment_doses <- tx_doses
   studyid <- Example$tx$STUDYID[1]
-  if(studyid=='392-0047-TX'){
-        clean_dose <- SENDsanitizer:::clean_txval_dose_min(treatment_doses$TXVAL)
-  }else{
-        clean_dose <- SENDsanitizer:::clean_txval_dose(treatment_doses$TXVAL)
-  }
-        trt <- data.table::copy(treatment_doses)
-        trt$dose  <- clean_dose
-        ## if(length(trt$dose) < 3) {
-        study_numbers <- unique(Example$dm$STUDYID)
+  clean_dose <- SENDsanitizer:::clean_txval_dose(treatment_doses$TXVAL)
+  trt <- data.table::copy(treatment_doses)
+  trt$dose  <- clean_dose
+  ## if(length(trt$dose) < 3) {
+  study_numbers <- unique(Example$dm$STUDYID)
   ## }
 
         if(multi_study){
@@ -263,9 +259,7 @@ tx_doses <- tx_doses[SETCD %in% setcd,]
           trt$dose_order <- as.character(trt$dose_order)
           trt[SETCD %in% all_setcd[[1]][[1]][['recovery_group']],
               `:=`(dose_order=paste0(dose_order,'_R'))]
-          ## trt[, `:=`(cat=trt_rc,trt_rc=NULL)]
         }
-## print(trt)
         ######################################################################
         Doses <- trt[,c('SETCD','cat')]
         Doses$ARMCD <- Doses$SETCD
@@ -286,12 +280,12 @@ tx_doses <- tx_doses[SETCD %in% setcd,]
         Subjects_2 <- Subjects_2[, c('USUBJID','SEX','ARMCD','ARM',
                                      'SETCD','cat','dose_order')]
         ## Subjects_2 <- Subjects_2[,c('USUBJID','SEX','SETCD','cat')]
-        Subjects_2$Dose <- Subjects_2$cat
+  Subjects_2$Dose <- Subjects_2$cat
   Subjects_2$cat <- NULL
   Subjects_test <- Subjects
 
   mi_original_data <- Example$mi
-                                        #Consolidate Severity Methods
+  #Consolidate Severity Methods
   Example$mi$MISEV <- as.character(Example$mi$MISEV)
 
   Example$mi$MISEV <- gsub("1 OF 5", "1",Example$mi$MISEV)
@@ -382,7 +376,6 @@ ind <- which(Example$mi$MISEV=='')
       SENDstudy$ts[grep("TRTV",SENDstudy$ts$TSPARMCD),"TSVAL"] <- Example$ts[grep("TRTV",
                                                                                   Example$ts$TSPARMCD),"TSVAL"]
     }
-
     #Replace Study Title
     rows <- grep("STITLE", SENDstudy$ts$TSPARMCD)
     duration <- getFieldValue(SENDstudy$ts, "TSVAL", "TSPARMCD", "DOSDUR")
@@ -505,7 +498,7 @@ ind <- which(Example$mi$MISEV=='')
 
     if(test_original){
       View(Example$tx,title = 'original_tx')
-View(SENDstudy$tx,title = 'generated_tx') }
+      View(SENDstudy$tx,title = 'generated_tx') }
 #4
 #bw
 # bw done
@@ -1033,10 +1026,10 @@ View(SENDstudy$tx,title = 'generated_tx') }
             test_val <- line_mean[names(line_mean) %in% test]
             close_two <- names(sort(abs(rest_line - test_val))[1:2])
 
-            if(Dose=='MD' & gender=='M' & test=='SERUM'){
+            ## if(Dose=='MD' & gender=='M' & test=='SERUM'){
 
 
-            }
+            ## }
 
               if(length(close_vars)> 1){
 
@@ -1369,15 +1362,9 @@ Subjects <- Subjects_2
                               ## print(Dose)
                               ## print(gender)
                               ## print(omspec)
-                              if(length(final_val) >1){
-                                ## print('here')
-
-                              }
-                              if(Dose=='LD' & gender=='F'){
-                                ## print(Subj)
-
-
-                              }
+                              ## if(length(final_val) >1){
+                              ##   ## print('here')
+                              ## }
                               if(is.na(final_val)){
 
 
