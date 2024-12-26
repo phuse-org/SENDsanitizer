@@ -1,0 +1,127 @@
+#' ---
+#' title: "Trial Sets (TX) Domain"
+#' output: html_document
+#' date: Sep-10-2024
+#' author: Md Yousuf Ali
+#' toc: false
+#' ---
+
+
+
+
+#'
+# /* this file will be converted to Rmd file */
+# /* commnet written differently */
+# /* load packages */
+#'
+#| include=FALSE
+library(DT)
+library(data.table)
+
+#'
+#| include=FALSE
+path <- '~/OneDrive - FDA/yousuf/00_github_projects/SENDsanitizer/'
+file_org <- 'no_git_dir/code/phuse/PDS/tx.xpt'
+file_fake  <- 'no_git_dir/code/phuse/FAKE15218/tx.xpt'
+
+#'
+#| include=FALSE
+tx_org <- haven::read_xpt(fs::path(path,file_org))
+
+#'
+
+#' ##  Original Data
+#'
+#| echo=FALSE
+tx_org <- as.data.frame(tx_org)
+DT::datatable(tx_org,options = list(pageLength = 20))
+
+#' ### unique setcd (set code) in original data
+#| echo=FALSE
+unique(tx_org$SETCD)
+
+
+#'
+#| include=FALSE
+tx_fake <- haven::read_xpt(fs::path(path,file_fake))
+
+#' ### Animals taken only from 01, 04, 06, 08 set code (SETCD)
+#| echo=FALSE
+unique(tx_fake$SETCD)
+
+#' ## Synthetic Data
+#'
+#| echo=FALSE
+tx_fake <- as.data.frame(tx_fake)
+DT::datatable(tx_fake,options = list(pageLength = -1))
+
+#' ## Synthetic data group by SETCD (Set Code) column
+#| echo=FALSE
+DT::datatable(tx_fake,options = list(pageLength= -1)) |>
+  DT::formatStyle(colnames(tx_fake), valueColumns = 'SETCD',
+                  backgroundColor = styleEqual(c('01','04','06','08'),
+                                               c('#a8d5ba','#fbcccf','#d2deeb','#d3d8c4')))
+
+# /* data merge */
+#| include=FALSE
+data.table::setDT(tx_fake)
+tx_fake_s <- tx_fake[,.(STUDYID,SETCD,SET,TXSEQ,TXVAL)]
+tx_merge_full <- merge(tx_org, tx_fake_s, by = c('SETCD','TXSEQ'),
+                       all = TRUE, suffixes = c('_original',
+                                               '_fake'))
+data.table::setcolorder(tx_merge_full,c("STUDYID_original","STUDYID_fake","DOMAIN","SETCD",
+                             "SET_original","SET_fake","TXSEQ","TXPARMCD","TXPARM","TXVAL_original",
+                             "TXVAL_fake"))
+
+#' ## Columns that changed are in blue background.
+#' This is comparison of original data to synthetic data.
+#'  Since, we just took 4 set code from all the set code availabe, there are lots of
+#' empty value if we compare side by side.
+#| echo=FALSE
+DT::datatable(tx_merge_full,options = list(pageLength=20))  |>
+  DT::formatStyle("STUDYID_fake",backgroundColor = 'skyblue') |>
+  DT::formatStyle("SET_fake",backgroundColor = 'skyblue') |>
+  DT::formatStyle("TXVAL_fake",backgroundColor = 'skyblue')
+
+
+# /*  full data comparison */
+#| echo=FALSE
+## DT::datatable(tx_merge_full,options = list(pageLength=20)) |>
+##   DT::formatStyle( c('STUDYID_fake','TXVAL_fake','SET_fake'),
+##                   valueColumns = 'STUDYID_fake',
+##                   backgroundColor = styleEqual(c('15218'), c('skyblue'))
+##                   )
+
+#' ## Actual original data that we took to work on
+#' only those 4 setcd animals
+#| echo=FALSE
+data.table::setDT(tx_org)
+tx_org_setcd <- tx_org[SETCD %in% c('01','04','06','08'), ]
+DT::datatable(tx_org_setcd,options = list(pageLength=20))
+
+#' ##  Synthetic data comparison
+#| echo=FALSE
+data.table::setDT(tx_merge_full)
+tx_setcd <- tx_merge_full[SETCD %in% c('01','04','06','08'), ]
+
+
+#' ## Column by Column Comparison
+#' red background data totally removed. green are replaced with skyblue.
+#| echo=FALSE
+DT::datatable(tx_setcd,options = list(pageLength=20)) |>
+  DT::formatStyle( c('STUDYID_fake','TXVAL_fake','SET_fake'),
+                  valueColumns = 'STUDYID_fake',
+                  backgroundColor = styleEqual(c('15218'), c('skyblue'))
+                  ) |>
+  DT::formatStyle( c('STUDYID_original','TXVAL_original','SET_original'),
+                  valueColumns = 'STUDYID_fake',
+                  backgroundColor = styleEqual(c('15218'), c('#BFD9CF'))
+                  ) |>
+  DT::formatStyle( colnames(tx_setcd),
+  ## DT::formatStyle( c('STUDYID_original','TXVAL_original','SET_original'),
+                  valueColumns = 'STUDYID_fake',
+                  backgroundColor = styleEqual(c(NA), c('#FF8282'))
+                  ## backgroundColor = styleEqual(c(NA), c('#FFEFEF'))
+                  ## backgroundColor = styleEqual(c(NA), c('#F9BFBF'))
+                  )
+
