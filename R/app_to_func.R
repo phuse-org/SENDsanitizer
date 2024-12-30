@@ -391,7 +391,7 @@ ind <- which(Example$mi$MISEV=='')
     RemoveTerms <- c("TFCNTRY","STDIR","SPLRNAM","TFCNTRY",
                      "TRMSAC","SSPONSOR","SPREFID", "SPLRLOC",
                      "PINV","STMON","TSLOC","TSCNTRY","DIET","WATER",
-                     "PCLASS","TSNAM")
+                     "PCLASS","TSNAM","PPL")
     for (term in RemoveTerms){
       #Check index for Term
       idx <- which(SENDstudy$ts$TSPARMCD == term)
@@ -400,8 +400,8 @@ ind <- which(Example$mi$MISEV=='')
     }
     print('TS DONE')
     if(test_original){
-      View(Example$ts,title = 'original_ts')
-      View(SENDstudy$ts, title = 'generated_ts')
+      tibble::view(Example$ts,title = '01_TS_real')
+      tibble::view(SENDstudy$ts, title = '02_TS_synthetic')
     }
     #2
     #dm
@@ -445,8 +445,8 @@ ind <- which(Example$mi$MISEV=='')
     print('DM DONE')
 
     if(test_original){
-      View(Example$dm,title = 'original_dm')
-      View(SENDstudy$dm, title = 'generated_dm') }
+      tibble::view(Example$dm,title = '03_DM_real')
+      tibble::view(SENDstudy$dm, title = '04_DM_synthetic') }
     ## example subject
     ## this is generated arm have control and other group options
     ExampleSubjects <- SENDstudy$dm[,c("USUBJID", "ARM","SUBJID","SEX")]
@@ -497,8 +497,8 @@ ind <- which(Example$mi$MISEV=='')
     print('TX DONE')
 
     if(test_original){
-      View(Example$tx,title = 'original_tx')
-      View(SENDstudy$tx,title = 'generated_tx') }
+      tibble::view(Example$tx,title = '05_TX_real')
+      tibble::view(SENDstudy$tx,title = '06_TX_synthetic') }
 #4
 #bw
 # bw done
@@ -552,7 +552,7 @@ ind <- which(Example$mi$MISEV=='')
     ## SENDstudy$ARM is from trt cat or control LD MD HD
     ##
     if(test_original){
-      SENDstudy$bw$original <- SENDstudy$bw$BWSTRESN
+      SENDstudy$bw$real <- SENDstudy$bw$BWSTRESN
 
     }
     onestudy <- as.character(Example$dm$STUDYID[1])
@@ -673,10 +673,14 @@ ind <- which(Example$mi$MISEV=='')
 ## print(head(Example$bw))
     if(test_original){
       df_bw <- data.table::as.data.table(SENDstudy$bw)
-      df_bw <- df_bw[, c(names(df_bw)[!(names(df_bw) %in% c("original","BWSTRESN"))],
-                         c( "original","BWSTRESN")), with = FALSE]
-      df_bw <- df_bw[,`:=`(BWSTRESN_diff_pct= round((BWSTRESN - original)/original*100,digits = 2))]
-      View(df_bw,'bw_test')
+      df_bw <- df_bw[, c(names(df_bw)[!(names(df_bw) %in% c("real","BWSTRESN"))],
+                         c( "real","BWSTRESN")), with = FALSE]
+      df_bw <- df_bw[,`:=`(BWSTRESN_diff_pct= round((BWSTRESN - real)/real*100,digits = 2))]
+      df_bw <- df_bw[, `:=`(BWSTRESN_real=real, BWSTRESN_synthetic=BWSTRESN,
+                            real=NULL,BWSTRESN=NULL)]
+      df_bw <- df_bw[, c(names(df_bw)[!names(df_bw) %in% c("BWSTRESN_diff_pct")],
+                         c("BWSTRESN_diff_pct")),with=FALSE]
+      tibble::view(df_bw,'07_BW_real_with_synthetic')
     }
     print('BW DONE')
 
@@ -779,8 +783,8 @@ ind <- which(Example$mi$MISEV=='')
     SENDstudy$lb <- SENDstudy$lb[which(SENDstudy$lb$LBTESTCD %in% LBSummary$LBTESTCD),]
     ## SENDstudy$lb <- SENDstudy$lb[which(SENDstudy$lb$LBSPEC %in% c('WHOLE BLOOD', 'SERUM', 'URINE')),]
 
-    SENDstudy$lb$LBSTRESN_new <- NA
-    SENDstudy$lb$LBSTRESN_org <- SENDstudy$lb$LBSTRESN
+    SENDstudy$lb$LBSTRESN_synthetic <- NA
+    SENDstudy$lb$LBSTRESN_real <- SENDstudy$lb$LBSTRESN
     #Create a distribution of values using MCMC for LBSTRESN
     if(lb_day_model){
       ##   for (Dose in unique(Doses$Dose)){
@@ -921,7 +925,7 @@ ind <- which(Example$mi$MISEV=='')
   ##                 idx2 <- which(GenerLBData$LBDy %in% day)
 
   ##                 SENDstudy$lb$LBSTRESN[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
-  ##                 SENDstudy$lb$LBSTRESN_org[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
+  ##                 SENDstudy$lb$LBSTRESN_real[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
   ##               }
   ##               #add to subject count before new subject done
   ##               sn <- sn+1
@@ -1145,13 +1149,13 @@ ind <- which(Example$mi$MISEV=='')
                   ## idx2 <- which(GenerLBData$LBDy %in% day)
 
                   ## SENDstudy$lb$LBSTRESN[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
-                  ## SENDstudy$lb$LBSTRESN_new[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
+                  ## SENDstudy$lb$LBSTRESN_synthetic[idx] <- round(as.numeric(GenerLBData$LBSTRESN[idx2]),3)
 
                   if(length(final_val_lb) < 1){
 
-                  SENDstudy$lb$LBSTRESN_new[idx] <- NA
+                  SENDstudy$lb$LBSTRESN_synthetic[idx] <- NA
                   } else {
-                  SENDstudy$lb$LBSTRESN_new[idx] <- round(as.numeric(final_val_lb), digits = 3)
+                  SENDstudy$lb$LBSTRESN_synthetic[idx] <- round(as.numeric(final_val_lb), digits = 3)
                   }
                 }
                 #add to subject count before new subject done
@@ -1171,12 +1175,17 @@ ind <- which(Example$mi$MISEV=='')
 
     if(test_original){
      df_lb <- data.table::as.data.table(SENDstudy$lb)
-     df_lb <- df_lb[,`:=`(LBSTRESN_diff_pct = round(((LBSTRESN_new - LBSTRESN_org)/LBSTRESN_org)*100,digits = 2))]
-     View(df_lb, title = 'generated lb for view')
+     df_lb <- df_lb[,`:=`(LBSTRESN_diff_pct = round(((LBSTRESN_synthetic - LBSTRESN_real)/LBSTRESN_real)*100,digits = 2))]
+
+     df_lb <- df_lb[, c(names(df_lb)[!names(df_lb) %in% c('LBSTRESN_synthetic','LBSTRESN_real','LBSTRESN_diff_pct')],
+                        c('LBSTRESN_real','LBSTRESN_synthetic','LBSTRESN_diff_pct')),with=FALSE]
+
+
+     tibble::view(df_lb, title = '08_LB_real_with_synthetic')
     } else {
-      SENDstudy$lb$LBSTRESN  <- SENDstudy$lb$LBSTRESN_new
-      SENDstudy$lb$LBSTRESN_org <- NULL
-      SENDstudy$lb$LBSTRESN_new <- NULL
+      SENDstudy$lb$LBSTRESN  <- SENDstudy$lb$LBSTRESN_synthetic
+      SENDstudy$lb$LBSTRESN_real <- NULL
+      SENDstudy$lb$LBSTRESN_synthetic <- NULL
     }
     #Coordinate LBORRES and LBSTRESC
     SENDstudy$lb$LBSTRESC <- as.character(SENDstudy$lb$LBSTRESN)
@@ -1588,8 +1597,17 @@ Subjects <- Subjects_2
 ## test_original <- TRUE
   SENDstudy$om <- om_df
     if(test_original){
+      om_df <- data.table::copy(SENDstudy$om)
+      om_df <- data.table::setDT(om_df)
+      om_df <- om_df[, `:=`(OMSTRESN_real=OMSTRESN_org,OMSTRESN_synthetic=OMSTRESN_new)]
+      om_df <- om_df[, `:=`(OMSTRESN_org=NULL,OMSTRESN_new=NULL)]
+      om_df <- om_df[, c(names(om_df)[!names(om_df) %in% c('OMSTRESN_real',
+                                                           'OMSTRESN_synthetic',
+                                                           'OMSTRESN_diff_pct')],
+                         c('OMSTRESN_real','OMSTRESN_synthetic','OMSTRESN_diff_pct')), with=FALSE]
 
-     View(SENDstudy$om, title = 'generated OM for view')
+
+     tibble::view(om_df, title = '09_OM_real_with_synthetic')
     } else {
       SENDstudy$om$OMSTRESN  <- SENDstudy$om$OMSTRESN_new
       SENDstudy$om$OMSTRESN_org <- NULL
@@ -1764,7 +1782,39 @@ sev_fix[MISEV_new==0 | is.na(MISEV_new),`:=`(MISEV_new='')]
   SENDstudy$mi <- data.table::setDF(sev_fix)
 
   if(test_original){
-    View(SENDstudy$mi)
+
+    df_mi <- data.table::copy(SENDstudy$mi)
+    df_mi <- data.table::setDT(df_mi)
+    df_mi <- df_mi[,`:=`(MISTRESC_synthetic=MISTRESC_new,MISTRESC_real=MISTRESC_org,
+                          ## MISTRESC_org=NULL,MISTRESC_new=NULL,
+                         MIORRES_synthetic=MIORRES_new, MIORRES_real=MIORRES_org,
+                         ## MIORRES_new=NULL,MIORRES_org=NULL,
+                         MISEV_synthetic=MISEV_new, MISEV_real=MISEV_org
+                         ## MISEV_org=NULL,MISEV_real=NULL
+                         )]
+
+    df_mi <- df_mi[,`:=`(MISTRESC_new=NULL,MISTRESC_org=NULL,
+                         MIORRES_new=NULL,MIORRES_org=NULL,
+                         MISEV_new=NULL,MISEV_org=NULL
+                         )]
+    df_mi <- df_mi[, c(names(df_mi)[!names(df_mi) %in% c(
+                                                         'MISTRESC_real',
+                                                         'MISTRESC_synthetic',
+                                                         'MIORRES_real',
+                                                         'MIORRES_synthetic',
+                                                         'MISEV_real',
+                                                         'MISEV_synthetic')],
+                       c(
+                         'MISTRESC_real',
+                         'MISTRESC_synthetic',
+                         'MIORRES_real',
+                         'MIORRES_synthetic',
+                         'MISEV_real',
+                         'MISEV_synthetic'
+                       )), with=FALSE]
+
+
+    tibble::view(df_mi,title = '10_MI_real_with_synthetic')
   } else {
     SENDstudy$mi$MISTRESC <- SENDstudy$mi$MISTRESC_new
     SENDstudy$mi$MISTRESC_org <- NULL
