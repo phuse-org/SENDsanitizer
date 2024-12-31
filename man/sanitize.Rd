@@ -40,7 +40,7 @@ only provide c('1','2','3','4') setcd like this. But if recovery is TRUE, then
 also add setcd for recovery group c('1','2','3','4','1R','2R','3R','4R')}
 
 \item{test_original}{mandatory, boolean\cr
-This will print dataset that have original value and generated value.
+This will print dataset that have original(real) value and generated(synthetic) value.
 This is just comparison purpose.
 In RStudio IDE, you can see all the datasets and visually inspect.\cr
 default FALSE.}

@@ -15,6 +15,7 @@ library(stringr)
 library(this.path)
 library(tidyr)
 library(tools)
+library(ggplot2)
 
 #Set Home Directory
 homePath <- dirname(this.path())
