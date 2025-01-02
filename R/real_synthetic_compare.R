@@ -12,8 +12,6 @@
 #' @title Compare real and synthetic data
 #' @description This is an shiny app that can be used to visually inspect
 #' real and synthetic data
-#' @param df mandatory, dataframe \cr
-#' a dataframe with APPID and STUDYID columns
 #' @return App
 #' @examples
 #' \dontrun{
@@ -160,6 +158,8 @@ compare_real_synthetic <- function(){
       files
 
     })
+
+
 
 # read all real data xpt files and put in a list
     get_files_real <- shiny::reactive({

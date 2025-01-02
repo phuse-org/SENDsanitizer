@@ -23,6 +23,10 @@
 #' This is just comparison purpose.
 #' In RStudio IDE, you can see all the datasets and visually inspect.\cr
 #' default FALSE.
+#' @param app Mandatory, boolean\cr
+#' Only true if function is calling from shiny app. In that case,
+#' all generated synthetic data will be saved in list of dataframe.
+#' Default FALSE.
 #' @export
 #'
 #' @examples
@@ -69,7 +73,7 @@ sanitize <- function(path,
                      number=1,
                      write_xpt=TRUE,
                      setcd=NULL,
-                     test_original=FALSE) {
+                     test_original=FALSE,app=FALSE) {
   # whether to show original value in table, this
   # for test only, if true it will not write data
   ## test_original <- FALSE
@@ -1845,6 +1849,13 @@ print('MI DONE')
 
   ############# Export Folder of Generated Data #################
 
+  if(app){
+
+    return(SENDstudy)
+
+  } else{
+
+
   if(!test_original){
             if (!is.null(where_to_save)){
                 #Create .xpt files if you can
@@ -1893,4 +1904,7 @@ print('MI DONE')
             }
 
   }
+
+  }
+
         }

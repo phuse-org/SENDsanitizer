@@ -44,6 +44,11 @@ This will print dataset that have original(real) value and generated(synthetic) 
 This is just comparison purpose.
 In RStudio IDE, you can see all the datasets and visually inspect.\cr
 default FALSE.}
+
+\item{app}{Mandatory, boolean\cr
+Only true if function is calling from shiny app. In that case,
+all generated synthetic data will be saved in list of dataframe.
+Default FALSE.}
 }
 \description{
 This function generate synthetic SEND data from real SEND data.

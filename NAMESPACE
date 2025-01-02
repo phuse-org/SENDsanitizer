@@ -2,6 +2,7 @@
 
 export(compare_real_synthetic)
 export(sanitize)
+export(sanitize_shiny_app)
 import(data.table)
 import(shiny)
 import(shinyFiles)

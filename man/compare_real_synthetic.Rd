@@ -6,10 +6,6 @@
 \usage{
 compare_real_synthetic()
 }
-\arguments{
-\item{df}{mandatory, dataframe \cr
-a dataframe with APPID and STUDYID columns}
-}
 \value{
 App
 }
