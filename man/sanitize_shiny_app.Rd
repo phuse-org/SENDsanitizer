@@ -2,7 +2,7 @@
 % Please edit documentation in R/generate_synthetic_data_app.R
 \name{sanitize_shiny_app}
 \alias{sanitize_shiny_app}
-\title{Run Shiny App}
+\title{Generate synthetic data from real data}
 \usage{
 sanitize_shiny_app()
 }

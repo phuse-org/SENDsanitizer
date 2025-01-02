@@ -90,13 +90,14 @@ sanitize <- function(path,
     multi_study <- FALSE
   }
   # check if directory given for where to save data
-  if(!is.null(where_to_save)) {
-    if(!fs::is_dir(where_to_save)) {
-      stop("Provide a correct directory where to save data")
-    }
-  } else{
-    stop("Directory for where_to_save is not given. Provide direcotry.")
-  }
+
+  ## if(!is.null(where_to_save)) {
+  ##   if(!fs::is_dir(where_to_save)) {
+  ##     stop("Provide a correct directory where to save data")
+  ##   }
+  ## } else{
+  ##   stop("Directory for where_to_save is not given. Provide direcotry.")
+  ## }
 
   # number of study to generate
   if(number!=1){
@@ -1830,6 +1831,14 @@ sev_fix[MISEV_new==0 | is.na(MISEV_new),`:=`(MISEV_new='')]
     SENDstudy$mi$MISEV_org <- NULL
     SENDstudy$mi$MISEV_new <- NULL
   }
+
+
+            ## #Remove MISTAT, MIRESCAT, MIDTHREL, and MISPCCND
+            ## SENDstudy$mi$MISTAT <- NA
+            ## SENDstudy$mi$MIREASND <- NA
+            ## SENDstudy$mi$MISPCCND <- NA
+            ## SENDstudy$mi$MISPCUFL <- NA
+            ## SENDstudy$mi$MIDTHREL <- NA
 
             #Make Factors as Characters
             SENDstudy$mi$MITESTCD <- as.character(SENDstudy$mi$MITESTCD)

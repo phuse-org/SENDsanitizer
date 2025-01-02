@@ -11,7 +11,8 @@ sanitize(
   number = 1,
   write_xpt = TRUE,
   setcd = NULL,
-  test_original = FALSE
+  test_original = FALSE,
+  app = FALSE
 )
 }
 \arguments{
