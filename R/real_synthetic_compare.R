@@ -22,7 +22,7 @@
 #' @import shiny
 #' @import shinyFiles
 compare_real_synthetic_shiny <- function(){
-  ui <- shiny::navbarPage(title = 'SENDsanitizer: Generate synthetic data from real SEND data',
+  ui <- shiny::fluidPage(title = 'SENDsanitizer: Generate synthetic data from real SEND data',
 
   ## tags$head(
     ## tags$style(HTML("
@@ -165,13 +165,13 @@ shiny::downloadButton('download', label = 'Download all synthetic data')
     })
 
 
-    if(test){
-      volumes <- c(home = fs::path(fs::path_home(), dir2,dir3))
-      volumes_syn <- c(home= fs::path(fs::path_home(),dir2))
-    } else{
+    ## if(test){
+    ##   volumes <- c(home = fs::path(fs::path_home(), dir2,dir3))
+    ##   volumes_syn <- c(home= fs::path(fs::path_home(),dir2))
+    ## } else{
       volumes <- c(home= fs::path_home())
       volumes_syn <- c(home=fs::path_home())
-    }
+    ## }
     shinyFiles::shinyDirChoose(input, 'real_dir',
       roots=volumes, session = session,
       allowDirCreate = F,filetypes=c('xpt'))
@@ -294,7 +294,7 @@ shiny::showNotification('Wait until done.')
         df
       }else{
 
-        print(input$generate)
+        ## print(input$generate)
         files <- get_syn_dir()
         files_xpt <- load_xpt_files(files,domains = c('ts','tx',
           'dm','bw','lb','mi','om'))
@@ -404,8 +404,8 @@ df_list <- get_files_syn()
       if(!fs::dir_exists(tempdir_path)){
       fs::dir_create(tempdir_path)
       }
-      print(tempdir_path)
-      print(list.files(tempdir_path))
+      ## print(tempdir_path)
+      ## print(list.files(tempdir_path))
       # Write each dataframe to XPT format in the temp directory
       for (name in names(df_list)) {
         write_xpt(df_list[[name]], file.path(tempdir_path, paste0(name, ".xpt")))

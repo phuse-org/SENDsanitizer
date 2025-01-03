@@ -48,3 +48,4 @@
 ^_pkgdown\.yml$
 ^app\.R$
 ^vignettes$
+^fake_app_test$

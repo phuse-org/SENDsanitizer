@@ -17,12 +17,17 @@ RoxygenNote: 7.3.2
 Imports: 
     data.table,
     dplyr,
+    DT,
     fs,
     haven,
     magrittr,
     MCMCpack,
+    shiny,
+    shinyFiles,
     stringr,
-    tidyr
+    tibble,
+    tidyr,
+    zip
 Suggests: 
     knitr,
     rmarkdown
