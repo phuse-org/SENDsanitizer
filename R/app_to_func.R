@@ -1834,6 +1834,45 @@ sev_fix[MISEV_new==0 | is.na(MISEV_new),`:=`(MISEV_new='')]
 
 
             ## #Remove MISTAT, MIRESCAT, MIDTHREL, and MISPCCND
+
+
+  all_mi_cols <- c(
+    "STUDYID", "DOMAIN", "USUBJID",
+       "FOCID",
+    "MISEQ",
+        "MIGRPID",
+        "MIREFID", "MISPID",
+    "MITESTCD", "MITEST",
+    "MIBODSYS", "MIORRES",
+    "MISTRESC", "MIRESCAT",
+         "MICHRON", "MIDISTR", "MISTAT", "MIREASND","MINAM",
+    "MISPEC",
+         "MIANTREG", "MISPCCND", "MISPCUFL", "MILAT",
+          "MIDIR", "MIMETHOD", "MIEVAL",
+    "MISEV",
+          "MIDTHREL",
+    "MIDTC",
+    "MIDY")
+  
+  all_mi_remove <- c( "FOCID",  "MIGRPID",
+                     "MIREFID", "MISPID",
+     "MICHRON", "MIDISTR", "MISTAT", "MIREASND",
+    "MINAM","MIANTREG", "MISPCCND", "MISPCUFL", "MILAT",
+    "MIDIR", "MIMETHOD", "MIEVAL", "MIDTHREL")
+
+  current_col <- colnames(SENDstudy$mi)
+
+  for(i in 1:length(current_col)){
+
+    cor_col <- current_col[i]
+    if(cor_col %in% all_mi_remove){
+SENDstudy$mi[[cor_col]] <- NA
+
+    }
+
+  }
+
+
             ## SENDstudy$mi$MISTAT <- NA
             ## SENDstudy$mi$MIREASND <- NA
             ## SENDstudy$mi$MISPCCND <- NA
