@@ -1853,19 +1853,29 @@ sev_fix[MISEV_new==0 | is.na(MISEV_new),`:=`(MISEV_new='')]
           "MIDTHREL",
     "MIDTC",
     "MIDY")
-  
-  all_mi_remove <- c( "FOCID",  "MIGRPID",
-                     "MIREFID", "MISPID",
-     "MICHRON", "MIDISTR", "MISTAT", "MIREASND",
-    "MINAM","MIANTREG", "MISPCCND", "MISPCUFL", "MILAT",
-    "MIDIR", "MIMETHOD", "MIEVAL", "MIDTHREL")
+
+  all_mi_keep <- c(
+    "STUDYID", "DOMAIN", "USUBJID",
+    "MISEQ",
+    "MITESTCD", "MITEST",
+    "MIBODSYS", "MIORRES",
+    "MISTRESC", "MIRESCAT",
+    "MISPEC",
+    "MISEV",
+    "MIDTC",
+    "MIDY")
+  ## all_mi_remove <- c( "FOCID",  "MIGRPID",
+  ##                    "MIREFID", "MISPID",
+  ##    "MICHRON", "MIDISTR", "MISTAT", "MIREASND",
+  ##   "MINAM","MIANTREG", "MISPCCND", "MISPCUFL", "MILAT",
+  ##   "MIDIR", "MIMETHOD", "MIEVAL", "MIDTHREL")
 
   current_col <- colnames(SENDstudy$mi)
 
   for(i in 1:length(current_col)){
 
     cor_col <- current_col[i]
-    if(cor_col %in% all_mi_remove){
+    if(! cor_col %in% all_mi_keep){
 SENDstudy$mi[[cor_col]] <- NA
 
     }
@@ -1887,7 +1897,7 @@ SENDstudy$mi[[cor_col]] <- NA
             SENDstudy$mi$MISEV <- as.character(SENDstudy$mi$MISEV)
             #Make MIRESCAT for Non-Normal Findings
             SENDstudy$mi$MIRESCAT <- NA
-            SENDstudy$mi$MIRESCAT[which(grepl("UNREMARKABLE",SENDstudy$mi$MISTRESC) == FALSE)] <- "NON-NEOPLASTIC"
+            ## SENDstudy$mi$MIRESCAT[which(grepl("UNREMARKABLE",SENDstudy$mi$MISTRESC) == FALSE)] <- "NON-NEOPLASTIC"
 
   ## View(SENDstudy$mi)
 print('MI DONE')
