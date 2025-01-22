@@ -1220,6 +1220,27 @@ Subjects <- Subjects_2
 ## generate OM data
 ## remove NA value from OMSTRESN
     ## SENDstudy$om <- SENDstudy$om[!is.na(SENDstudy$om$OMSTRESN),]
+    # convert to gram from mg
+
+    ## om_mg <- data.table::copy(SENDstudy$om)
+    ## data.table::setDT(om_mg)
+    ## unq_u <-  unique(om_mg[OMTESTCD=='WEIGHT',OMSTRESU])
+    ## if('g' %in% unq_u){
+    ##   om_mg[, `:=`(mg_u=OMSTRESU, mg_res=OMSTRESN)]
+    ##   om_mg[OMTESTCD=='WEIGHT' & OMSTRESU=='g',`:=`(mg_res=OMSTRESN*1000, mg_u= 'mg')]
+    ##   om_mg$OMSTRESN  <- om_mg$mg_res
+    ##   om_mg$OMSTRESU  <- om_mg$mg_u
+    ##   om_mg$mg_res <- NULL
+    ##   om_mg$mg_u  <- NULL
+
+    ## SENDstudy$om <- om_mg
+    ## data.table::setDF(SENDstudy$om)
+
+    ## }
+
+    ## SENDstudy$om$OMSTRESN_mg <- SENDstudy$om$OMSTRESN
+    ## SENDstudy$om$OMSTRESU_mg <- SENDstudy$om$OMSTRESU
+
     SENDstudy$om <- SENDstudy$om[which(!is.na(SENDstudy$om$OMSTRESN)),]
     SENDstudy$om <- SENDstudy$om[which(SENDstudy$om$USUBJID %in% Subjects$USUBJID),]
     SENDstudy$om$STUDYID <- rep(studyID, nrow(SENDstudy$om))
@@ -1232,15 +1253,38 @@ Subjects <- Subjects_2
             #Remove Dates
             cols <- grep("DTC", colnames(SENDstudy$om))
             SENDstudy$om[,cols] <- rep("XXXX-XX-XX",length(SENDstudy$om$STUDYID))
+
+# OMLAT
+    omlat <- data.table::copy(SENDstudy$om)
+    data.table::setDT(omlat)
+   omlat <- omlat[is.na(OMLAT),`:=`(OMLAT='')]
+unq_omlat <- unique(SENDstudy$om$OMLAT)
+   no_str <- setdiff(unq_omlat, c(''))
+    omlat_len <- length(no_str)
+kk <- omlat[,c('OMSPEC','OMLAT')]
+ ## ll <- kk[!duplicated(kk),][,.(n=.N),by=OMSPEC]
+ ll_list <- kk[!duplicated(kk),][,.(n=list(OMLAT),num=.N),by=OMSPEC]
+    lat_list <- kk[!duplicated(kk),][,`:=`(n=list(OMLAT)),by=OMSPEC][]
+    lat_n <- lat_list[,c('OMSPEC','n')]
+
+
+
+    if(length(no_str) > 1){
+
+
+    }
+
     ## send_study_om <- SENDstudy$om
     ## example_om <- Example$om
 ## save(send_study_om,USUBJIDTable,example_om, file='om.rda')
-    OMFindings <- merge(Subjects, Example$om[, c('USUBJID','OMTESTCD','OMSPEC',
+    OMFindings <- merge(Subjects, Example$om[, c('USUBJID','OMTESTCD',
+                                                 'OMLAT','OMSPEC',
                                                  'OMSTRESN','OMDY')],
                         by='USUBJID')
 
     OMFindings <- OMFindings[OMFindings$OMTESTCD=='WEIGHT',]
-    OMSummary <- OMFindings %>% dplyr::group_by(Dose,SEX,OMTESTCD,OMSPEC,OMDY) %>%
+    OMSummary <- OMFindings %>% dplyr::group_by(Dose,SEX,OMTESTCD,
+                                                OMLAT,OMSPEC,OMDY) %>%
       dplyr::mutate(ARMavg=
                       mean(OMSTRESN, na.rm = TRUE)) %>%
       dplyr::mutate(ARMstdev= sd(OMSTRESN, na.rm = TRUE))
@@ -1251,12 +1295,17 @@ Subjects <- Subjects_2
     SENDstudy$om$OMSTRESN_new <- NA
     SENDstudy$om$OMSTRESN_org <- SENDstudy$om$OMSTRESN
     om_study <- SENDstudy$om[SENDstudy$om$OMTESTCD=='WEIGHT',
-                             c('USUBJID','OMSPEC','OMSTRESN')]
+                             c('USUBJID','OMSPEC','OMLAT','OMSTRESN')]
 
+    data.table::setDT(om_study)
       om_dose_gender <- ExampleSubjects[ExampleSubjects$USUBJID %in% unique(SENDstudy$om$USUBJID),]
     ## print(unique(Doses$Dose))
+    unq_omlat <- unique(SENDstudy$om$OMLAT)
     for(Dose in unique(Doses$Dose)){
       for(gender in unique(ExampleSubjects$SEX)){
+        for(om_lat in unique(SENDstudy$om$OMLAT)){
+
+
 
         ## ExampleSubjects <- SENDstudy$dm[,c("USUBJID", "ARM","SUBJID","SEX")]
 
@@ -1285,14 +1334,35 @@ Subjects <- Subjects_2
           ## if(Dose=='LD' & gender=='F'){
 
           ## }
+          data.table::setDT(OMDATAs)
+          OMDATAs <- OMDATAs[OMLAT==om_lat,]
           line <- data.frame(USUBJID= OMDATAs$USUBJID, OMSTRESN = OMDATAs$OMSTRESN,
                               OMTEST = OMDATAs$OMSPEC)
+
+          line_lat <- data.frame(USUBJID= OMDATAs$USUBJID, OMSTRESN = OMDATAs$OMSTRESN,
+                              OMTEST = OMDATAs$OMSPEC,OMLAT=OMDATAs$OMLAT)
           # omlat need to implement
           line <- line[!duplicated(line[,c('USUBJID','OMTEST')]),]
+          line_lat <- line_lat[!duplicated(line_lat[,c('USUBJID','OMTEST','OMLAT')]),]
+
+          ## line_lat <- data.table::dcast(data.table::as.data.table(line),
+          ##                            USUBJID ~ OMTEST,
+          ##                            value.var = 'OMSTRESN')
 
           line <- data.table::dcast(data.table::as.data.table(line),
                                      USUBJID ~ OMTEST,
                                      value.var = 'OMSTRESN')
+
+          dcast_d <- data.table::dcast(data.table::as.data.table(line_lat),
+                                       USUBJID+OMLAT ~ OMTEST,
+                                       value.var = 'OMSTRESN'
+                                       )
+
+
+          # from long to wide
+## line_dcast <- reshape(line_lat, direction = 'wide',idvar = 'OMTEST',
+##         timevar = 'OMLAT', v.names = 'lat', sep = '_')
+# from long to wide
 
           line <- as.data.frame(line)
           ## print(Dose)
@@ -1309,6 +1379,25 @@ Subjects <- Subjects_2
           ll <- unique(colnames(line))
 
           for (test in ll){
+
+            # if test is lateral
+            if(ll_list[OMSPEC==test,num]>1){
+              test_lat <- TRUE
+
+            }else{
+             test_lat <- FALSE
+            }
+
+unq_test_omlat <- unique(omlat[OMSPEC==test,OMLAT])
+
+            for(test_omlat in 1:length(unq_test_omlat)){
+
+current_omlat <- unq_test_omlat[test_omlat]
+
+
+            }
+
+
             ## test <- 'BRAIN'
             ## line_mean
             close_vars <- setdiff(names(line_mean), test)
@@ -1340,7 +1429,8 @@ Subjects <- Subjects_2
                                         #Make Equation Based on Varying length of Variables
                                         # OMFit[1] is always the intercept
 
-                              sub_res <- om_study[om_study$USUBJID %in% Subj,]
+                              sub_res <- om_study[USUBJID %in% Subj,]
+                              sub_res <- sub_res[OMLAT== om_lat,]
                               OMTESTVAR <- OMFit[1]
                               intercept_val <- OMFit[1]
                                 #Then it will be individual Variable coeff*their variables (including Day)
@@ -1372,7 +1462,7 @@ Subjects <- Subjects_2
                               ##               SENDstudy$om$OMSPEC==test)
 
                               indx <- which(SENDstudy$om$USUBJID==Subj &
-                                            SENDstudy$om$OMSPEC==test)
+                                            SENDstudy$om$OMSPEC==test & SENDstudy$om$OMLAT==om_lat)
                               ## print(Dose)
                               ## print(gender)
                               ## print(omspec)
@@ -1400,6 +1490,7 @@ Subjects <- Subjects_2
                                 get_pos_val <- function(OMfit,om_study,Subj,Vars,line,test,SENDstudy){
                                   OMFit <- OMfit[sample(1:nrow(OMfit), 1),]
                                   sub_res <- om_study[om_study$USUBJID %in% Subj,]
+                                  sub_res <- sub_res[OMLAT== om_lat,]
                                   OMTESTVAR <- OMFit[1]
                                   intercept_val <- OMFit[1]
                                   var1 <- sub_res[sub_res$OMSPEC==Vars[1], 'OMSTRESN']
@@ -1436,8 +1527,20 @@ Subjects <- Subjects_2
                                 for (i in 1:10){
 
                                   final_val <- get_pos_val(OMfit,om_study,Subj,Vars,line,test,SENDstudy)
-                                  if(final_val> 0){
-                                    break}
+
+                                  if(length(final_val)>1){
+
+
+
+                                    }
+
+                                  if(final_val > 0){
+                                    ## print('here')
+                                    ## print(final_val)
+
+                                      break
+                                    }
+
 
                                 }
 
@@ -1462,12 +1565,14 @@ Subjects <- Subjects_2
                           ## )
           }
         }
+        }
       }
     }
   }
 
 
-  # ratio
+unq_omlat <- unique(SENDstudy$om$OMLAT)
+#ratio
 ## browser()
   om_df <- data.table::copy(SENDstudy$om)
   data.table::setDT(om_df)
@@ -1477,6 +1582,7 @@ Subjects <- Subjects_2
   df_term <- bw_df[USUBJID %in% usubs & BWTESTCD=='TERMBW']
   usubs <- unique(df_term$USUBJID)
   for (i in 1:length(usubs)){
+
     sub <- usubs[i]
     bw_wgt <- bw_df[USUBJID==sub & BWTESTCD=='TERMBW', .(BWTESTCD,BWSTRESN,BWSTRESU)]
     sub_bw <- bw_wgt[['BWSTRESN']]
@@ -1484,31 +1590,168 @@ Subjects <- Subjects_2
     if (sub_bw_u == 'kg'){
       sub_bw <- sub_bw * 1000
     }
+
     sub_df <- om_df[USUBJID==sub,]
     sub_testcd <- unique(sub_df[['OMTESTCD']])
     organ_ratio <- grep('^OW|^BW', sub_testcd,value=T, ignore.case = T)
+
+    om_weight_u <- unique(om_df[OMTESTCD=='WEIGHT',OMSTRESU])
+
+    ## if('mg' %in% om_weight_u){
+    ##   om_df$mg_res <- om_df$OMSTRESN_new
+    ##   ## om_df[OMTESTCD=='WEIGHT' & OMSTRESU=='mg', `:=`(OMSTRESN_new=mg_res/1000)]
+    ##   omspec_mg <- unique(om_df[OMSTRESU=='mg',OMSPEC])
+    ##   om_df[OMSPEC %in% omspec_mg, `:=`(OMSTRESN_new=mg_res/1000)]
+
+    ## }
     for(testcd in 1:length(organ_ratio)){
+      for(om_lat in unq_omlat){
+
       ratio <- organ_ratio[testcd]
+
+
+      omsp_mg <- om_df[USUBJID==sub & OMTESTCD=='WEIGHT' & OMLAT==om_lat & OMSTRESU=='mg',OMSPEC]
+      omsp_g <- om_df[USUBJID==sub & OMTESTCD=='WEIGHT' & OMLAT==om_lat & OMSTRESU=='g',OMSPEC]
+      brain_u <- om_df[USUBJID==sub & OMTESTCD=='WEIGHT' &  OMSPEC=='BRAIN', OMSTRESU]
+        brain_u <- unique(brain_u)
+        ## if(brain_u=='mg'){
+
+        ## }
+## print(ratio)
+#ratio1
       if(ratio=='OWBR'){
-        brain <- sub_df[OMSPEC=='BRAIN' & OMTESTCD=='WEIGHT', OMSTRESN]
-        om_df[USUBJID==sub & OMTESTCD=='OWBR', `:=`(new_c=(OMSTRESN_new/brain)*100)]
-      } else if(ratio=='OWHT') {
-        heart <- sub_df[OMSPEC=='HEART' & OMTESTCD=='WEIGHT', OMSTRESN]
-        om_df[USUBJID==sub & OMTESTCD=='OWHT', `:=`(new_c=(OMSTRESN_new/heart)*100)]
-      } else if(ratio=='OWBROB'){
-        bulb <- sub_df[OMSPEC=='BRAIN, OLFACTORY BULB' & OMTESTCD=='WEIGHT', OMSTRESN]
-        om_df[USUBJID==sub & OMTESTCD=='OWBROB', `:=`(new_c=(OMSTRESN_new/bulb)*100)]
-      } else if(ratio=='OWBW'){
-        # what is value is in kg?
-        om_df[USUBJID==sub & OMTESTCD=='OWBW', `:=`(new_c=(OMSTRESN_new/sub_bw)*100)]
-      } else if(ratio=='BWBR'){
-        brain <- sub_df[OMSPEC=='BRAIN' & OMTESTCD=='WEIGHT', OMSTRESN]
-        om_df[USUBJID==sub & OMTESTCD=='BWBR', `:=`(new_c=(sub_bw/brain)*100)]
+
+        brain <- om_df[USUBJID==sub & OMSPEC=='BRAIN' & OMTESTCD=='WEIGHT', OMSTRESN_new]
+        if(brain_u=='g'){
+          if(length(omsp_g) > 0){
+            for(one_omspec in omsp_g){
+
+              organ_weight_g <- om_df[USUBJID==sub & OMTESTCD=='WEIGHT' & OMLAT==om_lat &
+                                      OMSPEC==one_omspec, OMSTRESN_new]
+
+      om_df[USUBJID==sub & OMTESTCD=='OWBR' & OMLAT==om_lat & OMSPEC==one_omspec,
+            `:=`(new_c=(organ_weight_g/brain)*100)]
+            }
+
+
       }
+      if(length(omsp_mg) > 0){
+        brain_mg <- brain*1000
+        for(one_omspec in omsp_mg){
+
+          organ_weight_mg <- om_df[USUBJID==sub & OMTESTCD=='WEIGHT' & OMLAT==om_lat &
+                                  OMSPEC==one_omspec, OMSTRESN_new]
+
+      om_df[USUBJID==sub & OMTESTCD=='OWBR' & OMLAT==om_lat & OMSPEC==one_omspec,
+            `:=`(new_c=(organ_weight_mg/brain_mg)*100)]
+        }
+      }
+        }else if(brain_u=='mg'){
+
+          if(length(omsp_g) > 0){
+            brain_g <- brain/1000
+            for(one_omspec in omsp_g){
+              organ_weight_g <- om_df[USUBJID==sub & OMTESTCD=='WEIGHT' & OMLAT==om_lat &
+                                      OMSPEC==one_omspec, OMSTRESN_new]
+
+      om_df[USUBJID==sub & OMTESTCD=='OWBR' & OMLAT==om_lat & OMSPEC==one_omspec,
+            `:=`(new_c=(organ_weight_g/brain_g*100))]
+            }
+
+      }
+          if(length(omsp_mg) > 0){
+            for(one_omspec in omsp_mg){
+
+              organ_weight_mg <- om_df[USUBJID==sub & OMTESTCD=='WEIGHT' & OMLAT==om_lat &
+                                      OMSPEC==one_omspec, OMSTRESN_new]
+
+
+              om_df[USUBJID==sub & OMTESTCD=='OWBR' & OMLAT==om_lat & OMSPEC==one_omspec,
+                    `:=`(new_c=(organ_weight_mg/brain)*100)]
+
+            }
+
+        ## sub_bw_mg <- sub_bw*1000
+      }
+
+        }
+
+
+
+        ## om_df[USUBJID==sub & OMTESTCD=='OWBR' & OMLAT==om_lat, `:=`(new_c=(OMSTRESN_new/brain)*100)]
+#ratio2
+      } else if(ratio=='OWHT') {
+
+      ## heart_u <- om_df[USUBJID==sub & OMTESTCD=='WEIGHT' &  OMSPEC=='HEART', OMSTRESU]
+      ##   heart_u <- unique(heart_u)
+      om_df <- calculate_ratio('OWHT', 'HEART', sub,om_df,om_lat)
+
+
+
+        ## heart <- om_df[USUBJID==sub & OMSPEC=='HEART' & OMTESTCD=='WEIGHT', OMSTRESN_new]
+        ## om_df[USUBJID==sub & OMTESTCD=='OWHT' & OMLAT==om_lat, `:=`(new_c=(OMSTRESN_new/heart)*100)]
+
+#ratio3
+      } else if(ratio=='OWBROB'){
+
+        om_df <- calculate_ratio('OWBROB','BRAIN, OLFACTORY BULB',sub,
+                                 om_df,om_lat)
+        ## bulb <- sub_df[OMSPEC=='BRAIN, OLFACTORY BULB' & OMTESTCD=='WEIGHT', OMSTRESN]
+        ## om_df[USUBJID==sub & OMTESTCD=='OWBROB' & OMLAT==om_lat, `:=`(new_c=(OMSTRESN_new/bulb)*100)]
+       # OWBW organ weight to body weight
+#ratio4
+      } else if(ratio=='OWBW'){
+
+
+        if(length(omsp_g) > 0){
+
+        for(one_omspec in omsp_g) {
+
+        organ_weight_g <- om_df[USUBJID==sub & OMTESTCD=='WEIGHT' & OMLAT==om_lat &
+                              OMSPEC==one_omspec, OMSTRESN_new]
+      om_df[USUBJID==sub & OMTESTCD=='OWBW' & OMLAT==om_lat & OMSPEC== one_omspec,
+            `:=`(new_c=(organ_weight_g/sub_bw)*100)]
+        }
+
+      ## om_df[USUBJID==sub & OMTESTCD=='OWBW' & OMLAT==om_lat & OMSPEC %in% omsp_g,
+      ##       `:=`(new_c=(OMSTRESN_new/sub_bw)*100)]
+      }
+
+      if(length(omsp_mg) > 0){
+        sub_bw_mg <- sub_bw*1000
+
+        for(one_omspec in omsp_mg) {
+
+        organ_weight_mg <- om_df[USUBJID==sub & OMTESTCD=='WEIGHT' & OMLAT==om_lat &
+                              OMSPEC==one_omspec, OMSTRESN_new]
+      om_df[USUBJID==sub & OMTESTCD=='OWBW' & OMLAT==om_lat & OMSPEC== one_omspec,
+            `:=`(new_c=(organ_weight_mg/sub_bw_mg)*100)]
+        }
+
+      }
+#ratio5
+# BWBR body weight Brain need to fix
+# there is only one study found in whole database
+      } else if(ratio=='BWBR'){
+
+        brain_weight <- om_df[USUBJID==sub & OMTESTCD=='WEIGHT' &
+                              OMSPEC=='BRAIN', OMSTRESN_new]
+        if(brain_u=='g'){
+      om_df[USUBJID==sub & OMTESTCD=='BWBR' & OMLAT==om_lat & OMSPEC=='BRAIN',
+            `:=`(new_c=(sub_bw/brain_weight)*100)]
+        }
+        if(brain_u=='mg'){
+        sub_bw_mg <- sub_bw*1000
+        ## organ_weight <- om_df[USUBJID==sub & OMTESTCD=='WEIGHT' & OMLAT==om_lat &
+        ##                       OMSPEC==one_omspec, OMSTRESN_new]
+      om_df[USUBJID==sub & OMTESTCD=='BWBR' & OMLAT==om_lat & OMSPEC=='BRAIN',
+            `:=`(new_c=(sub_bw_mg/brain_weight)*100)]
+        }
+      }
+      } # omlat
     }
   }
-
-      ##       else if(ratio=='OWRATIO') {
+  ##       else if(ratio=='OWRATIO') {
 
       ## brain <- sub_df[OMSPEC=='BRAIN' & OMTESTCD=='WEIGHT', OMSTRESN]
       ## om_df[USUBJID==sub & OMTESTCD=='OWBR', `:=`(new_c=(OMSTRESN_new/brain)*100)]
@@ -1517,6 +1760,7 @@ Subjects <- Subjects_2
   ## dd <- om_df
   ## om_df <- om_df[, c("STUDYID", "USUBJID","OMTESTCD", "OMSPEC", "OMSTRESN",
   ##                 "OMSTRESN_new",'new_c', "OMSTRESU")]
+  ## om_df$mg_res <- NULL
   om_df$ratio <- data.table::fcoalesce(om_df$new_c, om_df$OMSTRESN_new)
   ## om_df <- data.table::copy(om_df)
 
@@ -1598,8 +1842,10 @@ Subjects <- Subjects_2
 ## print('done_loop')
   #Coordinate LBORRES and LBSTRESC
 ## test_original <- TRUE
-# copy to om
-## test_original <- TRUE
+  # copy to om
+  ## test_original <- TRUE
+
+  test_original <- T
   SENDstudy$om <- om_df
     if(test_original){
       om_df <- data.table::copy(SENDstudy$om)
