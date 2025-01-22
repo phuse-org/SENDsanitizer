@@ -1462,7 +1462,8 @@ current_omlat <- unq_test_omlat[test_omlat]
                               ##               SENDstudy$om$OMSPEC==test)
 
                               indx <- which(SENDstudy$om$USUBJID==Subj &
-                                            SENDstudy$om$OMSPEC==test & SENDstudy$om$OMLAT==om_lat)
+                                            SENDstudy$om$OMSPEC==test & SENDstudy$om$OMLAT==om_lat &
+                                            SENDstudy$om$OMTESTCD=='WEIGHT')
                               ## print(Dose)
                               ## print(gender)
                               ## print(omspec)
@@ -1518,8 +1519,8 @@ current_omlat <- unq_test_omlat[test_omlat]
                                   ## indx <- which(SENDstudy$om$USUBJID==Subj &
                                   ##               SENDstudy$om$OMTESTCD==omspec &
                                   ##               SENDstudy$om$OMSPEC==test)
-                                  indx <- which(SENDstudy$om$USUBJID==Subj &
-                                                SENDstudy$om$OMSPEC==test)
+                                  ## indx <- which(SENDstudy$om$USUBJID==Subj &
+                                  ##               SENDstudy$om$OMSPEC==test)
                                   final_val
                                 }
 
@@ -1625,6 +1626,9 @@ unq_omlat <- unique(SENDstudy$om$OMLAT)
         if(brain_u=='g'){
           if(length(omsp_g) > 0){
             for(one_omspec in omsp_g){
+              if(one_omspec=='LIVER'){
+
+              }
 
               organ_weight_g <- om_df[USUBJID==sub & OMTESTCD=='WEIGHT' & OMLAT==om_lat &
                                       OMSPEC==one_omspec, OMSTRESN_new]
@@ -1761,6 +1765,7 @@ unq_omlat <- unique(SENDstudy$om$OMLAT)
   ## om_df <- om_df[, c("STUDYID", "USUBJID","OMTESTCD", "OMSPEC", "OMSTRESN",
   ##                 "OMSTRESN_new",'new_c', "OMSTRESU")]
   ## om_df$mg_res <- NULL
+
   om_df$ratio <- data.table::fcoalesce(om_df$new_c, om_df$OMSTRESN_new)
   ## om_df <- data.table::copy(om_df)
 
@@ -1845,7 +1850,7 @@ unq_omlat <- unique(SENDstudy$om$OMLAT)
   # copy to om
   ## test_original <- TRUE
 
-  test_original <- T
+  ## test_original <- T
   SENDstudy$om <- om_df
     if(test_original){
       om_df <- data.table::copy(SENDstudy$om)
