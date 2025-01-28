@@ -4,7 +4,12 @@
 \alias{compare_real_synthetic_shiny}
 \title{Compare real and synthetic data}
 \usage{
-compare_real_synthetic_shiny()
+compare_real_synthetic_shiny(root = NULL, root_synthetic = NULL)
+}
+\arguments{
+\item{root}{where real data}
+
+\item{root_synthetic}{where synthetic data located}
 }
 \value{
 App
