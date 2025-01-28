@@ -156,7 +156,8 @@ sanitize <- function(path,
                                        fill = T,use.names = TRUE)
    Example$ds <- data.table::rbindlist(list(Example$ds, bind_to_exp$ds),
                                        fill = T,use.names = TRUE)
-}
+    }
+
     Species <- Example$ts[TSPARMCD=='SPECIES',TSVAL]
     print(Species)
     if (length(unique(Species)) >1){
@@ -181,6 +182,16 @@ sanitize <- function(path,
                   " SEND Example Studies. Pick one SNDIGVER."))
     }
   }
+
+
+
+
+# omlat is needed for om domain
+    if(!'OMLAT' %in% colnames(Example$om)){
+Example$om$OMLAT <- ''
+    }
+
+  
   # dose categorization
         #######################################################################
   tx_doses <- get_doses(Example$tx)
@@ -203,16 +214,20 @@ sanitize <- function(path,
           fs_cat <- dose_categorize(first_study)
           for(i in 2:length(study_numbers)){
             dose_cat <- dose_categorize(trt[STUDYID==study_numbers[i]])
-            fs_cat  <- data.table::rbindlist(list(first_study,dose_cat))
+            fs_cat  <- data.table::rbindlist(list(fs_cat,dose_cat))
             fs_cat
           }
           trt <- fs_cat
+          print(trt)
         }else{
           trt <- dose_categorize(trt)
         }
+  ################################################# multi study ############
+  if(!multi_study){
 
         # check
         if(!Recovery){
+
           if(length(unique(trt[cat=='Control',SETCD]))>1){
             print(trt)
             stop(paste0('There are more than one control group.',
@@ -247,14 +262,73 @@ sanitize <- function(path,
           }
         }
 
-        if(Recovery){
-          trt$trt_rc <- trt$cat
-          trt[SETCD %in% all_setcd[[1]][[1]][['recovery_group']],
-              `:=`(trt_rc=paste0(cat,'_Rec'))]
-          trt[, `:=`(cat=trt_rc,trt_rc=NULL)]
-        }
+  }else{
 
         if(!Recovery){
+
+          if(length(unique(trt[cat=='Control',SETCD]))>NumData){
+            print(trt)
+            stop(paste0('There are more than ', as.character(NumData), ' Control group.',
+                        ' This is probably a combination study.'))
+          }
+
+          if(length(unique(trt[cat=='LD',SETCD]))>NumData){
+            print(trt)
+
+            stop(paste0('There are more than ', as.character(NumData), ' LD group.',
+                        ' This is probably a combination study.'))
+            ## stop(paste0('There are more than two LD group.',
+            ##             ' This is probably a combination study.'))
+          }
+          if(length(unique(trt[cat=='HD',SETCD]))>NumData){
+            print(trt)
+            stop(paste0('There are more than ', as.character(NumData), ' HD group.',
+                        ' This is probably a combination study.'))
+
+            ## stop(paste0('There are more than two HD group.'
+            ##             ' This is probably a combination study.'))
+          }
+        } else {
+          if(length(unique(trt[cat=='Control',SETCD]))>(NumData*2)){
+            print(trt)
+
+            stop(paste0('There are more than ', as.character(NumData*2), ' Control group.',
+                        ' This is probably a combination study.'))
+            ## stop(paste0('There are more than two control group.',
+            ##             ' This is probably a combination study.'))
+          }
+          if(length(unique(trt[cat=='LD',SETCD]))>(NumData*2)){
+            print(trt)
+
+            stop(paste0('There are more than ', as.character(NumData*2), ' LD group.',
+                        ' This is probably a combination study.'))
+            ## stop(paste0('There are more than two LD group.',
+            ##             ' This is probably a combination study.'))
+          }
+          if(length(unique(trt[cat=='HD',SETCD]))>(NumData*2)){
+            print(trt)
+
+            stop(paste0('There are more than ', as.character(NumData*2), ' HD group.',
+                        ' This is probably a combination study.'))
+            ## stop(paste0('There are more than two HD group.',
+            ##       ' This is probably a combination study.'))
+          }
+        }
+
+  }
+
+
+  if(!multi_study){
+
+
+  if(Recovery){
+    trt$trt_rc <- trt$cat
+    trt[SETCD %in% all_setcd[[1]][[1]][['recovery_group']],
+        `:=`(trt_rc=paste0(cat,'_Rec'))]
+    trt[, `:=`(cat=trt_rc,trt_rc=NULL)]
+  }
+
+  if(!Recovery){
           high_num <- length(unique(trt$cat))
           trt <- trt[cat=='HD',`:=`(dose_order=high_num)]
           trt$dose_order <- as.character(trt$dose_order)
@@ -265,6 +339,32 @@ sanitize <- function(path,
           trt[SETCD %in% all_setcd[[1]][[1]][['recovery_group']],
               `:=`(dose_order=paste0(dose_order,'_R'))]
         }
+  }else{
+
+    if(Recovery){
+    trt$trt_rc <- trt$cat
+      trt_st <- unique(trt$STUDYID)
+      for(i in 1:NumData){
+        studyid <- names(all_setcd[[i]])
+    trt[STUDYID==studyid & SETCD %in% all_setcd[[i]][[1]][['recovery_group']],
+        `:=`(trt_rc=paste0(cat,'_Rec'))]
+      }
+    trt[, `:=`(cat=trt_rc,trt_rc=NULL)]
+    }
+  }
+
+  if(!Recovery){
+          high_num <- length(unique(trt$cat))
+          trt <- trt[cat=='HD',`:=`(dose_order=high_num)]
+          trt$dose_order <- as.character(trt$dose_order)
+        }else {
+          max_d <- max(trt$dose_order,na.rm = TRUE) +1
+          trt <- trt[cat %in% c('HD','HD_Rec'),`:=`(dose_order=max_d)]
+          trt$dose_order <- as.character(trt$dose_order)
+          trt[SETCD %in% all_setcd[[1]][[1]][['recovery_group']],
+              `:=`(dose_order=paste0(dose_order,'_R'))]
+        }
+
         ######################################################################
         Doses <- trt[,c('SETCD','cat')]
         Doses$ARMCD <- Doses$SETCD
@@ -1410,7 +1510,10 @@ current_omlat <- unq_test_omlat[test_omlat]
             ## tryCatch({
               if(length(close_vars)> 1){
                 Vars <- close_two
-              } else{ stop('Can\'t build MCMC model in OM')}
+              } else{
+
+                stop('Can\'t build MCMC model in OM')
+              }
               #Repeating fit PER test with interaction from other tests in that omspec
               ## equation <- paste0(Vars, collapse = " + ")
               kl <- paste0('`', paste0(Vars, collapse = '`+`'),'`')
