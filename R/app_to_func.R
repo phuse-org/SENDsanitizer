@@ -491,18 +491,30 @@ ind <- which(Example$mi$MISEV=='')
     idx <- which(grepl("TRTV",SENDstudy$ts$TSPARMCD)==TRUE)
     SENDstudy$ts[idx,"TSVAL"] <- paste0("VEHICLE")
 
+    keep_terms <- c("AGE", "AGEU", "DOSDUR", "DOSSTDTC", "EXPENDTC", "EXPSTDTC",
+                    "ROUTE", "SDESIGN", "SLENGTH", "SNDCTVER", "SNDIGVER",
+                    "SPECIES", "SPLANSUB",
+                    "SSTYP",
+                    "STCAT",
+                    "STITLE",
+                    "STRAIN", "STSTDTC",
+                    "TRT", "TRTCAS",
+                    "TRTV", "DOSENDTC", "STENDTC",
+                    "SEXPOP", "TRTUNII", "RECSAC")
 
     #Remove Identifying Information
-    RemoveTerms <- c("TFCNTRY","STDIR","SPLRNAM","TFCNTRY",
-                     "TRMSAC","SSPONSOR","SPREFID", "SPLRLOC",
-                     "PINV","STMON","TSLOC","TSCNTRY","DIET","WATER",
-                     "PCLASS","TSNAM","PPL")
-    for (term in RemoveTerms){
-      #Check index for Term
-      idx <- which(SENDstudy$ts$TSPARMCD == term)
-      #Remove Term
-      SENDstudy$ts$TSVAL[idx] <- ""
-    }
+    ## RemoveTerms <- c("TFCNTRY","STDIR","SPLRNAM","TFCNTRY",
+    ##                  "TRMSAC","SSPONSOR","SPREFID", "SPLRLOC",
+    ##                  "PINV","STMON","TSLOC","TSCNTRY","DIET","WATER",
+    ##                  "PCLASS","TSNAM","PPL")
+    indx <- which(SENDstudy$ts$TSPARMCD %in% keep_terms)
+    SENDstudy$ts <- SENDstudy$ts[indx,]
+    ## for (term in keep_terms){
+    ##   #Check index for Term
+    ##   idx <- which(SENDstudy$ts$TSPARMCD %in% term)
+    ##   #Remove Term
+    ##   SENDstudy$ts$TSVAL[idx] <- ""
+    ## }
     print('TS DONE')
     if(test_original){
       tibble::view(Example$ts,title = '01_TS_real')
