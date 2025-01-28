@@ -12,6 +12,8 @@
 #' @title Compare real and synthetic data
 #' @description This is an shiny app that can be used to visually inspect
 #' real and synthetic data
+#' @param root where real data
+#' @param root_synthetic where synthetic data located
 #' @return App
 #' @examples
 #' \dontrun{
@@ -21,7 +23,8 @@
 
 #' @import shiny
 #' @import shinyFiles
-compare_real_synthetic_shiny <- function(){
+compare_real_synthetic_shiny <- function(root=NULL,
+                                         root_synthetic=NULL){
   ui <- shiny::fluidPage(title = 'SENDsanitizer: Generate synthetic data from real SEND data',
 
   ## tags$head(
@@ -165,13 +168,19 @@ shiny::downloadButton('download', label = 'Download all synthetic data')
     })
 
 
-    ## if(test){
-    ##   volumes <- c(home = fs::path(fs::path_home(), dir2,dir3))
-    ##   volumes_syn <- c(home= fs::path(fs::path_home(),dir2))
-    ## } else{
+    if(!is.null(root)){
+      volumes <- c(home = root)
+    } else{
       volumes <- c(home= fs::path_home())
+    }
+
+    if(!is.null(root_synthetic)){
+      volumes_syn <- c(home= root_synthetic)
+    } else{
       volumes_syn <- c(home=fs::path_home())
-    ## }
+    }
+
+
     shinyFiles::shinyDirChoose(input, 'real_dir',
       roots=volumes, session = session,
       allowDirCreate = F,filetypes=c('xpt'))
