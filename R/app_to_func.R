@@ -2119,39 +2119,21 @@ unq_omlat <- unique(SENDstudy$om$OMLAT)
             }
 
 
+
+
+
+
 # fix 1 OF 5
-sev_org <- unique(mi_original_data$MISEV)
-  sev_org <- sev_org[sev_org!='']
- sev_sp <- unlist(strsplit(sev_org[1],' '))
-
-  if (length(sev_sp) > 1){
-    max_sev <- sev_sp[length(sev_sp)]
-    max_num <- as.numeric(max_sev)
-  }else{
-    max_num <- length(sev_org)
-  }
-## max_num <- 5
-  if(max_num < 4){
-max_num <- 4
-  }
-  ll <- c()
-  for(i in 1:max_num){
-    ## print(i)
-kk <- paste0(as.character(i), ' OF ',as.character(max_num))
-ll <- c(ll,kk)
-  }
-
 
 sev_fix <- data.table::as.data.table(data.table::copy(SENDstudy$mi))
-  for ( i in 1:max_num){
-sev_fix[MISEV_new==i, `:=`(MISEV_new=ll[i])]
-
-  }
 sev_fix[MISEV_new==0 | is.na(MISEV_new),`:=`(MISEV_new='')]
-
-
+  sev_fix[MISEV_new!='', `:=`(MISEV_sev=paste0(as.character(MISEV_new),
+                                               ' OF ', '5'))]
+  sev_fix[is.na(MISEV_sev), `:=`(MISEV_sev='')]
+  sev_fix$MISEV_new <- sev_fix$MISEV_sev
+  sev_fix$MISEV_sev <- NULL
   SENDstudy$mi <- data.table::setDF(sev_fix)
-
+ # test original
   if(test_original){
 
     df_mi <- data.table::copy(SENDstudy$mi)
