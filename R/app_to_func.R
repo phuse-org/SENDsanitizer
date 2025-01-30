@@ -408,6 +408,9 @@ Example$om$OMLAT <- ''
   Example$mi$MISEV <- gsub("5 OF 5", "5",Example$mi$MISEV)
   Example$mi$MISEV <- gsub("4 OF 4", "5",Example$mi$MISEV)
   Example$mi$MISEV <- gsub("SEVERE", "5",Example$mi$MISEV)
+  Example$mi$MISEV <- gsub("1 OF 3", "1",Example$mi$MISEV)
+  Example$mi$MISEV <- gsub("2 OF 3", "3",Example$mi$MISEV)
+  Example$mi$MISEV <- gsub("3 OF 3", "5",Example$mi$MISEV)
 ind <- which(Example$mi$MISEV=='')
  Example$mi$MISEV[ind] <- '0'
         Example$mi$MISEV <- ordered(Example$mi$MISEV,
