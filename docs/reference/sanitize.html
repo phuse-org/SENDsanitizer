@@ -56,7 +56,8 @@
 <span>  number <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  write_xpt <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  setcd <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  test_original <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  test_original <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  app <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -102,10 +103,17 @@ also add setcd for recovery group c('1','2','3','4','1R','2R','3R','4R')</p></dd
 
 <dt id="arg-test-original">test_original<a class="anchor" aria-label="anchor" href="#arg-test-original"></a></dt>
 <dd><p>mandatory, boolean<br>
-This will print dataset that have original value and generated value.
+This will print dataset that have original(real) value and generated(synthetic) value.
 This is just comparison purpose.
 In RStudio IDE, you can see all the datasets and visually inspect.<br>
 default FALSE.</p></dd>
+
+
+<dt id="arg-app">app<a class="anchor" aria-label="anchor" href="#arg-app"></a></dt>
+<dd><p>Mandatory, boolean<br>
+Only true if function is calling from shiny app. In that case,
+all generated synthetic data will be saved in list of dataframe.
+Default FALSE.</p></dd>
 
 </dl></div>
 
