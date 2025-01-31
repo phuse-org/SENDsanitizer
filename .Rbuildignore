@@ -49,3 +49,9 @@
 ^app\.R$
 ^vignettes$
 ^fake_app_test$
+^all_fakedata_2025$
+^all_fakedata_2025_final$
+^all_fakedata_2025_not_liver$
+^create_articles_R_files$
+^all_pfda_synthetic_data_not_liver\.R$
+^all_pfda_synthetic_data\.R$
