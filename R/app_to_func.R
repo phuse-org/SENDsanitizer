@@ -64,7 +64,9 @@
 # what will happen when visitday not present but dsnomdy present
 # before NA lbtestcd removed, check if > < in LBSTRESC
 # sequence current
-#ts,dm,tx
+# need extra domain ds, pc
+# create seven domain
+#ts,tx,dm
 #bw,lb,om,mi
 # start here
 sanitize <- function(path,
@@ -109,12 +111,19 @@ sanitize <- function(path,
     avl_domains <- tools::file_path_sans_ext(basename(all_xpt_files))
   if('pooldef' %in% avl_domains){
 
-    domains <-  c("bw","dm","ds","ex","lb","mi",
-      "ta","ts","tx","om","pooldef","pc")
+    ## domains <-  c("bw","dm","ds","ex","lb","mi",
+    ##   "ta","ts","tx","om","pooldef","pc")
+
+    domains <-  c("bw","dm","ds","lb","mi",
+      "ts","tx","om","pooldef","pc")
   } else {
 
-    domains <-  c("bw","dm","ds","ex","lb","mi",
-      "ta","ts","tx","om","pc")
+    ## domains <-  c("bw","dm","ds","ex","lb","mi",
+    ##   "ta","ts","tx","om","pc")
+# ds, pc, ex,
+    domains <-  c("bw","dm","ds","lb","mi",
+
+    "ts","tx","om","pc")
 
   }
 

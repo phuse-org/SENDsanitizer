@@ -36,6 +36,30 @@ SENDsanitizer::sanitize(path='path/to/directory/of/xpt/files/of/study/',
 where_to_save='path/to/directory/where/generated/files/should/be/saved/')
 
 ```
+
+##### input  
+Following domain data must be in a direcotry to generate synthetic data.  
+study_dir/  
+  - ds.xpt
+  - pc.xpt
+  - tx.xpt
+  - ts.xpt
+  - dm.xpt
+  - bw.xpt
+  - lb.xpt
+  - mi.xpt
+  - om.xpt
+
+##### output   
+Synthetic data will be generated for following domain:  
+ save_dir/  
+  - tx.xpt
+  - ts.xpt
+  - dm.xpt
+  - bw.xpt
+  - lb.xpt
+  - mi.xpt
+  - om.xpt
  
  
 #### To generate one synthetic study dataset from multiple real study  
