@@ -47,14 +47,14 @@ filter_tk_rec <- function(Example=Example,recovery=FALSE){
 #' @param write_xpt whether write xpt file or return list of datafram
 #' default TRUE, which means it will write xpt file in where_to_save directory.
 #' @return write xpt file in the where_to_save directory if write_xpt TRUE.
-#' If FALSE, it return a list. any domain can be access by df$data$lb and
+#' If FALSE, it return a list. See example.
 #' metadata can be access by df$setcd. See examples.
 #' @examples
 #' \dontrun{
 #' filter_tk_write_xpt(xpt_path, where_to_save)
 #'
 #' df <- filter_tk_write_xpt(path,write_xpt=FALSE)
-#' # df$data contain list of domain's dataframe
+#' # df$data contain list of dataframe for domains
 #' # df$setcd contain list of metadata.
 #' # LB domain can be access by df$data$lb
 #'
